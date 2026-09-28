@@ -26,6 +26,7 @@ public class InventoryService {
     private final StockAdjustmentRepository adjustmentRepo;
     private final OrderItemBatchRepository allocationRepo;
     private final NotificationService notifications;
+    private final CustomerCareService care;
 
     @Getter
     @Setter
@@ -103,6 +104,10 @@ public class InventoryService {
                 batchRepo.save(b);
             }
         }
+        if (approve) {
+            batchRepo.flush();
+            r.getItems().stream().map(ReceiptItem::getProduct).distinct().forEach(care::notifyBackInStock);
+        }
         r.setStatus(approve ? ApprovalStatus.APPROVED : ApprovalStatus.REJECTED);
         r.setApprovedBy(admin);
         r.setApprovedAt(LocalDateTime.now());
@@ -119,6 +124,10 @@ public class InventoryService {
         if (!b.isLocked() && Texts.isBlank(reason)) throw new BusinessException("Vui lòng nhập lý do khóa lô (VD: thu hồi theo công văn...).");
         b.setLocked(!b.isLocked());
         b.setLockReason(b.isLocked() ? Texts.trim(reason, 300) : null);
+        if (!b.isLocked()) {
+            batchRepo.flush();
+            care.notifyBackInStock(b.getProduct());
+        }
         notifications.log(user, b.isLocked() ? "batch.lock" : "batch.unlock",
                 b.getProduct().getName() + " - lô " + b.getBatchNo() + (b.isLocked() ? ": " + reason : ""));
         return b;
@@ -138,6 +147,10 @@ public class InventoryService {
         a.setReason(Texts.trim(reason, 300));
         a.setUser(user);
         adjustmentRepo.save(a);
+        if (quantity > 0) {
+            batchRepo.flush();
+            care.notifyBackInStock(b.getProduct());
+        }
         notifications.log(user, "batch.adjust", b.getProduct().getName() + " - lô " + b.getBatchNo() + ": " + (quantity > 0 ? "+" : "") + quantity + " (" + reason + ")");
         return b;
     }

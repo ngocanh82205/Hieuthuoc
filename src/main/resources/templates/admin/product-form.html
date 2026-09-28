@@ -53,6 +53,15 @@
                                 <div class="col-6"><label class="form-label">Giá gốc (đ)</label><input type="number" name="oldPrice" min="0" class="form-control" th:value="*{oldPrice}">
                                     <div class="form-text">Để hiện giảm giá. Không áp dụng cho thuốc kê đơn.</div></div>
                                 <div class="col-6"><label class="form-label">Tối đa/đơn</label><input type="number" name="maxPerOrder" min="0" class="form-control" th:value="*{maxPerOrder}"></div>
+                                <div class="col-12">
+                                    <label class="form-label">Đơn vị quy đổi <span class="text-muted small">(tồn kho & giới hạn tính theo đơn vị gốc)</span></label>
+                                    <div class="row g-1 mb-1" th:each="i : ${#numbers.sequence(0, 2)}" th:with="u=${i < product.units.size() ? product.units[i] : null}">
+                                        <div class="col-4"><input name="unitNames" class="form-control form-control-sm" placeholder="VD: Hộp" th:value="${u != null ? u.name : ''}"></div>
+                                        <div class="col-4"><input type="number" min="2" name="unitFactors" class="form-control form-control-sm" placeholder="= ? đv gốc" th:value="${u != null ? u.factor : ''}"></div>
+                                        <div class="col-4"><input type="number" min="1" name="unitPrices" class="form-control form-control-sm" placeholder="Giá (đ)" th:value="${u != null ? u.price : ''}"></div>
+                                    </div>
+                                    <div class="form-text">VD: đơn vị gốc "Vỉ", thêm "Hộp" = 10 (vỉ), giá 85.000.</div>
+                                </div>
                                 <div class="col-6"><label class="form-label">Định mức tồn</label><input type="number" name="minStock" min="0" class="form-control" th:value="*{minStock}"></div>
                                 <div class="col-12 form-check ms-2">
                                     <input type="checkbox" class="form-check-input" name="active" value="true" id="active" th:checked="*{active}">

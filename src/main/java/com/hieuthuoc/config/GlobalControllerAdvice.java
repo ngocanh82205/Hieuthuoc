@@ -35,6 +35,7 @@ public class GlobalControllerAdvice {
     private final SettingService settings;
     private final CategoryRepository categoryRepo;
     private final NotificationRepository notificationRepo;
+    private final com.hieuthuoc.service.CustomerCareService care;
 
     @ModelAttribute("currentUser")
     public User currentUser() {
@@ -60,6 +61,13 @@ public class GlobalControllerAdvice {
     @ModelAttribute("unreadCount")
     public long unreadCount(Model model) {
         return model.getAttribute("currentUser") instanceof User user ? notificationRepo.countByUserAndSeenFalse(user) : 0;
+    }
+
+    /** Id sản phẩm trong danh sách yêu thích của khách (để tô trái tim trên thẻ sản phẩm). */
+    @ModelAttribute("wishlistIds")
+    public java.util.Set<Long> wishlistIds(Model model) {
+        return model.getAttribute("currentUser") instanceof User user && user.getRole() == com.hieuthuoc.entity.Role.CUSTOMER
+                ? care.wishlistIds(user) : java.util.Set.of();
     }
 
     @ModelAttribute("requestPath")

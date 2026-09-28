@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
-    @Query("select oi.product.id, sum(oi.quantity) from OrderItem oi where oi.order.status in :statuses group by oi.product.id")
+    @Query("select oi.product.id, sum(oi.quantity * coalesce(oi.unitFactor, 1)) from OrderItem oi where oi.order.status in :statuses group by oi.product.id")
     List<Object[]> sumQuantityByProduct(@Param("statuses") Collection<OrderStatus> statuses);
 
     @Query("""

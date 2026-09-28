@@ -228,3 +228,73 @@
         if (bag && bag.animate) bag.animate([{transform: 'scale(1)'}, {transform: 'scale(1.35) rotate(-10deg)'}, {transform: 'scale(1)'}], {duration: 500, delay: 300});
     });
 })();
+
+/* ===== Yêu thích (AJAX) & thông báo mới (toast) ===== */
+(function () {
+    'use strict';
+    var headers = function () {
+        var t = document.querySelector('meta[name="_csrf"]'), h = document.querySelector('meta[name="_csrf_header"]');
+        var o = {'Accept': 'application/json'};
+        if (t && h) o[h.content] = t.content;
+        return o;
+    };
+    document.addEventListener('submit', function (e) {
+        var form = e.target;
+        if (!form.classList.contains('js-wish')) return;
+        if (!document.querySelector('meta[name="logged-in"]')) return; // chưa đăng nhập -> submit thường để chuyển tới trang đăng nhập
+        e.preventDefault();
+        fetch(form.action, {method: 'POST', headers: headers(), body: new FormData(form)})
+            .then(function (r) { if (!r.ok) throw r; return r.json(); })
+            .then(function (d) {
+                var btn = form.querySelector('.wish-btn'), icon = btn.querySelector('i');
+                btn.classList.toggle('on', d.added);
+                icon.className = 'bi ' + (d.added ? 'bi-heart-fill' : 'bi-heart');
+            })
+            .catch(function () { form.submit(); });
+    });
+
+    // Kiểm tra thông báo mới mỗi 30 giây (VD: nhắc giờ uống thuốc, đơn thuốc đã duyệt)
+    if (!document.querySelector('meta[name="logged-in"]')) return;
+    var seen = {};
+    var first = true;
+    var box = document.getElementById('toastBox');
+    var check = function () {
+        fetch('/notifications/unread', {headers: {'Accept': 'application/json'}})
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (d) {
+                if (!d) return;
+                document.querySelectorAll('.bi-bell').forEach(function (bell) {
+                    var holder = bell.parentElement, badge = holder.querySelector('.badge');
+                    if (d.count > 0) {
+                        if (!badge) {
+                            badge = document.createElement('span');
+                            badge.className = 'badge rounded-pill bg-danger position-absolute top-0 start-100 translate-middle';
+                            holder.appendChild(badge);
+                        }
+                        badge.textContent = d.count;
+                    } else if (badge) badge.remove();
+                });
+                (d.latest || []).forEach(function (n) {
+                    if (seen[n.id]) return;
+                    seen[n.id] = true;
+                    if (first || !box || !window.bootstrap) return;
+                    var el = document.createElement('div');
+                    el.className = 'toast border-0';
+                    var body = document.createElement('a');
+                    body.className = 'toast-body d-block text-reset';
+                    body.href = n.link || '/notifications';
+                    var icon = document.createElement('i');
+                    icon.className = 'bi bi-bell-fill text-primary me-2';
+                    body.appendChild(icon);
+                    body.appendChild(document.createTextNode(n.message));
+                    el.appendChild(body);
+                    box.appendChild(el);
+                    new bootstrap.Toast(el, {delay: 8000}).show();
+                });
+                first = false;
+            })
+            .catch(function () {});
+    };
+    check();
+    setInterval(check, 30000);
+})();

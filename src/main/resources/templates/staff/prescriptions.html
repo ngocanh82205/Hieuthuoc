@@ -22,8 +22,9 @@
                         <tr th:each="rx : ${list}">
                             <td th:text="${rx.id}"></td>
                             <td><div class="fw-semibold" th:text="${rx.user.fullName}"></div><small class="text-muted" th:text="${rx.user.phone}"></small></td>
-                            <td><a th:href="@{/staff/orders/{id}(id=${rx.order.id})}" th:text="${rx.order.code}"></a>
+                            <td th:if="${rx.order != null}"><a th:href="@{/staff/orders/{id}(id=${rx.order.id})}" th:text="${rx.order.code}"></a>
                                 <div class="small" th:text="${@fmt.money(rx.order.total)}"></div></td>
+                            <td th:if="${rx.order == null}"><span class="badge text-bg-info">Nhờ lên đơn</span></td>
                             <td class="small" th:text="${@fmt.dateTime(rx.createdAt)}"></td>
                             <td class="small" th:text="${rx.pharmacist != null ? rx.pharmacist.fullName : '-'}"></td>
                             <td class="small" th:text="${rx.status.name() == 'REJECTED' ? rx.rejectReason : rx.customerNote}"></td>

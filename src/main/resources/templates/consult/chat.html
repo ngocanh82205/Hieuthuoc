@@ -46,6 +46,19 @@
                     <p class="text-danger mb-0"><i class="bi bi-exclamation-triangle"></i> Trường hợp cấp cứu, hãy gọi 115 hoặc đến cơ sở y tế gần nhất.</p>
                 </div>
             </div>
+            <div class="card mt-3">
+                <div class="card-header"><i class="bi bi-telephone-inbound text-primary me-1"></i>Muốn nói chuyện trực tiếp?</div>
+                <form class="card-body" th:action="@{/callback}" method="post">
+                    <p class="small text-muted">Để lại số điện thoại, dược sĩ sẽ gọi lại cho bạn theo khung giờ đã chọn.</p>
+                    <input name="name" class="form-control form-control-sm mb-2" th:value="${currentUser.fullName}" required placeholder="Họ tên">
+                    <input name="phone" class="form-control form-control-sm mb-2" th:value="${currentUser.phone}" required pattern="0[0-9]{9,10}" placeholder="Số điện thoại">
+                    <select name="preferredTime" class="form-select form-select-sm mb-2">
+                        <option>Càng sớm càng tốt</option><option>Sáng (8h - 11h)</option><option>Trưa (11h - 14h)</option>
+                        <option>Chiều (14h - 17h)</option><option>Tối (17h - 21h)</option></select>
+                    <textarea name="note" class="form-control form-control-sm mb-2" rows="2" maxlength="500" placeholder="Nội dung cần tư vấn"></textarea>
+                    <button class="btn btn-primary btn-sm w-100">Yêu cầu gọi lại</button>
+                </form>
+            </div>
         </div>
     </div>
 </main>

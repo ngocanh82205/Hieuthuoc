@@ -1,6 +1,8 @@
 package com.hieuthuoc.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
@@ -19,8 +21,12 @@ public class Prescription {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    /** Đơn hàng gắn với đơn thuốc. Null khi khách gửi đơn thuốc chưa chọn sản phẩm (chờ dược sĩ lên đơn). */
+    @ManyToOne(fetch = FetchType.LAZY)
     private Order order;
+
+    /** true = khách gửi đơn thuốc không kèm sản phẩm, nhờ dược sĩ lên đơn. */
+    private Boolean standalone;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     private User user;
@@ -33,6 +39,7 @@ public class Prescription {
     private String customerNote;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(nullable = false, length = 20)
     private ApprovalStatus status = ApprovalStatus.PENDING;
 
@@ -60,6 +67,10 @@ public class Prescription {
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
+
+    public boolean isStandalone() {
+        return Boolean.TRUE.equals(standalone);
+    }
 
     @PrePersist
     void prePersist() {

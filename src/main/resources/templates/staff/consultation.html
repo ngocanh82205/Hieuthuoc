@@ -43,7 +43,7 @@
                 <div class="col-xl-4">
                     <div class="health-box p-3 mb-3 small">
                         <div class="fw-semibold mb-2"><i class="bi bi-heart-pulse text-danger"></i> Hồ sơ sức khỏe</div>
-                        <div th:text="${customer.phone} + ' · ' + ${customer.email}"></div>
+                        <div th:text="${customer.phone} + (${customer.email != null} ? ' · ' + ${customer.email} : '')"></div>
                         <div th:if="${customer.gender != null || customer.birthday != null}" th:text="${customer.gender ?: ''} + ' ' + (${customer.birthday != null} ? 'sinh ' + ${@fmt.date(customer.birthday)} : '')"></div>
                         <div><strong>Dị ứng:</strong> <span th:text="${customer.allergies ?: 'Không ghi nhận'}"></span></div>
                         <div><strong>Bệnh nền:</strong> <span th:text="${customer.chronicConditions ?: 'Không ghi nhận'}"></span></div>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body>
+<header th:replace="~{fragments/layout :: navbar}"></header>
+<main class="container py-4">
+    <div class="row g-4">
+        <aside class="col-lg-3"><div th:replace="~{fragments/layout :: accountMenu}"></div></aside>
+        <section class="col-lg-9">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-file-earmark-medical text-primary me-1"></i>Gửi đơn thuốc cho dược sĩ</div>
+                <div class="card-body">
+                    <p class="small text-muted">Chưa biết chọn sản phẩm nào? Chụp ảnh đơn thuốc của bác sĩ và gửi cho chúng tôi. Dược sĩ sẽ đọc đơn,
+                        lên đơn hàng và báo giá. Bạn chỉ cần xem lại và xác nhận. Đơn thuốc cần rõ thông tin bác sĩ, cơ sở khám, ngày kê và còn hiệu lực.</p>
+                    <form th:action="@{/account/prescriptions}" method="post" enctype="multipart/form-data" class="row g-2">
+                        <div class="col-md-6">
+                            <input type="file" name="prescription" class="form-control" accept="image/jpeg,image/png,image/webp,image/gif" required data-preview="rxPrev">
+                            <img id="rxPrev" class="img-thumbnail d-none mt-2" style="max-height: 180px" alt="Xem trước">
+                        </div>
+                        <div class="col-md-6"><textarea name="note" class="form-control" rows="2" maxlength="500" placeholder="Ghi chú cho dược sĩ (VD: chỉ mua thuốc số 1, 2)"></textarea></div>
+                        <div class="col-12"><button class="btn btn-primary"><i class="bi bi-send"></i> Gửi đơn thuốc</button></div>
+                    </form>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">Đơn thuốc đã gửi</div>
+                <ul class="list-group list-group-flush">
+                    <li th:if="${list.isEmpty()}" class="list-group-item text-muted">Bạn chưa gửi đơn thuốc nào.</li>
+                    <li class="list-group-item d-flex gap-3 align-items-center" th:each="rx : ${list}">
+                        <a th:href="@{/files/prescriptions/{f}(f=${rx.image})}" target="_blank">
+                            <img th:src="@{/files/prescriptions/{f}(f=${rx.image})}" alt="Đơn thuốc" class="img-thumbnail" style="width: 70px; height: 90px; object-fit: cover"></a>
+                        <div class="flex-grow-1 small">
+                            <div><span class="badge" th:classappend="'text-bg-' + ${rx.status.color}" th:text="${rx.status.name() == 'APPROVED'} ? 'Đã lên đơn' : ${rx.status.label}"></span>
+                                <span class="text-muted" th:text="'Gửi lúc ' + ${@fmt.dateTime(rx.createdAt)}"></span></div>
+                            <div th:if="${rx.customerNote != null}" th:text="'Ghi chú: ' + ${rx.customerNote}"></div>
+                            <div th:if="${rx.rejectReason != null}" class="text-danger" th:text="'Lý do từ chối: ' + ${rx.rejectReason}"></div>
+                            <div th:if="${rx.pharmacistNote != null}"><i class="bi bi-chat-quote"></i> <span th:text="${rx.pharmacistNote}"></span></div>
+                        </div>
+                        <a th:if="${rx.order != null}" th:href="@{/account/orders/{c}(c=${rx.order.code})}" class="btn btn-sm btn-primary">Xem đơn hàng</a>
+                    </li>
+                </ul>
+            </div>
+        </section>
+    </div>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

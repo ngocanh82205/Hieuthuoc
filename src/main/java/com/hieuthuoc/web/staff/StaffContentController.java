@@ -30,6 +30,9 @@ public class StaffContentController {
     private final ChatService chatService;
     private final NotificationService notifications;
     private final CurrentUser currentUser;
+    private final ProductQuestionRepository questionRepo;
+    private final CallbackRequestRepository callbackRepo;
+    private final CustomerCareService care;
 
     /* ---------------- Tư vấn ---------------- */
 
@@ -77,6 +80,49 @@ public class StaffContentController {
     public String close(@PathVariable Long id) {
         chatService.toggleClosed(id, currentUser.get());
         return "redirect:/staff/consultations/" + id;
+    }
+
+    /* ---------------- Hỏi đáp sản phẩm ---------------- */
+
+    @GetMapping("/questions")
+    public String questions(@RequestParam(defaultValue = "false") boolean all, Model model) {
+        model.addAttribute("list", all ? questionRepo.findTop200ByOrderByCreatedAtDesc() : questionRepo.findByAnswerIsNullAndHiddenFalseOrderByCreatedAtAsc());
+        model.addAttribute("all", all);
+        model.addAttribute("title", "Hỏi đáp sản phẩm");
+        return "staff/questions";
+    }
+
+    @PostMapping("/questions/{id}/answer")
+    @Transactional
+    public String answer(@PathVariable Long id, @RequestParam String answer, RedirectAttributes ra) {
+        care.answer(id, currentUser.get(), answer);
+        Flash.success(ra, "Đã trả lời câu hỏi.");
+        return "redirect:/staff/questions";
+    }
+
+    @PostMapping("/questions/{id}/toggle")
+    @Transactional
+    public String toggleQuestion(@PathVariable Long id) {
+        care.toggleQuestionHidden(id, currentUser.get());
+        return "redirect:/staff/questions?all=true";
+    }
+
+    /* ---------------- Yêu cầu gọi lại ---------------- */
+
+    @GetMapping("/callbacks")
+    public String callbacks(@RequestParam(defaultValue = "false") boolean done, Model model) {
+        model.addAttribute("list", done ? callbackRepo.findTop100ByDoneOrderByHandledAtDesc(true) : callbackRepo.findByDoneOrderByCreatedAtAsc(false));
+        model.addAttribute("done", done);
+        model.addAttribute("title", "Yêu cầu gọi lại");
+        return "staff/callbacks";
+    }
+
+    @PostMapping("/callbacks/{id}/done")
+    @Transactional
+    public String callbackDone(@PathVariable Long id, @RequestParam(required = false) String result, RedirectAttributes ra) {
+        care.completeCallback(id, currentUser.get(), result);
+        Flash.success(ra, "Đã đánh dấu hoàn thành cuộc gọi.");
+        return "redirect:/staff/callbacks";
     }
 
     /* ---------------- Đánh giá ---------------- */

@@ -35,6 +35,7 @@
                     <div class="d-flex align-items-baseline gap-2 mb-3">
                         <span class="price fs-3" th:text="${@fmt.money(p.price)}">0 ₫</span>
                         <span class="text-muted">/ <span th:text="${p.unit}"></span></span>
+                        <span th:each="u : ${p.units}" class="badge text-bg-light border ms-1" th:text="${u.name} + ' ' + ${@fmt.money(u.price)}"></span>
                         <del th:if="${p.onSale}" class="text-muted" th:text="${@fmt.money(p.oldPrice)}"></del>
                         <span th:if="${p.onSale}" class="badge bg-danger" th:text="'-' + ${p.discountPercent} + '%'"></span>
                     </div>
@@ -50,6 +51,8 @@
                                 <span th:if="${p.drugType.name() != 'SPECIAL' && p.available > 0}" class="text-success">
                                     <i class="bi bi-check-circle"></i> Còn hàng</span>
                                 <span th:if="${p.drugType.name() != 'SPECIAL' && p.available <= 0}" class="text-muted">Tạm hết hàng</span>
+                                <span th:if="${p.drugType.name() != 'SPECIAL' && p.available > 0}" class="text-muted small"
+                                      th:text="'(' + ${p.available} + ' ' + ${p.unit} + ')'"></span>
                                 <span th:if="${p.maxPerOrder != null && p.drugType.name() != 'SPECIAL'}" class="text-muted small">
                                     · Tối đa <span th:text="${p.maxPerOrder}"></span> <span th:text="${p.unit}"></span>/đơn</span>
                             </td>
@@ -66,16 +69,51 @@
                         Vui lòng mang đơn thuốc đến trực tiếp nhà thuốc.
                     </div>
 
-                    <form th:if="${p.drugType.name() != 'SPECIAL' && p.available > 0}" th:action="@{/cart/add}" method="post" class="js-add-cart d-flex flex-wrap gap-2">
+                    <form th:if="${p.drugType.name() != 'SPECIAL' && p.available > 0}" th:action="@{/cart/add}" method="post" class="js-add-cart">
                         <input type="hidden" name="productId" th:value="${p.id}">
-                        <div class="input-group" style="width: 140px">
-                            <span class="input-group-text">SL</span>
-                            <input type="number" name="qty" value="1" min="1" th:max="${p.maxPerOrder != null ? p.maxPerOrder : p.available}" class="form-control">
+                        <div class="mb-3 unit-picker" th:if="${p.unitOptions.size() > 1}">
+                            <div class="small fw-semibold mb-2">Chọn đơn vị tính</div>
+                            <div class="d-flex flex-wrap gap-2">
+                                <th:block th:each="u, st : ${p.unitOptions}">
+                                    <input type="radio" class="btn-check" name="unitId" th:id="'unit' + ${st.index}" th:value="${u.id()}" th:checked="${st.first}">
+                                    <label class="btn btn-outline-primary" th:for="'unit' + ${st.index}">
+                                        <strong th:text="${u.name()}">Vỉ</strong>
+                                        <small th:text="${@fmt.money(u.price())} + (${u.factor() > 1} ? ' · ' + ${u.factor()} + ' ' + ${p.unit} : '')"></small>
+                                    </label>
+                                </th:block>
+                            </div>
                         </div>
-                        <button class="btn btn-outline-primary"><i class="bi bi-bag-plus"></i> Thêm vào giỏ</button>
-                        <button class="btn btn-primary" name="buyNow" value="1"><i class="bi bi-lightning"></i> Mua ngay</button>
+                        <input th:if="${p.unitOptions.size() == 1}" type="hidden" name="unitId" value="0">
+                        <div class="d-flex flex-wrap gap-2">
+                            <div class="input-group" style="width: 140px">
+                                <span class="input-group-text">SL</span>
+                                <input type="number" name="qty" value="1" min="1" max="999" class="form-control">
+                            </div>
+                            <button class="btn btn-outline-primary"><i class="bi bi-bag-plus"></i> Thêm vào giỏ</button>
+                            <button class="btn btn-primary" name="buyNow" value="1"><i class="bi bi-lightning"></i> Mua ngay</button>
+                        </div>
                     </form>
-                    <a th:href="@{/consult}" class="btn btn-link px-0 mt-2"><i class="bi bi-chat-dots"></i> Cần tư vấn? Hỏi dược sĩ</a>
+
+                    <!-- Hết hàng: đăng ký nhận thông báo -->
+                    <div th:if="${p.drugType.name() != 'SPECIAL' && p.available <= 0}" class="alert alert-info d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <span><i class="bi bi-bell me-1"></i>Sản phẩm tạm hết hàng.
+                            <span th:if="${subscribed}">Bạn đã đăng ký nhận thông báo khi có hàng.</span></span>
+                        <form th:action="@{/stock-alert/{id}(id=${p.id})}" method="post">
+                            <input th:if="${subscribed}" type="hidden" name="cancel" value="true">
+                            <button class="btn btn-sm" th:classappend="${subscribed} ? 'btn-outline-secondary' : 'btn-primary'"
+                                    th:text="${subscribed} ? 'Hủy đăng ký' : 'Báo khi có hàng'"></button>
+                        </form>
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-2 mt-3">
+                        <form th:if="${currentUser == null || currentUser.role.name() == 'CUSTOMER'}" th:action="@{/wishlist/toggle/{id}(id=${p.id})}" method="post">
+                            <button class="btn btn-light" th:with="on=${wishlistIds.contains(p.id)}">
+                                <i class="bi" th:classappend="${on} ? 'bi-heart-fill text-danger' : 'bi-heart'"></i>
+                                <span th:text="${on} ? 'Đã yêu thích' : 'Yêu thích'"></span></button>
+                        </form>
+                        <a th:href="@{/consult}" class="btn btn-light"><i class="bi bi-chat-dots"></i> Chat với dược sĩ</a>
+                        <button type="button" class="btn btn-light" data-bs-toggle="modal" data-bs-target="#callbackModal"><i class="bi bi-telephone"></i> Yêu cầu gọi lại</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -133,6 +171,33 @@
                     </div>
                 </div>
             </div>
+
+            <div class="card mt-4" id="qa">
+                <div class="card-header"><i class="bi bi-question-circle text-primary me-1"></i>Hỏi đáp với dược sĩ</div>
+                <div class="card-body">
+                    <form th:if="${currentUser != null && currentUser.role.name() == 'CUSTOMER'}" th:action="@{/products/{s}/questions(s=${p.slug})}" method="post" class="mb-4">
+                        <textarea name="question" class="form-control mb-2" rows="2" minlength="10" maxlength="1000" required
+                                  placeholder="Đặt câu hỏi về sản phẩm (cách dùng, đối tượng dùng, tương tác thuốc...)"></textarea>
+                        <button class="btn btn-primary btn-sm"><i class="bi bi-send"></i> Gửi câu hỏi</button>
+                    </form>
+                    <p th:if="${currentUser == null}" class="small"><a th:href="@{/login}">Đăng nhập</a> để đặt câu hỏi cho dược sĩ.</p>
+                    <div th:each="q : ${myPendingQuestions}" class="qa-item mb-3">
+                        <div><i class="bi bi-person-circle text-muted me-1"></i><strong>Bạn</strong> <span class="text-muted small" th:text="${@fmt.dateTime(q.createdAt)}"></span></div>
+                        <div th:text="${q.question}"></div>
+                        <span class="badge text-bg-warning mt-1">Đang chờ dược sĩ trả lời</span>
+                    </div>
+                    <p th:if="${questions.isEmpty() && myPendingQuestions.isEmpty()}" class="text-muted mb-0">Chưa có câu hỏi nào.</p>
+                    <div th:each="q : ${questions}" class="qa-item mb-3">
+                        <div><i class="bi bi-person-circle text-muted me-1"></i><strong th:text="${q.user.fullName}"></strong>
+                            <span class="text-muted small" th:text="${@fmt.dateTime(q.createdAt)}"></span></div>
+                        <div th:text="${q.question}"></div>
+                        <div class="qa-answer small">
+                            <div class="fw-semibold text-primary"><i class="bi bi-patch-check-fill me-1"></i><span th:text="${q.answeredBy != null ? q.answeredBy.fullName : 'Dược sĩ'}"></span></div>
+                            <div th:text="${q.answer}"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         <div class="col-lg-4">
             <div class="card mb-4" th:if="${!equivalents.isEmpty()}">
@@ -159,6 +224,28 @@
                     </li>
                 </ul>
             </div>
+        </div>
+    </div>
+    <div class="modal fade" id="callbackModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form class="modal-content" th:action="@{/callback}" method="post">
+                <div class="modal-header"><h5 class="modal-title"><i class="bi bi-telephone-inbound text-primary me-1"></i>Yêu cầu dược sĩ gọi lại</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
+                <div class="modal-body">
+                    <input type="hidden" name="productId" th:value="${p.id}">
+                    <div class="mb-2"><label class="form-label small">Họ tên</label>
+                        <input name="name" class="form-control" required th:value="${currentUser != null ? currentUser.fullName : ''}"></div>
+                    <div class="mb-2"><label class="form-label small">Số điện thoại</label>
+                        <input name="phone" class="form-control" required pattern="0[0-9]{9,10}" th:value="${currentUser != null ? currentUser.phone : ''}"></div>
+                    <div class="mb-2"><label class="form-label small">Khung giờ thuận tiện</label>
+                        <select name="preferredTime" class="form-select">
+                            <option>Càng sớm càng tốt</option><option>Sáng (8h - 11h)</option><option>Trưa (11h - 14h)</option>
+                            <option>Chiều (14h - 17h)</option><option>Tối (17h - 21h)</option></select></div>
+                    <div><label class="form-label small">Nội dung cần tư vấn</label>
+                        <textarea name="note" class="form-control" rows="2" maxlength="500" th:text="'Tư vấn về ' + ${p.name}"></textarea></div>
+                </div>
+                <div class="modal-footer"><button class="btn btn-primary">Gửi yêu cầu</button></div>
+            </form>
         </div>
     </div>
 </main>

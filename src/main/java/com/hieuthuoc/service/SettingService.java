@@ -28,10 +28,14 @@ public class SettingService {
         def("near_expiry_days", "90", "Cảnh báo cận hạn trước (ngày)");
         def("return_days", "7", "Thời hạn đổi/trả (ngày)");
         def("points_per_amount", "10000", "Số tiền cho 1 điểm tích lũy (đ)");
+        def("point_value", "1000", "Giá trị quy đổi 1 điểm khi thanh toán (đ)");
+        def("bank_code", "VCB", "Mã ngân hàng (VietQR, VD: VCB, TCB, MB)");
+        def("bank_account", "0123456789", "Số tài khoản nhận chuyển khoản");
+        def("bank_holder", "CONG TY CP VINAPHARMA", "Chủ tài khoản");
     }
 
     public static final java.util.Set<String> NUMERIC = java.util.Set.of(
-            "shipping_fee", "free_ship_threshold", "near_expiry_days", "return_days", "points_per_amount");
+            "shipping_fee", "free_ship_threshold", "near_expiry_days", "return_days", "points_per_amount", "point_value");
 
     private static void def(String key, String value, String label) {
         DEFAULTS.put(key, value);

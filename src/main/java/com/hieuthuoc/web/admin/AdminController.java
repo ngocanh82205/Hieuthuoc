@@ -39,6 +39,7 @@ public class AdminController {
     private final AccountService accountService;
     private final NotificationService notifications;
     private final CurrentUser currentUser;
+    private final PasswordResetRequestRepository resetRepo;
 
     @GetMapping
     public String dashboard(Model model) {
@@ -55,6 +56,7 @@ public class AdminController {
         model.addAttribute("inventoryValue", reportService.inventoryValue(settings.getLong("near_expiry_days"))[0]);
         model.addAttribute("pendingReceipts", receiptRepo.countByStatus(ApprovalStatus.PENDING));
         model.addAttribute("pendingRx", prescriptionRepo.countByStatus(ApprovalStatus.PENDING));
+        model.addAttribute("pendingResets", resetRepo.countByHandledFalse());
         model.addAttribute("chartLabels", days.stream().map(d -> d.day().format(DateTimeFormatter.ofPattern("dd/MM"))).toList());
         model.addAttribute("chartRevenue", days.stream().map(ReportService.DayRow::revenue).toList());
         model.addAttribute("chartOrders", days.stream().map(ReportService.DayRow::orders).toList());
@@ -181,6 +183,40 @@ public class AdminController {
         notifications.log(currentUser.get(), "customer.points", c.getEmail() + ": " + (delta > 0 ? "+" : "") + delta + " (" + reason + ")");
         Flash.success(ra, "Đã điều chỉnh điểm tích lũy.");
         return "redirect:/admin/customers/" + id;
+    }
+
+    @PostMapping("/users/{id}/reset-password")
+    @Transactional
+    public String resetPassword(@PathVariable Long id, @RequestParam(required = false) Long requestId, RedirectAttributes ra) {
+        User target = userRepo.findById(id).orElseThrow(() -> BusinessException.notFound("Không tìm thấy tài khoản."));
+        String temp = accountService.resetPassword(target, currentUser.get());
+        if (requestId != null) resetRepo.findById(requestId).ifPresent(r -> {
+            r.setHandled(true);
+            r.setHandledBy(currentUser.get());
+            r.setHandledAt(java.time.LocalDateTime.now());
+        });
+        Flash.success(ra, "Mật khẩu tạm của " + target.getFullName() + " là: " + temp + " - hãy gọi điện báo cho khách và nhắc đổi mật khẩu.");
+        return requestId != null ? "redirect:/admin/password-resets" : (target.getRole() == Role.CUSTOMER ? "redirect:/admin/customers/" + id : "redirect:/admin/users");
+    }
+
+    @GetMapping("/password-resets")
+    public String passwordResets(@RequestParam(defaultValue = "false") boolean handled, Model model) {
+        model.addAttribute("list", resetRepo.findByHandledOrderByCreatedAtDesc(handled));
+        model.addAttribute("handled", handled);
+        model.addAttribute("title", "Yêu cầu quên mật khẩu");
+        return "admin/password-resets";
+    }
+
+    @PostMapping("/password-resets/{id}/close")
+    @Transactional
+    public String closeReset(@PathVariable Long id, RedirectAttributes ra) {
+        resetRepo.findById(id).ifPresent(r -> {
+            r.setHandled(true);
+            r.setHandledBy(currentUser.get());
+            r.setHandledAt(java.time.LocalDateTime.now());
+        });
+        Flash.info(ra, "Đã đóng yêu cầu.");
+        return "redirect:/admin/password-resets";
     }
 
     /* ---------------- Báo cáo ---------------- */

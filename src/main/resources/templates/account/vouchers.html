@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body>
+<header th:replace="~{fragments/layout :: navbar}"></header>
+<main class="container py-4">
+    <div class="row g-4">
+        <aside class="col-lg-3"><div th:replace="~{fragments/layout :: accountMenu}"></div></aside>
+        <section class="col-lg-9">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <h1 class="h5 fw-bold mb-3"><i class="bi bi-ticket-perforated text-primary me-1"></i>Kho voucher của tôi</h1>
+            <div th:if="${saved.isEmpty()}" class="card card-body text-muted mb-4">Kho voucher đang trống. Lưu các voucher bên dưới để dùng khi thanh toán.</div>
+            <div class="row g-3 mb-5">
+                <div class="col-md-6" th:each="v : ${saved}">
+                    <div class="voucher-ticket">
+                        <div class="left"><span th:text="${v.type.name() == 'PERCENT'} ? ${v.value} + '%' : ${v.value / 1000} + 'K'"></span><small class="fw-normal">GIẢM</small></div>
+                        <div class="right">
+                            <div class="fw-bold" th:text="${v.code}"></div>
+                            <div class="small text-muted" th:text="${v.description}"></div>
+                            <div class="small text-muted" th:if="${v.endDate != null}" th:text="'HSD: ' + ${@fmt.date(v.endDate)}"></div>
+                            <form th:action="@{/account/vouchers/{c}/use(c=${v.code})}" method="post" class="mt-2">
+                                <button class="btn btn-sm btn-primary">Dùng ngay</button></form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <h2 class="h6 fw-bold mb-3">Voucher đang có</h2>
+            <p th:if="${available.isEmpty()}" class="text-muted small">Bạn đã lưu tất cả voucher hiện có.</p>
+            <div class="row g-3">
+                <div class="col-md-6" th:each="v : ${available}">
+                    <div class="voucher-ticket">
+                        <div class="left"><span th:text="${v.type.name() == 'PERCENT'} ? ${v.value} + '%' : ${v.value / 1000} + 'K'"></span><small class="fw-normal">GIẢM</small></div>
+                        <div class="right">
+                            <div class="fw-bold" th:text="${v.code}"></div>
+                            <div class="small text-muted" th:text="${v.description}"></div>
+                            <div class="small text-muted" th:if="${v.endDate != null}" th:text="'HSD: ' + ${@fmt.date(v.endDate)}"></div>
+                            <form th:action="@{/account/vouchers/{id}/save(id=${v.id})}" method="post" class="mt-2">
+                                <button class="btn btn-sm btn-outline-primary"><i class="bi bi-download"></i> Lưu</button></form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <p class="small text-muted mt-3">Voucher không áp dụng cho thuốc kê đơn theo quy định.</p>
+        </section>
+    </div>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

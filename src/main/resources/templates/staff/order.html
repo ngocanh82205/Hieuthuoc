@@ -42,6 +42,7 @@
                                 <div class="col-md-6 offset-md-6">
                                     <div class="d-flex justify-content-between"><span>Tạm tính</span><span th:text="${@fmt.money(o.subtotal)}"></span></div>
                                     <div class="d-flex justify-content-between" th:if="${o.discount > 0}"><span th:text="'Giảm giá (' + ${o.voucherCode} + ')'"></span><span th:text="'-' + ${@fmt.money(o.discount)}"></span></div>
+                                    <div class="d-flex justify-content-between" th:if="${o.pointsDiscountValue > 0}"><span th:text="'Dùng ' + ${o.pointsUsedValue} + ' điểm'"></span><span th:text="'-' + ${@fmt.money(o.pointsDiscountValue)}"></span></div>
                                     <div class="d-flex justify-content-between"><span>Phí giao hàng</span><span th:text="${@fmt.money(o.shippingFee)}"></span></div>
                                     <div class="d-flex justify-content-between fw-bold border-top mt-2 pt-2"><span>Tổng cộng</span><span th:text="${@fmt.money(o.total)}"></span></div>
                                 </div>
@@ -100,7 +101,7 @@
                         <div class="card-header d-flex justify-content-between">Khách hàng
                             <a th:href="@{/staff/orders/{id}/invoice(id=${o.id})}" target="_blank" class="small"><i class="bi bi-printer"></i> In hóa đơn</a></div>
                         <div class="card-body small">
-                            <div class="fw-semibold" th:text="${o.user.fullName} + ' (' + ${o.user.email} + ')'"></div>
+                            <div class="fw-semibold" th:text="${o.user.fullName} + ' (' + (${o.user.email != null} ? ${o.user.email} : ${o.user.phone}) + ')'"></div>
                             <hr>
                             <div><strong>Người nhận:</strong> <span th:text="${o.recipient} + ' · ' + ${o.phone}"></span></div>
                             <div><strong>Nhận hàng:</strong> <span th:text="${o.shippingMethod.label}"></span></div>

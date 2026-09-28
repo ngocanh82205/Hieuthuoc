@@ -53,16 +53,30 @@ Bảng được tự tạo khi chạy (`spring.jpa.hibernate.ddl-auto=update`).
 ## Chức năng theo tác nhân
 
 ### Khách hàng
-- Xem, tìm kiếm sản phẩm theo tên, hoạt chất, công dụng. Lọc theo danh mục, loại thuốc, giá, còn hàng; sắp xếp.
-- Trang chi tiết: hoạt chất, hàm lượng, số đăng ký, công dụng, liều dùng, chống chỉ định, sản phẩm **cùng hoạt chất**, đánh giá.
-- Giỏ hàng (lưu theo session), mã giảm giá, giới hạn số lượng mỗi đơn.
-- Đặt hàng: giao tận nơi hoặc nhận tại nhà thuốc; thanh toán COD hoặc online. Thanh toán online là **cổng giả lập** để demo.
-- **Thuốc kê đơn**: bắt buộc tải ảnh đơn thuốc. Đơn chờ dược sĩ duyệt; nếu bị từ chối thì tải lại được.
-- Theo dõi đơn theo dòng thời gian, hủy đơn khi chưa soạn hàng, **đổi/trả** trong N ngày, **mua lại** nhanh.
-- Hồ sơ cá nhân, **hồ sơ sức khỏe** (dị ứng, bệnh nền, mang thai), sổ địa chỉ, điểm tích lũy, thông báo.
-- **Chat tư vấn** với dược sĩ, gửi được ảnh.
+- **Tìm kiếm:** theo tên thuốc, hoạt chất, công dụng, triệu chứng. Lọc theo danh mục, loại thuốc, **thương hiệu, xuất xứ, dạng bào chế**, giá và tình trạng còn hàng; có sắp xếp.
+- **Trang chi tiết thuốc:** đầy đủ thông tin dược, **giá theo từng đơn vị tính** (VD: Vỉ và Hộp = 15 vỉ), thuốc cùng hoạt chất, đánh giá, **hỏi đáp với dược sĩ**, **yêu cầu dược sĩ gọi lại**.
+- **Tài khoản:**
+  - Đăng ký bằng **SĐT** (email không bắt buộc); đăng nhập bằng email hoặc SĐT.
+  - **Quên mật khẩu:** khách gửi yêu cầu, admin gọi điện xác minh rồi cấp mật khẩu tạm.
+  - Hồ sơ cá nhân, sổ địa chỉ, hồ sơ sức khỏe.
+- **Giỏ hàng và thanh toán:**
+  - Chọn đơn vị tính, áp mã giảm giá hoặc voucher trong kho, **dùng điểm tích lũy** để trừ tiền.
+  - Thanh toán COD, **chuyển khoản có mã VietQR**, hoặc VNPay/MoMo (cổng giả lập).
+- **Thuốc kê đơn:**
+  - Bắt buộc tải ảnh đơn thuốc khi mua; dược sĩ duyệt hoặc từ chối, khách tải lại được.
+  - **Gửi đơn thuốc mà không cần chọn sản phẩm:** dược sĩ lên đơn, gửi báo giá, khách xác nhận.
+  - Dược sĩ có thể **đề xuất thuốc thay thế cùng hoạt chất**; khi đơn bị điều chỉnh, khách phải **xác nhận lại**.
+- **Sau mua hàng:**
+  - Theo dõi đơn; **hủy đơn được đến trước bước Đang giao** (tự hoàn kho, hoàn điểm).
+  - Đổi trả, đánh giá, mua lại nhanh.
+- **Chăm sóc khách hàng:**
+  - **Hạng thành viên** Đồng / Bạc / Vàng / Kim cương, hạng càng cao càng được nhân nhiều điểm.
+  - **Kho voucher**, **danh sách yêu thích**, **báo khi có hàng trở lại**.
+  - **Nhắc lịch uống thuốc và nhắc mua lại:** thông báo hiện ngay trên web, có cửa sổ nhỏ nổi lên ở góc màn hình.
+  - Chat tư vấn với dược sĩ (gửi được ảnh).
 
 ### Dược sĩ / Nhân viên (`/staff`)
+- Trả lời **hỏi đáp sản phẩm**, xử lý **yêu cầu gọi lại**, **lên đơn** từ đơn thuốc khách gửi, **đề xuất thuốc thay thế**.
 - Tổng quan công việc: đơn thuốc chờ duyệt, đơn cần xử lý, cảnh báo kho.
 - **Duyệt đơn thuốc**: xem ảnh đơn cùng hồ sơ sức khỏe khách, chỉ được điều chỉnh giảm số lượng, ghi **sổ bán thuốc kê đơn** (bệnh nhân, bác sĩ, cơ sở khám), hoặc từ chối kèm lý do.
 - **Xử lý đơn hàng**: Chờ xác nhận → Đã xác nhận → Đang chuẩn bị (**trừ kho theo FEFO, lưu số lô**) → Đang giao → Hoàn thành. Hủy đơn thì hoàn kho đúng lô. Xác nhận thanh toán, xử lý đổi/trả, in hóa đơn.
@@ -103,8 +117,9 @@ src/main/resources
 └── static/        # CSS, JS
 ```
 
+> **Nâng cấp từ bản cũ:** cấu trúc dữ liệu đã thay đổi. Nếu đã chạy bản trước, hãy xóa thư mục `data/` và `uploads/` trước khi chạy lại.
+
 ## Giới hạn và hướng phát triển
 - Thanh toán online đang là cổng giả lập. Khi triển khai thật cần tích hợp API VNPay/MoMo (IPN).
-- Chưa gửi email/SMS (hiện dùng thông báo trong hệ thống). Chat dùng polling 4 giây; có thể nâng cấp lên WebSocket.
-- Mỗi sản phẩm bán theo 1 đơn vị tính; chưa quy đổi hộp/vỉ/viên.
+- Chưa có OTP và chưa gửi email/SMS vì cần dịch vụ gửi thật; hiện dùng thông báo ngay trong web. Chat tự cập nhật mỗi 4 giây (polling); có thể nâng cấp lên WebSocket.
 - Chưa có bán tại quầy (POS), kết nối đơn vị vận chuyển hay liên thông Dược Quốc gia.

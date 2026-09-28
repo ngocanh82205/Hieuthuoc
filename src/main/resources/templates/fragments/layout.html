@@ -14,6 +14,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
     <meta name="theme-color" content="#0b63e5">
+    <meta name="logged-in" th:if="${currentUser != null}" content="1">
     <link th:href="@{/webjars/bootstrap/5.3.3/css/bootstrap.min.css}" rel="stylesheet">
     <link th:href="@{/webjars/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css}" rel="stylesheet">
     <link th:href="@{/css/style.css}" rel="stylesheet">
@@ -54,6 +55,10 @@
                         <th:block th:if="${currentUser.role.name() == 'CUSTOMER'}">
                             <li><a class="dropdown-item" th:href="@{/account}"><i class="bi bi-person me-2"></i>Tài khoản</a></li>
                             <li><a class="dropdown-item" th:href="@{/account/orders}"><i class="bi bi-receipt me-2"></i>Đơn hàng của tôi</a></li>
+                            <li><a class="dropdown-item" th:href="@{/account/prescriptions}"><i class="bi bi-file-earmark-medical me-2"></i>Gửi đơn thuốc</a></li>
+                            <li><a class="dropdown-item" th:href="@{/account/wishlist}"><i class="bi bi-heart me-2"></i>Yêu thích</a></li>
+                            <li><a class="dropdown-item" th:href="@{/account/vouchers}"><i class="bi bi-ticket-perforated me-2"></i>Kho voucher</a></li>
+                            <li><a class="dropdown-item" th:href="@{/account/reminders}"><i class="bi bi-alarm me-2"></i>Nhắc lịch uống thuốc</a></li>
                             <li><a class="dropdown-item" th:href="@{/consult}"><i class="bi bi-chat-dots me-2"></i>Tư vấn dược sĩ</a></li>
                         </th:block>
                         <li th:if="${currentUser.role.name() != 'CUSTOMER'}">
@@ -77,7 +82,7 @@
             </div>
             <div class="collapse navbar-collapse order-lg-2" id="mainNav">
                 <form class="d-flex my-2 my-lg-0 mx-lg-3 flex-grow-1 search-form" th:action="@{/products}" method="get" role="search">
-                    <input class="form-control" type="search" name="q" th:value="${q}" placeholder="Tìm tên thuốc, hoạt chất, công dụng...">
+                    <input class="form-control" type="search" name="q" th:value="${q}" placeholder="Tìm tên thuốc, hoạt chất, triệu chứng...">
                     <button class="btn btn-primary ms-1" aria-label="Tìm kiếm"><i class="bi bi-search"></i></button>
                 </form>
                 <ul class="navbar-nav">
@@ -117,6 +122,11 @@
         </span>
         <span th:if="${p.onSale}" class="badge bg-danger sale-badge" th:text="'-' + ${p.discountPercent} + '%'">-10%</span>
     </a>
+    <form th:if="${currentUser == null || currentUser.role.name() == 'CUSTOMER'}" th:action="@{/wishlist/toggle/{id}(id=${p.id})}" method="post"
+          class="wish-form js-wish">
+        <button class="wish-btn" th:classappend="${wishlistIds.contains(p.id)} ? 'on'" th:title="${wishlistIds.contains(p.id)} ? 'Bỏ yêu thích' : 'Yêu thích'"
+                aria-label="Yêu thích"><i class="bi" th:classappend="${wishlistIds.contains(p.id)} ? 'bi-heart-fill' : 'bi-heart'"></i></button>
+    </form>
     <div class="card-body d-flex flex-column">
         <span class="badge align-self-start mb-2 type-badge" th:classappend="'text-bg-' + ${p.drugType.color}"
               th:text="${p.drugType.shortLabel}">OTC</span>
@@ -128,13 +138,17 @@
                 <span class="small text-muted">/ <span th:text="${p.unit}">Hộp</span></span>
                 <del th:if="${p.onSale}" class="small text-muted" th:text="${@fmt.money(p.oldPrice)}"></del>
             </div>
+            <div class="small text-muted" th:if="${!p.units.isEmpty()}">
+                <span th:each="u, st : ${p.units}" th:text="${u.name} + ': ' + ${@fmt.money(u.price)} + (${!st.last} ? ' · ' : '')"></span>
+            </div>
             <div class="small text-muted mt-1">
                 <span th:if="${p.avgRating != null}" class="stars" th:text="${@fmt.stars(p.avgRating)}"></span>
                 <span th:if="${p.sold > 0}" th:text="'Đã bán ' + ${p.sold}"></span>
             </div>
             <div class="mt-2">
                 <div th:if="${p.drugType.name() == 'SPECIAL'}" class="small text-danger"><i class="bi bi-slash-circle"></i> Chỉ bán tại nhà thuốc</div>
-                <div th:if="${p.drugType.name() != 'SPECIAL' && p.available <= 0}" class="small text-muted"><i class="bi bi-x-circle"></i> Tạm hết hàng</div>
+                <a th:if="${p.drugType.name() != 'SPECIAL' && p.available <= 0}" th:href="@{/products/{s}(s=${p.slug})}"
+                   class="btn btn-sm btn-outline-secondary w-100"><i class="bi bi-bell"></i> Hết hàng - báo khi có</a>
                 <form th:if="${p.drugType.name() != 'SPECIAL' && p.available > 0}" th:action="@{/cart/add}" method="post" class="js-add-cart">
                     <input type="hidden" name="productId" th:value="${p.id}">
                     <input type="hidden" name="qty" value="1">
@@ -239,6 +253,14 @@
         <i class="bi bi-person me-2"></i>Thông tin & sức khỏe</a>
     <a th:href="@{/account/orders}" class="list-group-item list-group-item-action" th:classappend="${#strings.startsWith(requestPath, '/account/orders')} ? 'active'">
         <i class="bi bi-receipt me-2"></i>Đơn hàng của tôi</a>
+    <a th:href="@{/account/prescriptions}" class="list-group-item list-group-item-action" th:classappend="${requestPath == '/account/prescriptions'} ? 'active'">
+        <i class="bi bi-file-earmark-medical me-2"></i>Gửi đơn thuốc</a>
+    <a th:href="@{/account/wishlist}" class="list-group-item list-group-item-action" th:classappend="${requestPath == '/account/wishlist'} ? 'active'">
+        <i class="bi bi-heart me-2"></i>Yêu thích & chờ hàng</a>
+    <a th:href="@{/account/vouchers}" class="list-group-item list-group-item-action" th:classappend="${requestPath == '/account/vouchers'} ? 'active'">
+        <i class="bi bi-ticket-perforated me-2"></i>Kho voucher</a>
+    <a th:href="@{/account/reminders}" class="list-group-item list-group-item-action" th:classappend="${requestPath == '/account/reminders'} ? 'active'">
+        <i class="bi bi-alarm me-2"></i>Nhắc lịch uống thuốc</a>
     <a th:href="@{/account/addresses}" class="list-group-item list-group-item-action" th:classappend="${requestPath == '/account/addresses'} ? 'active'">
         <i class="bi bi-geo-alt me-2"></i>Sổ địa chỉ</a>
     <a th:href="@{/notifications}" class="list-group-item list-group-item-action" th:classappend="${requestPath == '/notifications'} ? 'active'">

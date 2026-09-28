@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="staff-body">
+<div class="staff-shell">
+    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
+    <div class="staff-main">
+        <header th:replace="~{fragments/staff :: topbar}"></header>
+        <main class="p-3 p-lg-4">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <ul class="nav nav-pills mb-3">
+                <li class="nav-item"><a class="nav-link" th:classappend="${!done} ? 'active'" th:href="@{/staff/callbacks}">Chờ gọi</a></li>
+                <li class="nav-item"><a class="nav-link" th:classappend="${done} ? 'active'" th:href="@{/staff/callbacks(done=true)}">Đã gọi</a></li>
+            </ul>
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="table mb-0">
+                        <thead><tr><th>Khách hàng</th><th>SĐT</th><th>Khung giờ</th><th>Nội dung</th><th>Gửi lúc</th><th th:text="${done} ? 'Kết quả' : 'Xử lý'"></th></tr></thead>
+                        <tbody>
+                        <tr th:if="${list.isEmpty()}"><td colspan="6" class="text-center text-muted py-4">Không có yêu cầu.</td></tr>
+                        <tr th:each="c : ${list}">
+                            <td><div class="fw-semibold" th:text="${c.name}"></div>
+                                <span th:if="${c.user != null}" class="badge text-bg-light border">Thành viên</span>
+                                <div class="small" th:if="${c.product != null}"><a th:href="@{/products/{s}(s=${c.product.slug})}" target="_blank" th:text="${c.product.name}"></a></div></td>
+                            <td><a th:href="'tel:' + ${c.phone}" class="fw-semibold" th:text="${c.phone}"></a></td>
+                            <td class="small" th:text="${c.preferredTime}"></td>
+                            <td class="small" th:text="${c.note}"></td>
+                            <td class="small text-nowrap" th:text="${@fmt.dateTime(c.createdAt)}"></td>
+                            <td th:if="${!done}">
+                                <form th:action="@{/staff/callbacks/{id}/done(id=${c.id})}" method="post" class="d-flex gap-1">
+                                    <input name="result" class="form-control form-control-sm" placeholder="Kết quả cuộc gọi" style="min-width: 160px">
+                                    <button class="btn btn-sm btn-success text-nowrap">Đã gọi</button></form></td>
+                            <td th:if="${done}" class="small"><span th:text="${c.result}"></span>
+                                <div class="text-muted" th:text="(${c.handledBy != null} ? ${c.handledBy.fullName} : '') + ' · ' + ${@fmt.dateTime(c.handledAt)}"></div></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

@@ -1,6 +1,8 @@
 package com.hieuthuoc.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
@@ -19,13 +21,15 @@ public class User {
     private Long id;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(nullable = false, length = 20)
     private Role role;
 
     @Column(nullable = false, length = 100)
     private String fullName;
 
-    @Column(nullable = false, unique = true, length = 150)
+    /** Email (không bắt buộc - khách có thể đăng ký chỉ bằng số điện thoại). */
+    @Column(unique = true, length = 150)
     private String email;
 
     @Column(length = 20)

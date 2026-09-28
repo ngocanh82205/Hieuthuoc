@@ -1,6 +1,8 @@
 package com.hieuthuoc.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
@@ -49,6 +51,7 @@ public class Product {
     private String country;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(nullable = false, length = 20)
     private DrugType drugType = DrugType.OTC;
 
@@ -86,6 +89,11 @@ public class Product {
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
+    /** Các đơn vị bán lớn hơn đơn vị gốc (VD: Hộp = 10 Vỉ). Đơn vị gốc là {@link #unit}. */
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("factor ASC")
+    private java.util.List<ProductUnit> units = new java.util.ArrayList<>();
+
     /* ---- Thông tin tính toán (không lưu DB), được StockService/ProductService điền vào ---- */
 
     /** Tồn thực tế: tổng các lô còn hạn, không bị khóa. */
@@ -109,6 +117,24 @@ public class Product {
     @PrePersist
     void prePersist() {
         if (createdAt == null) createdAt = LocalDateTime.now();
+    }
+
+    /** Tất cả đơn vị có thể chọn khi mua: đơn vị gốc (id = 0) + các đơn vị quy đổi. */
+    public java.util.List<UnitOption> getUnitOptions() {
+        java.util.List<UnitOption> list = new java.util.ArrayList<>();
+        list.add(new UnitOption(0L, unit, 1, price));
+        for (ProductUnit u : units) list.add(new UnitOption(u.getId(), u.getName(), u.getFactor(), u.getPrice()));
+        return list;
+    }
+
+    public UnitOption findUnit(Long unitId) {
+        for (UnitOption o : getUnitOptions()) if (o.id().equals(unitId == null ? 0L : unitId)) return o;
+        return null;
+    }
+
+    public UnitOption findUnitByFactor(int factor) {
+        for (UnitOption o : getUnitOptions()) if (o.factor() == factor) return o;
+        return null;
     }
 
     public boolean isLowStock() {

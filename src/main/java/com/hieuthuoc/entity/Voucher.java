@@ -1,6 +1,8 @@
 package com.hieuthuoc.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
@@ -25,6 +27,7 @@ public class Voucher {
     private String description;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(nullable = false, length = 10)
     private VoucherType type = VoucherType.PERCENT;
 
@@ -44,4 +47,11 @@ public class Voucher {
     private LocalDate endDate;
 
     private boolean active = true;
+
+    /** Hiển thị trong "Kho voucher" để khách lưu. */
+    private Boolean showInWallet;
+
+    public boolean isInWallet() {
+        return Boolean.TRUE.equals(showInWallet);
+    }
 }
