@@ -46,11 +46,21 @@
                         <div class="row g-3 mb-4">
                             <div class="col-sm-6">
                                 <label class="form-label" for="password">Mật khẩu</label>
-                                <input class="form-control" type="password" id="password" name="password" required minlength="6" autocomplete="new-password">
+                                <div class="input-group">
+                                    <input class="form-control" type="password" id="password" name="password" required minlength="6" autocomplete="new-password">
+                                    <button class="btn btn-outline-secondary toggle-password-btn" type="button" tabindex="-1" title="Hiện mật khẩu">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
                             </div>
                             <div class="col-sm-6">
                                 <label class="form-label" for="passwordConfirm">Nhập lại mật khẩu</label>
-                                <input class="form-control" type="password" id="passwordConfirm" name="passwordConfirm" required minlength="6" autocomplete="new-password">
+                                <div class="input-group">
+                                    <input class="form-control" type="password" id="passwordConfirm" name="passwordConfirm" required minlength="6" autocomplete="new-password">
+                                    <button class="btn btn-outline-secondary toggle-password-btn" type="button" tabindex="-1" title="Hiện mật khẩu">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         <button class="btn btn-primary btn-lg w-100">Đăng ký</button>

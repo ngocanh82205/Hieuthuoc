@@ -19,8 +19,15 @@
                             <option value="ADMIN" th:selected="${user.role.name() == 'ADMIN'}">Quản trị viên</option>
                         </select></div>
                     <div class="col-md-6"><label class="form-label">Số chứng chỉ hành nghề dược</label><input name="licenseNo" class="form-control" th:value="${user.licenseNo}"></div>
-                    <div class="col-md-6"><label class="form-label" th:text="${user.id == null} ? 'Mật khẩu' : 'Mật khẩu mới (để trống nếu không đổi)'">Mật khẩu</label>
-                        <input type="password" name="password" class="form-control" minlength="6" th:required="${user.id == null}" autocomplete="new-password"></div>
+                    <div class="col-md-6">
+                        <label class="form-label" th:text="${user.id == null} ? 'Mật khẩu' : 'Mật khẩu mới (để trống nếu không đổi)'">Mật khẩu</label>
+                        <div class="input-group">
+                            <input type="password" name="password" class="form-control" minlength="6" th:required="${user.id == null}" autocomplete="new-password">
+                            <button class="btn btn-outline-secondary toggle-password-btn" type="button" tabindex="-1" title="Hiện mật khẩu">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 <div class="card-footer bg-white"><button class="btn btn-primary">Lưu</button> <a th:href="@{/admin/users}" class="btn btn-link">Hủy</a></div>
             </form>

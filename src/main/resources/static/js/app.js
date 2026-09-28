@@ -295,6 +295,36 @@
             })
             .catch(function () {});
     };
+
+    // Bật/tắt ẩn hiện mật khẩu (con mắt)
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('.toggle-password-btn');
+        if (!btn) return;
+        e.preventDefault();
+        var targetSelector = btn.getAttribute('data-target');
+        var input = targetSelector
+            ? document.querySelector(targetSelector)
+            : (btn.closest('.input-group') ? btn.closest('.input-group').querySelector('input') : null);
+        if (!input) return;
+        var icon = btn.querySelector('i');
+        if (input.type === 'password') {
+            input.type = 'text';
+            if (icon) {
+                icon.classList.remove('bi-eye');
+                icon.classList.add('bi-eye-slash');
+            }
+            btn.setAttribute('title', 'Ẩn mật khẩu');
+        } else {
+            input.type = 'password';
+            if (icon) {
+                icon.classList.remove('bi-eye-slash');
+                icon.classList.add('bi-eye');
+            }
+            btn.setAttribute('title', 'Hiện mật khẩu');
+        }
+    });
+
     check();
     setInterval(check, 30000);
 })();
+
