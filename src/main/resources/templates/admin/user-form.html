@@ -23,7 +23,7 @@
                         <label class="form-label" th:text="${user.id == null} ? 'Mật khẩu' : 'Mật khẩu mới (để trống nếu không đổi)'">Mật khẩu</label>
                         <div class="input-group">
                             <input type="password" name="password" class="form-control" minlength="6" th:required="${user.id == null}" autocomplete="new-password">
-                            <button class="btn btn-outline-secondary toggle-password-btn" type="button" tabindex="-1" title="Hiện mật khẩu">
+                            <button class="btn btn-outline-secondary toggle-password-btn" type="button" tabindex="-1" title="Hiện mật khẩu" onclick="togglePassword(this)">
                                 <i class="bi bi-eye"></i>
                             </button>
                         </div>
