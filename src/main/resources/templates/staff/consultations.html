@@ -12,6 +12,7 @@
                 <ul class="nav nav-pills">
                     <li class="nav-item"><a class="nav-link" th:classappend="${view == 'mine'} ? 'active'" th:href="@{/staff/consultations(view='mine',closed=${closed})}">Của tôi</a></li>
                     <li class="nav-item"><a class="nav-link" th:classappend="${view == 'unassigned'} ? 'active'" th:href="@{/staff/consultations(view='unassigned',closed=${closed})}">Chưa ai nhận</a></li>
+                    <li class="nav-item"><a class="nav-link" th:classappend="${view == 'ai'} ? 'active'" th:href="@{/staff/consultations(view='ai',closed=${closed})}"><i class="bi bi-robot"></i> AI đang hỗ trợ</a></li>
                     <li class="nav-item"><a class="nav-link" th:classappend="${view == 'all'} ? 'active'" th:href="@{/staff/consultations(view='all',closed=${closed})}">Tất cả</a></li>
                 </ul>
                 <ul class="nav nav-pills">
@@ -22,7 +23,7 @@
             <div class="alert alert-info small py-2"><i class="bi bi-broadcast me-1"></i>Dược sĩ đang online:
                 <span th:if="${online.isEmpty()}">không có</span>
                 <span th:each="u, st : ${online}"><span class="text-success">●</span> <span th:text="${u.fullName}"></span><span th:unless="${st.last}">, </span></span>
-                · Hội thoại mới được tự động giao cho dược sĩ online ít việc nhất.</div>
+                · Hội thoại mới do trợ lý AI tiếp nhận trước (<span th:text="${aiEngine}"></span>), chuyển cho dược sĩ online ít việc nhất khi cần tư vấn thuốc.</div>
             <div class="card">
                 <ul class="list-group list-group-flush">
                     <li th:if="${list.isEmpty()}" class="list-group-item text-muted">Không có cuộc tư vấn.</li>
@@ -30,12 +31,14 @@
                        th:href="@{/staff/consultations/{id}(id=${c.id})}" th:with="m=${last[c.id]}">
                         <div class="text-truncate">
                             <div class="fw-semibold"><span th:text="${c.customer.fullName}"></span>
-                                <span th:if="${m != null && !m.sender.staff}" class="badge text-bg-danger">Chờ trả lời</span></div>
+                                <span th:if="${c.aiMode}" class="badge text-bg-light border"><i class="bi bi-robot"></i> AI đang hỗ trợ</span>
+                                <span th:if="${!c.aiMode && m != null && m.sender != null && !m.sender.staff}" class="badge text-bg-danger">Chờ trả lời</span>
+                                <span th:if="${!c.aiMode && c.handoffReason != null && c.handedOffAt != null}" class="badge text-bg-info" th:title="${c.handoffReason}">Từ AI</span></div>
                             <div class="small text-muted text-truncate" th:text="${m != null ? (m.body != null ? m.body : '[Ảnh]') : ''}"></div>
                         </div>
                         <div class="text-end small text-muted text-nowrap">
                             <div th:text="${@fmt.dateTime(c.updatedAt)}"></div>
-                            <div th:text="${c.pharmacist != null ? c.pharmacist.fullName : 'Chưa nhận'}"></div>
+                            <div th:text="${c.pharmacist != null ? c.pharmacist.fullName : (c.aiMode ? 'Trợ lý AI' : 'Chưa nhận')}"></div>
                         </div>
                     </a>
                 </ul>

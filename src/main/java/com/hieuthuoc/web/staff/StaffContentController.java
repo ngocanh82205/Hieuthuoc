@@ -21,6 +21,7 @@ import java.util.Map;
 @RequestMapping("/staff")
 @RequiredArgsConstructor
 public class StaffContentController {
+    private final AiAssistantService aiAssistant;
     private final ConversationRepository conversationRepo;
     private final MessageRepository messageRepo;
     private final OrderRepository orderRepo;
@@ -43,9 +44,12 @@ public class StaffContentController {
         User me = currentUser.get();
         List<Conversation> list = switch (view) {
             case "mine" -> conversationRepo.findByClosedAndPharmacistOrderByUpdatedAtDesc(closed, me);
-            case "unassigned" -> conversationRepo.findByClosedAndPharmacistIsNullOrderByUpdatedAtDesc(closed);
+            // Chưa ai nhận: không tính các hội thoại trợ lý AI đang tự trả lời
+            case "unassigned" -> conversationRepo.findByClosedAndPharmacistIsNullOrderByUpdatedAtDesc(closed).stream().filter(c -> !c.isAiMode()).toList();
+            case "ai" -> conversationRepo.findByClosedOrderByUpdatedAtDesc(closed).stream().filter(Conversation::isAiMode).toList();
             default -> conversationRepo.findByClosedOrderByUpdatedAtDesc(closed);
         };
+        model.addAttribute("aiEngine", aiAssistant.engineLabel());
         model.addAttribute("view", view);
         model.addAttribute("online", chatService.onlineStaff());
         Map<Long, Message> last = new HashMap<>();
@@ -62,6 +66,7 @@ public class StaffContentController {
         Conversation c = chatService.get(id);
         List<Order> orders = orderRepo.findByUserOrderByCreatedAtDescIdDesc(c.getCustomer());
         model.addAttribute("conv", c);
+        model.addAttribute("aiName", chatService.aiName());
         model.addAttribute("customer", c.getCustomer());
         model.addAttribute("messages", chatService.messages(c, 0));
         model.addAttribute("orders", orders.subList(0, Math.min(5, orders.size())));

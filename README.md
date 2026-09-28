@@ -75,7 +75,7 @@ Bảng được tự tạo khi chạy (`spring.jpa.hibernate.ddl-auto=update`).
   - **Hạng thành viên** Đồng / Bạc / Vàng / Kim cương, hạng càng cao càng được nhân nhiều điểm.
   - **Kho voucher**, **danh sách yêu thích**, **báo khi có hàng trở lại**.
   - **Nhắc lịch uống thuốc và nhắc mua lại:** thông báo hiện ngay trên web, có cửa sổ nhỏ nổi lên ở góc màn hình.
-  - Chat tư vấn với dược sĩ (gửi được ảnh).
+  - **Chat tư vấn: trợ lý AI tiếp nhận trước**, chuyển dược sĩ khi cần (xem mục Trợ lý AI bên dưới). Gửi được ảnh.
 
 ### Dược sĩ / Nhân viên (`/staff`)
 - **Tư vấn (chat):**
@@ -150,6 +150,35 @@ Tài khoản mẫu: `duocsi@hieuthuoc.vn` là Dược sĩ quản lý (đủ quy�
   - Hiệu suất dược sĩ (số đơn duyệt, thời gian duyệt TB, tỷ lệ từ chối, số cuộc tư vấn).
   - Tỷ lệ hủy / trả, **khách mới / quay lại**.
   - **Xuất Excel** (nhiều sheet), **bản in / PDF**, **file dữ liệu liên thông Dược Quốc gia** (bán ra theo lô kèm thông tin đơn thuốc, nhập vào).
+
+## Trợ lý AI (chat trước khi gặp dược sĩ)
+
+Khách mở trang Tư vấn thì **trợ lý AI trả lời trước**:
+- Tra cứu đơn hàng của chính khách, phí giao hàng theo tỉnh, đổi trả, thanh toán, khuyến mãi.
+- Thông tin sản phẩm **không kê đơn** (giá, còn hàng, công dụng).
+- Hỏi sàng lọc triệu chứng: tuổi, thời gian, thai kỳ, dị ứng, thuốc đang dùng.
+
+**Tự chuyển dược sĩ (kèm tóm tắt để dược sĩ không phải hỏi lại)** khi:
+- Khách bấm "Gặp dược sĩ" hoặc nhắn muốn gặp người.
+- Có **dấu hiệu nguy hiểm** (khó thở, đau ngực, co giật, ngộ độc, sốt cao...); trợ lý khuyên gọi 115.
+- **Đối tượng đặc biệt**: mang thai, cho con bú, trẻ nhỏ, bệnh gan / thận.
+- Hỏi **thuốc kê đơn**, kháng sinh, liều dùng, đổi / ngưng thuốc; gửi **ảnh đơn thuốc**.
+- Sản phẩm được nhắc tới có **cảnh báo dị ứng / tương tác** với hồ sơ sức khỏe khách (kiểm tra ngay trên máy chủ, hồ sơ sức khỏe không gửi ra ngoài).
+- Khách đã trả lời câu hỏi sàng lọc triệu chứng, hoặc trợ lý 2 lần không hiểu câu hỏi.
+
+Hội thoại được giao cho **dược sĩ có chứng chỉ hành nghề** đang online, ít việc nhất. Dược sĩ cũng có thể bấm "Tiếp nhận từ AI" bất cứ lúc nào. Admin bật / tắt trợ lý và đổi tên hiển thị trong Cấu hình.
+
+**Dùng Claude:** đặt biến môi trường trước khi chạy (không bắt buộc):
+
+```bash
+# Linux / macOS
+export ANTHROPIC_API_KEY=sk-ant-...
+# Windows PowerShell
+$env:ANTHROPIC_API_KEY="sk-ant-..."
+```
+
+Có thể đổi model bằng `ANTHROPIC_MODEL` (mặc định `claude-sonnet-5`). Không có key, trợ lý **trả lời tự động theo kịch bản** (hiểu cả tiếng Việt không dấu) và vẫn áp dụng đủ các quy tắc chuyển dược sĩ ở trên.
+Khi dùng Claude, nội dung tin nhắn trong phiên chat với trợ lý và thông tin đơn hàng gần đây của khách được gửi tới Anthropic để tạo câu trả lời.
 
 ## Quy tắc nghiệp vụ đã cài đặt
 

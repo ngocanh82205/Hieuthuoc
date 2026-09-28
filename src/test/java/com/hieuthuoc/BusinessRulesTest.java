@@ -50,6 +50,21 @@ class BusinessRulesTest {
     @Autowired AccountService accountService;
 
     @Autowired StaffRoleRepository staffRoleRepo;
+    @Autowired AiAssistantService aiAssistant;
+    @Autowired MessageRepository messageRepo;
+
+    /** Khách nhắn, trợ lý trả lời (đồng bộ trong test); trả về hội thoại. */
+    private Conversation askAi(User customer, String text) {
+        Conversation c = chatService.customerSend(customer, text, null);
+        aiAssistant.respond(c.getId());
+        return c;
+    }
+
+    private String lastBody(Conversation c, String kind) {
+        List<Message> ms = messageRepo.findByConversationAndIdGreaterThanOrderByIdAsc(c, 0L);
+        for (int i = ms.size() - 1; i >= 0; i--) if (kind.equals(ms.get(i).getKind())) return ms.get(i).getBody();
+        return null;
+    }
 
     private User newCustomer(String phone) {
         AccountService.RegisterForm f = new AccountService.RegisterForm();
@@ -527,5 +542,99 @@ class BusinessRulesTest {
         assertThat(MemberTier.of(1500)).isEqualTo(MemberTier.BAC);
         settingService.save(java.util.Map.of("tier_bac_min", "2000000"));
         assertThat(MemberTier.of(1500)).isEqualTo(MemberTier.DONG);
+    }
+
+    /* ======================= Trợ lý AI trước dược sĩ ======================= */
+
+    @Test
+    void aiAnswersFaqFirstWithoutPharmacist() {
+        User c1 = newCustomer("0977000301");
+        Conversation c = askAi(c1, "Xin chào");
+        assertThat(c.isAiMode()).isTrue();
+        assertThat(c.getPharmacist()).isNull();
+        assertThat(lastBody(c, "AI")).contains("tra cứu đơn hàng");
+        askAi(c1, "phi ship bao nhieu vay");   // gõ không dấu
+        assertThat(lastBody(c, "AI")).contains("Nội thành Hà Nội");
+        askAi(c1, "Giao hàng về Cà Mau mất bao lâu?");
+        assertThat(lastBody(c, "AI")).contains("Cà Mau").contains("Miền Nam").contains("30.000");
+        askAi(c1, "Chính sách đổi trả thế nào?");
+        assertThat(lastBody(c, "AI")).contains("ngày");
+        assertThat(c.isAiMode()).isTrue();
+    }
+
+    @Test
+    void aiLooksUpOwnOrdersOnly() {
+        User an = userRepo.findByEmailIgnoreCase("khachhang@gmail.com").orElseThrow();
+        Order mine = orderRepo.findByUserOrderByCreatedAtDescIdDesc(an).get(0);
+        Conversation c = askAi(an, "Kiểm tra giúp mình đơn " + mine.getCode());
+        assertThat(lastBody(c, "AI")).contains(mine.getCode()).contains(mine.getStatus().getLabel());
+        Order other = orderRepo.findAll().stream().filter(o -> !o.getUser().getId().equals(an.getId())).findFirst().orElseThrow();
+        askAi(an, "đơn " + other.getCode() + " sao rồi");
+        assertThat(lastBody(c, "AI")).contains("không tìm thấy");
+    }
+
+    @Test
+    void aiHandsOffOnRedFlagsSpecialGroupsAndPrescriptionDrugs() {
+        Conversation a = askAi(newCustomer("0977000302"), "Mẹ tôi đột nhiên khó thở và đau ngực");
+        assertThat(a.isAiMode()).isFalse();
+        assertThat(lastBody(a, "AI")).contains("115");
+        assertThat(lastBody(a, "SYSTEM")).contains("Đã chuyển");
+        assertThat(a.getHandoffReason()).contains("khẩn");
+        assertThat(a.getAiSummary()).contains("khó thở");
+
+        Conversation b = askAi(newCustomer("0977000303"), "Mình đang mang thai uống thuốc cảm được không");
+        assertThat(b.isAiMode()).isFalse();
+        assertThat(b.getHandoffReason()).contains("Đối tượng đặc biệt");
+
+        Conversation d = askAi(newCustomer("0977000304"), "Augmentin uống ngày mấy viên?");
+        assertThat(d.isAiMode()).isFalse();
+        assertThat(d.getHandoffReason()).contains("kê đơn");
+    }
+
+    @Test
+    void aiTriagesSymptomsThenHandsOffWithSummary() {
+        User u = newCustomer("0977000305");
+        Conversation c = askAi(u, "Tôi bị đau đầu");
+        assertThat(c.isAiMode()).isTrue();
+        assertThat(lastBody(c, "AI")).contains("Tuổi");
+        askAi(u, "30 tuổi, bị 2 ngày, không dị ứng, không dùng thuốc gì");
+        assertThat(c.isAiMode()).isFalse();
+        assertThat(c.getAiSummary()).contains("30 tuổi");
+    }
+
+    @Test
+    void aiSafetyCheckUsesHealthProfile() {
+        User an = userRepo.findByEmailIgnoreCase("khachhang@gmail.com").orElseThrow();  // dị ứng Aspirin
+        Conversation c = askAi(an, "Panadol Extra giá bao nhiêu? Mình muốn mua thêm Ibuprofen");
+        assertThat(c.isAiMode()).isFalse();
+    }
+
+    @Test
+    void customerButtonAndStaffReplyEndAiMode() {
+        User u = newCustomer("0977000306");
+        Conversation c = askAi(u, "Xin chào");
+        aiAssistant.requestHandoff(u);
+        assertThat(c.isAiMode()).isFalse();
+        assertThat(c.getHandoffReason()).contains("yêu cầu");
+
+        User u2 = newCustomer("0977000307");
+        Conversation c2 = askAi(u2, "Xin chào");
+        User ds = userRepo.findByEmailIgnoreCase("duocsi@hieuthuoc.vn").orElseThrow();
+        chatService.staffSend(c2.getId(), ds, "Chào bạn, mình là dược sĩ Lan", null);
+        assertThat(c2.isAiMode()).isFalse();
+        assertThat(c2.getPharmacist()).isEqualTo(ds);
+        // Khách nhắn tiếp: trợ lý không trả lời chen vào
+        int before = messageRepo.findByConversationAndIdGreaterThanOrderByIdAsc(c2, 0L).size();
+        askAi(u2, "Cảm ơn dược sĩ");
+        assertThat(messageRepo.findByConversationAndIdGreaterThanOrderByIdAsc(c2, 0L)).hasSize(before + 1);
+    }
+
+    @Test
+    void aiCanBeDisabled() {
+        settingService.save(java.util.Map.of("ai_enabled", "0"));
+        Conversation c = askAi(newCustomer("0977000308"), "Xin chào");
+        assertThat(c.isAiMode()).isFalse();
+        assertThat(lastBody(c, "AI")).isNull();
+        settingService.save(java.util.Map.of("ai_enabled", "1"));
     }
 }

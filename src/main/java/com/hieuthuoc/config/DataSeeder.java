@@ -572,6 +572,23 @@ public class DataSeeder implements CommandLineRunner {
         message(conv, ds1, "Chào anh, Decolgen có chứa phenylephrin có thể làm tăng huyết áp, anh không nên dùng. "
                 + "Anh có thể dùng paracetamol đơn thuần để hạ sốt, giảm đau và rửa mũi bằng nước muối sinh lý nhé.", now.minusMinutes(20));
 
+        // Hội thoại trợ lý AI đã chuyển dược sĩ (chờ dược sĩ nhận)
+        Conversation conv2 = new Conversation();
+        conv2.setCustomer(kh2);
+        conv2.setMode("HUMAN");
+        conv2.setHandoffReason("Đối tượng đặc biệt: \"mang thai\"");
+        conv2.setAiSummary("Khách nữ đang mang thai 5 tháng, bị cảm 2 ngày: sổ mũi, đau họng nhẹ, không sốt. Chưa dùng thuốc gì. "
+                + "Hỏi thuốc cảm dùng được khi mang thai. Cần hỏi thêm: dị ứng thuốc, bệnh nền.");
+        conv2.setHandedOffAt(now.minusMinutes(5));
+        conv2.setCreatedAt(now.minusMinutes(6));
+        conv2.setUpdatedAt(now.minusMinutes(5));
+        conversationRepo.save(conv2);
+        message(conv2, kh2, "Mình đang mang thai 5 tháng, bị cảm 2 ngày nay sổ mũi, đau họng, uống thuốc gì được ạ?", now.minusMinutes(6));
+        botMessage(conv2, "AI", "Với phụ nữ mang thai / cho con bú, trẻ nhỏ hoặc người có bệnh gan, thận, việc dùng thuốc cần dược sĩ tư vấn trực tiếp. "
+                + "Mình chuyển bạn cho dược sĩ nhé.", now.minusMinutes(5));
+        botMessage(conv2, "SYSTEM", "Đã chuyển cuộc trò chuyện cho dược sĩ. Hiện chưa có dược sĩ online, dược sĩ sẽ trả lời sớm nhất "
+                + "(hoặc bạn có thể để lại số để được gọi lại).", now.minusMinutes(5));
+
         Notification n = new Notification();
         n.setUser(ds1);
         n.setMessage("Đơn DHDEMORX1 có thuốc kê đơn cần duyệt");
@@ -709,6 +726,15 @@ public class DataSeeder implements CommandLineRunner {
         r.setRating(rating);
         r.setComment(comment);
         reviewRepo.save(r);
+    }
+
+    private void botMessage(Conversation c, String kind, String body, LocalDateTime at) {
+        Message m = new Message();
+        m.setConversation(c);
+        m.setKind(kind);
+        m.setBody(body);
+        m.setCreatedAt(at);
+        messageRepo.save(m);
     }
 
     private void message(Conversation c, User sender, String body, LocalDateTime at) {

@@ -52,6 +52,8 @@ public class SettingService {
         def("tpl_order_shipping", "Đơn hàng {code} đang được giao bởi {carrier}{tracking}. Vui lòng để ý điện thoại nhé!", "Mẫu: bắt đầu giao hàng");
         def("tpl_order_completed", "Cảm ơn bạn đã mua hàng tại {store}! Đơn {code} đã hoàn thành, bạn được cộng {points} điểm.", "Mẫu: đơn hoàn thành");
         def("tpl_order_cancelled", "Đơn hàng {code} đã bị hủy: {note}. Liên hệ {phone} nếu cần hỗ trợ.", "Mẫu: hủy đơn");
+        def("ai_enabled", "1", "Trợ lý AI tiếp nhận chat trước khi chuyển dược sĩ");
+        def("ai_name", "Trợ lý AI VinaPharma", "Tên hiển thị của trợ lý AI");
         def("bank_code", "VCB", "Mã ngân hàng (VietQR, VD: VCB, TCB, MB)");
         def("bank_account", "0123456789", "Số tài khoản nhận chuyển khoản");
         def("bank_holder", "CONG TY CP VINAPHARMA", "Chủ tài khoản");
@@ -60,11 +62,11 @@ public class SettingService {
     public static final java.util.Set<String> NUMERIC = java.util.Set.of(
             "shipping_fee", "free_ship_threshold", "near_expiry_days", "return_days", "points_per_amount", "point_value", "rx_valid_days", "cod_verify_threshold", "return_rx_allowed",
             "tier_dong_min", "tier_bac_min", "tier_vang_min", "tier_kim_cuong_min", "tier_dong_rate", "tier_bac_rate", "tier_vang_rate", "tier_kim_cuong_rate",
-            "pay_cod", "pay_bank_transfer", "pay_online", "vat_rate");
+            "pay_cod", "pay_bank_transfer", "pay_online", "vat_rate", "ai_enabled");
 
     /** Nhóm cấu hình hiển thị trên trang Cấu hình hệ thống. */
     public static final Map<String, List<String>> GROUPS = new LinkedHashMap<>();
-    public static final java.util.Set<String> BOOLEAN = java.util.Set.of("pay_cod", "pay_bank_transfer", "pay_online", "return_rx_allowed");
+    public static final java.util.Set<String> BOOLEAN = java.util.Set.of("pay_cod", "pay_bank_transfer", "pay_online", "return_rx_allowed", "ai_enabled");
     public static final java.util.Set<String> TEXTAREA = java.util.Set.of("carriers", "return_policy", "tpl_order_status", "tpl_order_shipping",
             "tpl_order_completed", "tpl_order_cancelled");
 
@@ -74,6 +76,7 @@ public class SettingService {
         GROUPS.put("Phương thức thanh toán", List.of("pay_cod", "pay_bank_transfer", "pay_online", "bank_code", "bank_account", "bank_holder"));
         GROUPS.put("Vận chuyển (biểu phí theo khu vực cấu hình tại Khu vực & phí ship)", List.of("carriers", "shipping_fee", "free_ship_threshold"));
         GROUPS.put("Đơn hàng, đơn thuốc & đổi trả", List.of("rx_valid_days", "cod_verify_threshold", "return_days", "return_rx_allowed", "return_policy"));
+        GROUPS.put("Tư vấn trực tuyến", List.of("ai_enabled", "ai_name"));
         GROUPS.put("Hóa đơn & thuế VAT", List.of("vat_rate", "company_tax_code", "einvoice_provider"));
         GROUPS.put("Mẫu thông báo gửi khách (biến: {code} {status} {note} {carrier} {tracking} {points} {store} {phone})",
                 List.of("tpl_order_status", "tpl_order_shipping", "tpl_order_completed", "tpl_order_cancelled"));

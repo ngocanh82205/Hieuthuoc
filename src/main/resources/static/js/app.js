@@ -77,10 +77,29 @@
         var lastId = parseInt(chat.getAttribute('data-last-id') || '0', 10);
         var fetchUrl = chat.getAttribute('data-fetch-url');
 
+        var typing = document.getElementById('typing');
+        var waitingSince = 0;
+        var setTyping = function (on) {
+            if (!typing) return;
+            waitingSince = on ? Date.now() : 0;
+            typing.classList.toggle('d-none', !on);
+            if (on) { box.appendChild(typing); box.scrollTop = box.scrollHeight; }
+        };
         var render = function (m) {
             var mine = String(m.senderId) === me;
+            var empty0 = box.querySelector('.chat-empty');
+            if (m.kind === 'SYSTEM') {
+                if (empty0) empty0.remove();
+                var sys = document.createElement('div');
+                sys.className = 'chat-system';
+                sys.textContent = m.body;
+                box.appendChild(sys);
+                box.scrollTop = box.scrollHeight;
+                return;
+            }
+            if (!mine) setTyping(false);
             var wrap = document.createElement('div');
-            wrap.className = 'chat-msg' + (mine ? ' mine' : '');
+            wrap.className = 'chat-msg' + (mine ? ' mine' : (m.kind === 'AI' ? ' ai' : ''));
             var bubble = document.createElement('div');
             bubble.className = 'bubble';
             if (m.body) bubble.appendChild(document.createTextNode(m.body));
@@ -130,13 +149,34 @@
             }
             var meta = document.createElement('div');
             meta.className = 'meta';
-            meta.textContent = (mine ? '' : m.senderName + (m.fromStaff ? ' (Dược sĩ)' : '') + ' · ') + m.time;
+            meta.textContent = (mine ? '' : (m.kind === 'AI' ? '🤖 ' : '') + m.senderName + (m.fromStaff ? ' (Dược sĩ)' : '') + ' · ') + m.time;
             wrap.appendChild(bubble);
             wrap.appendChild(meta);
             var empty = box.querySelector('.chat-empty');
             if (empty) empty.remove();
-            box.appendChild(wrap);
+            if (typing && !typing.classList.contains('d-none')) box.insertBefore(wrap, typing);
+            else box.appendChild(wrap);
             box.scrollTop = box.scrollHeight;
+        };
+
+        // Chế độ trợ lý AI / dược sĩ: cập nhật tiêu đề khi được chuyển
+        var handoffBtn = document.getElementById('handoffBtn');
+        var setMode = function (mode, pharmacist) {
+            if (!mode || chat.getAttribute('data-mode') === mode && !pharmacist) return;
+            chat.setAttribute('data-mode', mode);
+            var ai = mode === 'AI';
+            var header = document.getElementById('chatHeader');
+            if (header) {
+                header.querySelector('[data-title]').textContent = ai ? chat.getAttribute('data-ai-name') : (pharmacist || 'Dược sĩ VinaPharma');
+                header.querySelector('[data-subtitle]').textContent = ai ? 'Trợ lý tự động · trả lời ngay' : (pharmacist ? 'Dược sĩ phụ trách' : 'Đang chờ dược sĩ tiếp nhận');
+                var av = header.querySelector('.chat-avatar');
+                av.classList.toggle('ai', ai);
+                av.innerHTML = ai ? '<i class="bi bi-robot"></i>' : '<i class="bi bi-person-badge"></i>';
+            }
+            if (handoffBtn) handoffBtn.classList.toggle('d-none', !ai);
+            var note = document.getElementById('aiNote');
+            if (note) note.classList.toggle('d-none', !ai);
+            if (!ai) setTyping(false);
         };
 
         var poll = function () {
@@ -146,12 +186,31 @@
                     (data.messages || []).forEach(function (m) {
                         if (m.id > lastId) { render(m); lastId = m.id; }
                     });
+                    if (data.mode) setMode(data.mode, data.pharmacist);
                 })
                 .catch(function () {});
         };
 
         box.scrollTop = box.scrollHeight;
-        setInterval(poll, 4000);
+        // Đang chờ trợ lý trả lời: hỏi nhanh hơn (1,5 giây), tối đa 60 giây
+        setInterval(function () {
+            if (waitingSince && Date.now() - waitingSince > 60000) setTyping(false);
+            if (waitingSince) poll();
+        }, 1500);
+        setInterval(function () { if (!waitingSince) poll(); }, 4000);
+
+        if (handoffBtn) handoffBtn.addEventListener('click', function () {
+            handoffBtn.disabled = true;
+            fetch(chat.getAttribute('data-handoff-url'), {method: 'POST', headers: csrfHeaders()})
+                .then(function () { poll(); })
+                .finally(function () { handoffBtn.disabled = false; });
+        });
+        chat.querySelectorAll('.quick-reply').forEach(function (b) {
+            b.addEventListener('click', function () {
+                form.querySelector('textarea[name=body]').value = b.getAttribute('data-quick');
+                form.requestSubmit ? form.requestSubmit() : form.dispatchEvent(new Event('submit', {cancelable: true}));
+            });
+        });
 
         form.addEventListener('submit', function (e) {
             e.preventDefault();
@@ -165,6 +224,8 @@
                 .then(function (r) { return r.json(); })
                 .then(function (data) {
                     if (data.ok === false) { toast(data.message, false); return; }
+                    if (data.mode) setMode(data.mode);
+                    if (data.mode === 'AI') setTyping(true);
                     form.reset();
                     var prev = form.querySelector('img[id]');
                     if (prev) prev.classList.add('d-none');

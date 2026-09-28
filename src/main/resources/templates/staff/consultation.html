@@ -13,10 +13,11 @@
                     <div class="card" id="chat" th:attr="data-me=${currentUser.id},data-last-id=${messages.isEmpty() ? 0 : messages[messages.size() - 1].id()},data-fetch-url=@{/staff/consultations/{id}/messages(id=${conv.id})}">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <span><span th:text="${customer.fullName}"></span>
-                                <span class="small text-muted" th:text="'· phụ trách: ' + (${conv.pharmacist != null} ? ${conv.pharmacist.fullName} : 'chưa có')"></span></span>
+                                <span class="small text-muted" th:text="'· phụ trách: ' + (${conv.pharmacist != null} ? ${conv.pharmacist.fullName} : (${conv.aiMode} ? 'Trợ lý AI' : 'chưa có'))"></span>
+                                <span th:if="${conv.aiMode}" class="badge text-bg-light border"><i class="bi bi-robot"></i> AI đang hỗ trợ</span></span>
                             <div class="d-flex gap-1">
                                 <form th:if="${conv.pharmacist == null || conv.pharmacist.id != currentUser.id}" th:action="@{/staff/consultations/{id}/claim(id=${conv.id})}" method="post">
-                                    <button class="btn btn-sm btn-primary">Nhận</button></form>
+                                    <button class="btn btn-sm btn-primary" th:text="${conv.aiMode} ? 'Tiếp nhận từ AI' : 'Nhận'">Nhận</button></form>
                                 <form th:action="@{/staff/consultations/{id}/transfer(id=${conv.id})}" method="post" class="d-flex gap-1">
                                     <select name="toUserId" class="form-select form-select-sm" style="max-width: 170px" aria-label="Chuyển cho">
                                         <option th:each="st : ${staffList}" th:value="${st.id}" th:text="${st.fullName} + (${st.online} ? ' 🟢' : '')"></option></select>
@@ -26,13 +27,21 @@
                                 </form>
                             </div>
                         </div>
+                        <div class="alert alert-info rounded-0 border-0 border-bottom small mb-0" th:if="${conv.handoffReason != null}">
+                            <div class="fw-semibold"><i class="bi bi-robot"></i> Trợ lý AI chuyển lúc <span th:text="${@fmt.dateTime(conv.handedOffAt)}"></span>:
+                                <span th:text="${conv.handoffReason}"></span></div>
+                            <div th:if="${conv.aiSummary != null}" th:text="'Tóm tắt: ' + ${conv.aiSummary}" style="white-space: pre-line"></div>
+                        </div>
                         <div class="card-body">
                             <div class="chat-box mb-3">
                                 <div th:if="${messages.isEmpty()}" class="chat-empty text-center text-muted py-5">Chưa có tin nhắn.</div>
-                                <div th:each="m : ${messages}" class="chat-msg" th:classappend="${m.senderId() == currentUser.id} ? 'mine'">
-                                    <div class="bubble"><th:block th:text="${m.body()}"></th:block><a th:if="${m.imageUrl() != null}" th:href="${m.imageUrl()}" target="_blank"><img th:src="${m.imageUrl()}" alt="Ảnh đính kèm"></a><div th:replace="~{fragments/layout :: chatCart(${m}, false)}"></div></div>
-                                    <div class="meta" th:text="${m.senderId() == currentUser.id} ? ${m.time()} : ${m.senderName()} + (${m.fromStaff()} ? ' (Dược sĩ)' : '') + ' · ' + ${m.time()}"></div>
-                                </div>
+                                <th:block th:each="m : ${messages}">
+                                    <div th:if="${m.kind() == 'SYSTEM'}" class="chat-system" th:text="${m.body()}"></div>
+                                    <div th:unless="${m.kind() == 'SYSTEM'}" class="chat-msg" th:classappend="${m.senderId() == currentUser.id} ? 'mine' : (${m.kind() == 'AI'} ? 'ai' : '')">
+                                        <div class="bubble"><th:block th:text="${m.body()}"></th:block><a th:if="${m.imageUrl() != null}" th:href="${m.imageUrl()}" target="_blank"><img th:src="${m.imageUrl()}" alt="Ảnh đính kèm"></a><div th:replace="~{fragments/layout :: chatCart(${m}, false)}"></div></div>
+                                        <div class="meta" th:text="${m.senderId() == currentUser.id} ? ${m.time()} : (${m.kind() == 'AI'} ? '🤖 ' : '') + ${m.senderName()} + (${m.fromStaff()} ? ' (Dược sĩ)' : '') + ' · ' + ${m.time()}"></div>
+                                    </div>
+                                </th:block>
                             </div>
                             <form th:action="@{/staff/consultations/{id}/messages(id=${conv.id})}" method="post" enctype="multipart/form-data">
                                 <textarea name="body" class="form-control mb-2" rows="3" maxlength="2000" placeholder="Nhập câu trả lời..."></textarea>
