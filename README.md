@@ -1,4 +1,4 @@
-# Hiếu Thuốc – Website nhà thuốc trực tuyến (Java Spring Boot)
+# VinaPharma – Website nhà thuốc trực tuyến (Java Spring Boot)
 
 Website bán thuốc có 3 tác nhân: **Khách hàng**, **Dược sĩ / Nhân viên** và **Admin**. Hệ thống làm theo đúng nghiệp vụ nhà thuốc GPP:
 thuốc kê đơn phải được dược sĩ duyệt, không bán online thuốc kiểm soát đặc biệt, kho quản lý theo lô/hạn dùng và xuất theo FEFO.

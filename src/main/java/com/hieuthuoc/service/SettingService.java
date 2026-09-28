@@ -16,10 +16,10 @@ public class SettingService {
     public static final Map<String, String> LABELS = new LinkedHashMap<>();
 
     static {
-        def("store_name", "Nhà thuốc Hiếu Thuốc", "Tên nhà thuốc");
+        def("store_name", "VinaPharma", "Tên nhà thuốc");
         def("store_address", "123 Nguyễn Trãi, Thanh Xuân, Hà Nội", "Địa chỉ");
         def("store_phone", "1900 1234", "Hotline");
-        def("store_email", "hotro@hieuthuoc.vn", "Email");
+        def("store_email", "hotro@vinapharma.vn", "Email");
         def("business_license", "Giấy CN đủ ĐKKD dược số 01-1234/ĐKKDD-HNO", "Giấy chứng nhận đủ điều kiện kinh doanh dược");
         def("gpp_cert", "GPP số 1234/GPP", "Chứng nhận GPP");
         def("pharmacist_in_charge", "DS. Nguyễn Thị Lan - CCHN 012345/HNO-CCHND", "Dược sĩ phụ trách chuyên môn");

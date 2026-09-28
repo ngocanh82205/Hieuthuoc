@@ -6,29 +6,97 @@
 <main class="container py-4">
     <div th:replace="~{fragments/layout :: flash}"></div>
 
-    <section class="hero mb-4">
-        <div class="row align-items-center g-4">
-            <div class="col-lg-7">
-                <h1 class="display-6">Thuốc chính hãng,<br>dược sĩ tư vấn tận tâm</h1>
-                <p class="lead mb-4">Mua thuốc không kê đơn, thực phẩm chức năng, dụng cụ y tế. Thuốc kê đơn được dược sĩ kiểm tra đơn trước khi bán.</p>
-                <div class="d-flex flex-wrap gap-2">
-                    <a th:href="@{/products}" class="btn btn-light btn-lg text-primary fw-semibold"><i class="bi bi-grid"></i> Mua sắm ngay</a>
-                    <a th:href="@{/consult}" class="btn btn-outline-light btn-lg"><i class="bi bi-chat-dots"></i> Hỏi dược sĩ</a>
-                </div>
+    <!-- ===== HERO (slide) ===== -->
+    <div id="heroCarousel" class="carousel slide hero-carousel mb-4" data-bs-ride="carousel" data-bs-interval="6000">
+        <div class="carousel-indicators">
+            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
+            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
+            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="2" aria-label="Slide 3"></button>
+        </div>
+        <div class="carousel-inner">
+            <div class="carousel-item active">
+                <section class="hero">
+                    <div class="bubbles"><span></span><span></span><span></span><span></span><span></span></div>
+                    <div class="row align-items-center g-4">
+                        <div class="col-lg-7">
+                            <span class="eyebrow mb-3"><i class="bi bi-stars"></i> Nhà thuốc trực tuyến chuẩn GPP</span>
+                            <h1 class="display-5 mb-3">Chăm sóc sức khỏe<br>cả gia đình cùng <span style="color:#bff0ff">VinaPharma</span></h1>
+                            <p class="lead mb-4">Thuốc chính hãng, dược sĩ tư vấn tận tâm. Giao nhanh trong 2 giờ nội thành,
+                                truy xuất lô và hạn dùng rõ ràng cho từng sản phẩm.</p>
+                            <div class="d-flex flex-wrap gap-2">
+                                <a th:href="@{/products}" class="btn btn-light btn-lg px-4"><i class="bi bi-bag-heart me-1"></i> Mua sắm ngay</a>
+                                <a th:href="@{/consult}" class="btn btn-outline-light btn-lg px-4"><i class="bi bi-chat-heart me-1"></i> Hỏi dược sĩ</a>
+                            </div>
+                        </div>
+                        <div class="col-lg-5 d-none d-lg-block">
+                            <div class="hero-art">
+                                <div class="main-pill"><i class="bi bi-capsule-pill"></i></div>
+                                <div class="glass-card chip chip-1"><i class="bi bi-shield-check"></i><div><strong>100%</strong><br><small>Chính hãng</small></div></div>
+                                <div class="glass-card chip chip-2"><i class="bi bi-lightning-charge"></i><div><strong>Giao 2 giờ</strong><br><small>Nội thành</small></div></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
             </div>
-            <div class="col-lg-5">
-                <div class="d-grid gap-2">
-                    <div class="feature"><i class="bi bi-file-earmark-medical me-2"></i><strong>Mua thuốc theo đơn:</strong> tải ảnh đơn thuốc, dược sĩ duyệt trong giờ làm việc</div>
-                    <div class="feature"><i class="bi bi-truck me-2"></i><strong>Giao hàng nhanh</strong> - miễn phí cho đơn từ <span th:text="${@fmt.money(settings['free_ship_threshold'])}"></span></div>
-                    <div class="feature"><i class="bi bi-patch-check me-2"></i><strong>Truy xuất lô, hạn dùng</strong> rõ ràng cho từng sản phẩm</div>
-                </div>
+            <div class="carousel-item">
+                <section class="hero alt-1">
+                    <div class="bubbles"><span></span><span></span><span></span><span></span><span></span></div>
+                    <div class="row align-items-center g-4">
+                        <div class="col-lg-7">
+                            <span class="eyebrow mb-3"><i class="bi bi-file-earmark-medical"></i> Mua thuốc theo đơn</span>
+                            <h1 class="display-5 mb-3">Chụp đơn thuốc,<br>dược sĩ lo phần còn lại</h1>
+                            <p class="lead mb-4">Tải ảnh đơn thuốc khi đặt hàng. Dược sĩ có chứng chỉ hành nghề kiểm tra,
+                                tư vấn liều dùng và xác nhận trước khi giao.</p>
+                            <a th:href="@{/products(type='ETC')}" class="btn btn-light btn-lg px-4"><i class="bi bi-upload me-1"></i> Mua thuốc kê đơn</a>
+                        </div>
+                        <div class="col-lg-5 d-none d-lg-block">
+                            <div class="hero-art">
+                                <div class="main-pill"><i class="bi bi-clipboard2-pulse"></i></div>
+                                <div class="glass-card chip chip-1"><i class="bi bi-person-badge"></i><div><strong>Dược sĩ duyệt</strong><br><small>Trong giờ làm việc</small></div></div>
+                                <div class="glass-card chip chip-2"><i class="bi bi-lock"></i><div><strong>Bảo mật</strong><br><small>Dữ liệu sức khỏe</small></div></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
             </div>
+            <div class="carousel-item">
+                <section class="hero alt-2">
+                    <div class="bubbles"><span></span><span></span><span></span><span></span><span></span></div>
+                    <div class="row align-items-center g-4">
+                        <div class="col-lg-7">
+                            <span class="eyebrow mb-3"><i class="bi bi-gift"></i> Ưu đãi thành viên mới</span>
+                            <h1 class="display-5 mb-3">Giảm ngay 10%<br>cho đơn đầu tiên</h1>
+                            <p class="lead mb-4">Nhập mã <strong class="bg-white text-primary px-2 rounded">WELCOME10</strong> khi thanh toán
+                                (áp dụng cho sản phẩm không kê đơn, tối đa 50.000đ).</p>
+                            <a th:href="@{/register}" class="btn btn-light btn-lg px-4"><i class="bi bi-person-plus me-1"></i> Đăng ký miễn phí</a>
+                        </div>
+                        <div class="col-lg-5 d-none d-lg-block">
+                            <div class="hero-art">
+                                <div class="main-pill"><i class="bi bi-ticket-perforated"></i></div>
+                                <div class="glass-card chip chip-1"><i class="bi bi-star"></i><div><strong>Tích điểm</strong><br><small>Mỗi đơn hàng</small></div></div>
+                                <div class="glass-card chip chip-2"><i class="bi bi-truck"></i><div><strong>Freeship</strong><br><small th:text="'Đơn từ ' + ${@fmt.money(settings['free_ship_threshold'])}"></small></div></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Cam kết ===== -->
+    <section class="trust-strip mb-5 reveal">
+        <div class="row g-0">
+            <div class="col-6 col-lg-3"><div class="trust-item"><i class="bi bi-patch-check"></i><div><strong>Thuốc chính hãng</strong><small>Nguồn gốc rõ ràng</small></div></div></div>
+            <div class="col-6 col-lg-3"><div class="trust-item"><i class="bi bi-person-heart"></i><div><strong>Dược sĩ tư vấn</strong><small>Miễn phí, tận tâm</small></div></div></div>
+            <div class="col-6 col-lg-3"><div class="trust-item"><i class="bi bi-truck"></i><div><strong>Giao hàng nhanh</strong><small>Nội thành trong 2 giờ</small></div></div></div>
+            <div class="col-6 col-lg-3"><div class="trust-item"><i class="bi bi-arrow-repeat"></i><div><strong>Đổi trả dễ dàng</strong><small th:text="'Trong ' + ${settings['return_days']} + ' ngày'"></small></div></div></div>
         </div>
     </section>
 
+    <!-- ===== Danh mục ===== -->
     <section class="mb-5">
-        <h2 class="section-title">Danh mục sản phẩm</h2>
-        <div class="row row-cols-3 row-cols-md-5 g-2 g-md-3">
+        <h2 class="section-title reveal">Danh mục nổi bật</h2>
+        <div class="row row-cols-3 row-cols-md-5 g-2 g-md-3 reveal-stagger">
             <div class="col" th:each="c : ${navCategories}">
                 <a class="category-tile" th:href="@{/products(category=${c.slug})}">
                     <i class="bi" th:classappend="${c.icon}"></i>
@@ -39,46 +107,67 @@
         </div>
     </section>
 
-    <section class="mb-5" th:if="${!onSale.isEmpty()}">
-        <div class="d-flex justify-content-between align-items-center">
-            <h2 class="section-title"><i class="bi bi-lightning-charge text-danger"></i> Đang giảm giá</h2>
-        </div>
-        <div class="row row-cols-2 row-cols-md-4 g-3">
-            <div class="col" th:each="p : ${onSale}"><div th:replace="~{fragments/layout :: productCard(${p})}"></div></div>
+    <!-- ===== Flash sale ===== -->
+    <section class="mb-5 reveal" th:if="${!onSale.isEmpty()}">
+        <div class="flash-sale">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 position-relative">
+                <div class="flash-title"><i class="bi bi-lightning-charge-fill"></i> GIÁ SỐC HÔM NAY</div>
+                <div class="countdown" id="countdown"><small class="me-1">Kết thúc sau</small><span data-h>00</span>:<span data-m>00</span>:<span data-s>00</span></div>
+            </div>
+            <div class="row row-cols-2 row-cols-md-4 g-3 position-relative">
+                <div class="col" th:each="p : ${onSale}"><div th:replace="~{fragments/layout :: productCard(${p})}"></div></div>
+            </div>
         </div>
     </section>
 
     <section class="mb-5">
         <div class="d-flex justify-content-between align-items-center">
-            <h2 class="section-title">Bán chạy nhất</h2>
-            <a th:href="@{/products(sort='bestseller')}">Xem tất cả <i class="bi bi-arrow-right"></i></a>
+            <h2 class="section-title reveal">Bán chạy nhất</h2>
+            <a class="section-link" th:href="@{/products(sort='bestseller')}">Xem tất cả <i class="bi bi-arrow-right"></i></a>
         </div>
-        <div class="row row-cols-2 row-cols-md-4 g-3">
+        <div class="row row-cols-2 row-cols-md-4 g-3 reveal-stagger">
             <div class="col" th:each="p : ${bestSellers}"><div th:replace="~{fragments/layout :: productCard(${p})}"></div></div>
         </div>
     </section>
 
+    <!-- ===== CTA tư vấn ===== -->
+    <section class="cta-consult mb-5 reveal">
+        <div class="row align-items-center g-3">
+            <div class="col-auto"><div class="avatar"><i class="bi bi-headset"></i></div></div>
+            <div class="col">
+                <h3 class="h4 fw-bold mb-1">Bạn chưa biết nên dùng thuốc gì?</h3>
+                <p class="text-muted mb-0">Chat miễn phí với dược sĩ VinaPharma. Gửi triệu chứng hoặc ảnh đơn thuốc để được tư vấn ngay.</p>
+            </div>
+            <div class="col-md-auto">
+                <a th:href="@{/consult}" class="btn btn-primary btn-lg px-4"><i class="bi bi-chat-dots me-1"></i> Chat với dược sĩ</a>
+            </div>
+        </div>
+    </section>
+
     <section class="mb-5">
         <div class="d-flex justify-content-between align-items-center">
-            <h2 class="section-title">Sản phẩm mới</h2>
-            <a th:href="@{/products(sort='newest')}">Xem tất cả <i class="bi bi-arrow-right"></i></a>
+            <h2 class="section-title reveal">Sản phẩm mới</h2>
+            <a class="section-link" th:href="@{/products(sort='newest')}">Xem tất cả <i class="bi bi-arrow-right"></i></a>
         </div>
-        <div class="row row-cols-2 row-cols-md-4 g-3">
+        <div class="row row-cols-2 row-cols-md-4 g-3 reveal-stagger">
             <div class="col" th:each="p : ${newest}"><div th:replace="~{fragments/layout :: productCard(${p})}"></div></div>
         </div>
     </section>
 
     <section th:if="${!posts.isEmpty()}">
         <div class="d-flex justify-content-between align-items-center">
-            <h2 class="section-title">Góc sức khỏe</h2>
-            <a th:href="@{/posts}">Tất cả bài viết <i class="bi bi-arrow-right"></i></a>
+            <h2 class="section-title reveal">Góc sức khỏe</h2>
+            <a class="section-link" th:href="@{/posts}">Tất cả bài viết <i class="bi bi-arrow-right"></i></a>
         </div>
-        <div class="row g-3">
-            <div class="col-md-4" th:each="post : ${posts}">
-                <a class="card h-100 text-reset" th:href="@{/posts/{s}(s=${post.slug})}">
+        <div class="row g-3 reveal-stagger">
+            <div class="col-md-4" th:each="post, st : ${posts}">
+                <a class="card post-card h-100 text-reset" th:href="@{/posts/{s}(s=${post.slug})}">
+                    <div class="post-cover" th:classappend="'c' + ${st.index % 3}">
+                        <i class="bi" th:classappend="${st.index % 3 == 0} ? 'bi-heart-pulse' : (${st.index % 3 == 1} ? 'bi-capsule' : 'bi-activity')"></i>
+                    </div>
                     <div class="card-body">
-                        <div class="small text-muted mb-1" th:text="${@fmt.date(post.createdAt)}"></div>
-                        <h3 class="h6 fw-semibold" th:text="${post.title}">Tiêu đề</h3>
+                        <div class="small text-muted mb-1"><i class="bi bi-calendar3 me-1"></i><span th:text="${@fmt.date(post.createdAt)}"></span></div>
+                        <h3 class="h6 fw-bold" th:text="${post.title}">Tiêu đề</h3>
                         <p class="small text-muted mb-0" th:text="${post.summary}">Tóm tắt</p>
                     </div>
                 </a>

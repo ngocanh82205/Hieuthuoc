@@ -9,10 +9,7 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" data-bs-target="#staffSidebar" aria-label="Đóng"></button>
     </div>
     <div class="sidebar-inner">
-        <a th:href="@{/staff}" class="sidebar-brand">
-            <span class="brand-mark"><i class="bi bi-plus-lg"></i></span>
-            <span th:text="${settings['store_name']}">Nhà thuốc</span>
-        </a>
+        <a th:href="@{/staff}" class="sidebar-brand" th:insert="~{fragments/layout :: logo}"></a>
         <div class="sidebar-label">Dược sĩ / Nhân viên</div>
         <nav class="nav flex-column">
             <a class="nav-link" th:href="@{/staff}" th:classappend="${requestPath == '/staff'} ? 'active'"><i class="bi bi-speedometer2"></i>Tổng quan</a>

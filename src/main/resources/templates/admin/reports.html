@@ -118,11 +118,11 @@
                         type: 'bar',
                         data: {
                             labels: dayLabels,
-                            datasets: [{label: 'Doanh thu (đ)', data: dayRevenue, backgroundColor: 'rgba(15,122,92,.75)', borderRadius: 4}]
+                            datasets: [{label: 'Doanh thu (đ)', data: dayRevenue, backgroundColor: 'rgba(11,99,229,.8)', borderRadius: 4}]
                         },
                         options: {plugins: {legend: {display: false}}, scales: {y: {beginAtZero: true, ticks: {callback: function (v) { return (v / 1000).toLocaleString('vi-VN') + 'k'; }}}}}
                     });
-                    var palette = ['#0f7a5c', '#2463a8', '#d98e04', '#c0392b', '#6a4bb5', '#1fa37d', '#8a6d3b', '#5c6f7b', '#e67e22', '#16a085'];
+                    var palette = ['#0b63e5', '#00b4d8', '#06327a', '#38bdf8', '#6366f1', '#0ea5e9', '#1e40af', '#7dd3fc', '#a5b4fc', '#94a3b8'];
                     new Chart(document.getElementById('catChart'), {
                         type: 'doughnut',
                         data: {labels: catNames, datasets: [{data: catValues, backgroundColor: palette}]},

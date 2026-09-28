@@ -176,3 +176,55 @@
         el.addEventListener('change', function () { el.form.submit(); });
     });
 })();
+
+/* ===== Hiệu ứng giao diện ===== */
+(function () {
+    'use strict';
+    // Header đổ bóng khi cuộn + nút lên đầu trang
+    var header = document.querySelector('.site-header');
+    var toTop = document.getElementById('backToTop');
+    var onScroll = function () {
+        var y = window.scrollY;
+        if (header) header.classList.toggle('scrolled', y > 10);
+        if (toTop) toTop.classList.toggle('show', y > 500);
+    };
+    window.addEventListener('scroll', onScroll, {passive: true});
+    onScroll();
+    if (toTop) toTop.addEventListener('click', function () { window.scrollTo({top: 0, behavior: 'smooth'}); });
+
+    // Hiện dần các khối khi cuộn tới
+    var items = document.querySelectorAll('.reveal, .reveal-stagger');
+    if ('IntersectionObserver' in window) {
+        var io = new IntersectionObserver(function (entries) {
+            entries.forEach(function (e) {
+                if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+            });
+        }, {threshold: 0.12, rootMargin: '0px 0px -40px 0px'});
+        items.forEach(function (el) { io.observe(el); });
+    } else {
+        items.forEach(function (el) { el.classList.add('in'); });
+    }
+
+    // Đồng hồ đếm ngược flash sale (đến hết ngày)
+    var cd = document.getElementById('countdown');
+    if (cd) {
+        var pad = function (n) { return String(n).padStart(2, '0'); };
+        var tick = function () {
+            var now = new Date();
+            var end = new Date(now); end.setHours(23, 59, 59, 999);
+            var s = Math.max(0, Math.floor((end - now) / 1000));
+            cd.querySelector('[data-h]').textContent = pad(Math.floor(s / 3600));
+            cd.querySelector('[data-m]').textContent = pad(Math.floor(s % 3600 / 60));
+            cd.querySelector('[data-s]').textContent = pad(s % 60);
+        };
+        tick();
+        setInterval(tick, 1000);
+    }
+
+    // Hiệu ứng "nảy" biểu tượng giỏ hàng khi thêm sản phẩm
+    document.addEventListener('submit', function (e) {
+        if (!e.target.classList.contains('js-add-cart')) return;
+        var bag = document.querySelector('.bi-bag-heart');
+        if (bag && bag.animate) bag.animate([{transform: 'scale(1)'}, {transform: 'scale(1.35) rotate(-10deg)'}, {transform: 'scale(1)'}], {duration: 500, delay: 300});
+    });
+})();
