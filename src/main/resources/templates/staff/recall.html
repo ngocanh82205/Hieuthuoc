@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="staff-body">
+<div class="staff-shell">
+    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
+    <div class="staff-main">
+        <header th:replace="~{fragments/staff :: topbar}"></header>
+        <main class="p-3 p-lg-4">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="fw-semibold" th:text="${batch.product.name}"></div>
+                    <div class="small text-muted" th:text="'Lô ' + ${batch.batchNo} + ' · HSD ' + ${@fmt.date(batch.expDate)} + ' · tồn ' + ${batch.quantity}"></div>
+                    <div th:if="${batch.locked}" class="badge text-bg-dark mt-1" th:text="'Đã khóa: ' + ${batch.lockReason}"></div>
+                </div>
+            </div>
+            <div class="card mb-4">
+                <div class="card-header">Khách hàng đã mua lô này (<span th:text="${buyers.size()}"></span> lượt)</div>
+                <div class="table-responsive">
+                    <table class="table mb-0">
+                        <thead><tr><th>Đơn hàng</th><th>Khách hàng</th><th>Liên hệ</th><th>Ngày mua</th><th class="text-end">SL</th><th>Trạng thái</th></tr></thead>
+                        <tbody>
+                        <tr th:if="${buyers.isEmpty()}"><td colspan="6" class="text-center text-muted py-4">Chưa có khách mua lô này.</td></tr>
+                        <tr th:each="a : ${buyers}" th:with="o=${a.orderItem.order}">
+                            <td><a th:href="@{/staff/orders/{id}(id=${o.id})}" th:text="${o.code}"></a></td>
+                            <td th:text="${o.user.fullName}"></td>
+                            <td class="small" th:text="${o.phone} + ' · ' + ${o.user.email}"></td>
+                            <td class="small" th:text="${@fmt.dateTime(o.createdAt)}"></td>
+                            <td class="text-end" th:text="${a.quantity}"></td>
+                            <td><span th:replace="~{fragments/staff :: orderStatus(${o.status})}"></span></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <form th:if="${!buyers.isEmpty()}" th:action="@{/staff/batches/{id}/notify-buyers(id=${batch.id})}" method="post" class="card card-body" data-confirm="Gửi thông báo thu hồi đến tất cả khách đã mua?">
+                <label class="form-label fw-semibold">Gửi thông báo thu hồi đến khách hàng</label>
+                <textarea name="message" class="form-control mb-2" rows="3" required minlength="10" placeholder="VD: Theo công văn số ... của Cục Quản lý Dược, lô thuốc này bị thu hồi. Quý khách vui lòng ngừng sử dụng và liên hệ nhà thuốc để được đổi/hoàn tiền."></textarea>
+                <button class="btn btn-danger align-self-start"><i class="bi bi-megaphone"></i> Gửi thông báo</button>
+            </form>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

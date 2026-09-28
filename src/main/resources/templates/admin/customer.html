@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="staff-body">
+<div class="staff-shell">
+    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
+    <div class="staff-main">
+        <header th:replace="~{fragments/staff :: topbar}"></header>
+        <main class="p-3 p-lg-4">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="row g-4">
+                <div class="col-xl-4">
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <h2 class="h5 fw-bold" th:text="${customer.fullName}"></h2>
+                            <div class="small" th:text="${customer.email}"></div>
+                            <div class="small" th:text="${customer.phone}"></div>
+                            <div class="small text-muted" th:text="'Đăng ký ' + ${@fmt.date(customer.createdAt)}"></div>
+                            <hr>
+                            <div class="d-flex justify-content-between"><span>Đã chi tiêu</span><strong th:text="${@fmt.money(spent)}"></strong></div>
+                            <div class="d-flex justify-content-between"><span>Điểm tích lũy</span><strong th:text="${customer.points}"></strong></div>
+                            <hr>
+                            <form th:action="@{/admin/users/{id}/lock(id=${customer.id})}" method="post" th:attr="data-confirm=${customer.locked} ? null : 'Khóa tài khoản khách hàng này?'">
+                                <button class="btn btn-sm w-100" th:classappend="${customer.locked} ? 'btn-success' : 'btn-outline-danger'" th:text="${customer.locked} ? 'Mở khóa tài khoản' : 'Khóa tài khoản'"></button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="card mb-4">
+                        <div class="card-header">Điều chỉnh điểm</div>
+                        <form th:action="@{/admin/customers/{id}/points(id=${customer.id})}" method="post" class="card-body">
+                            <input type="number" name="delta" class="form-control form-control-sm mb-2" placeholder="+/- điểm" required>
+                            <input name="reason" class="form-control form-control-sm mb-2" placeholder="Lý do" required>
+                            <button class="btn btn-sm btn-outline-primary">Cập nhật</button>
+                        </form>
+                    </div>
+                    <div class="health-box p-3 small mb-4">
+                        <div class="fw-semibold mb-1">Hồ sơ sức khỏe</div>
+                        <div><strong>Dị ứng:</strong> <span th:text="${customer.allergies ?: '-'}"></span></div>
+                        <div><strong>Bệnh nền:</strong> <span th:text="${customer.chronicConditions ?: '-'}"></span></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">Sổ địa chỉ</div>
+                        <ul class="list-group list-group-flush small">
+                            <li th:if="${addresses.isEmpty()}" class="list-group-item text-muted">Chưa có.</li>
+                            <li class="list-group-item" th:each="a : ${addresses}" th:text="${a.recipient} + ' · ' + ${a.phone} + ' · ' + ${a.addressLine}"></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-xl-8">
+                    <div class="card">
+                        <div class="card-header">Lịch sử đơn hàng</div>
+                        <div class="table-responsive">
+                            <table class="table mb-0">
+                                <thead><tr><th>Mã đơn</th><th>Ngày</th><th class="text-end">Tổng</th><th>Trạng thái</th></tr></thead>
+                                <tbody>
+                                <tr th:if="${orders.isEmpty()}"><td colspan="4" class="text-center text-muted py-4">Chưa có đơn hàng.</td></tr>
+                                <tr th:each="o : ${orders}">
+                                    <td><a th:href="@{/staff/orders/{id}(id=${o.id})}" th:text="${o.code}"></a></td>
+                                    <td class="small" th:text="${@fmt.dateTime(o.createdAt)}"></td>
+                                    <td class="text-end" th:text="${@fmt.money(o.total)}"></td>
+                                    <td><span th:replace="~{fragments/staff :: orderStatus(${o.status})}"></span></td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

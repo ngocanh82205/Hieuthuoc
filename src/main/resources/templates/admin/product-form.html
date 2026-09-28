@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="staff-body">
+<div class="staff-shell">
+    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
+    <div class="staff-main">
+        <header th:replace="~{fragments/staff :: topbar}"></header>
+        <main class="p-3 p-lg-4">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <form th:action="${product.id == null} ? @{/admin/products} : @{/admin/products/{id}(id=${product.id})}" method="post" enctype="multipart/form-data" th:object="${product}">
+                <div class="row g-4">
+                    <div class="col-xl-8">
+                        <div class="card mb-4">
+                            <div class="card-header">Thông tin cơ bản</div>
+                            <div class="card-body row g-3">
+                                <div class="col-md-8"><label class="form-label">Tên sản phẩm *</label><input name="name" class="form-control" th:value="*{name}" required></div>
+                                <div class="col-md-4"><label class="form-label">Danh mục</label>
+                                    <select name="categoryId" class="form-select">
+                                        <option value="">-- Không --</option>
+                                        <option th:each="c : ${categories}" th:value="${c.id}" th:text="${c.name}" th:selected="${product.category != null && product.category.id == c.id}"></option>
+                                    </select></div>
+                                <div class="col-md-6"><label class="form-label">Loại sản phẩm *</label>
+                                    <select name="drugType" class="form-select">
+                                        <option th:each="t : ${drugTypes}" th:value="${t}" th:text="${t.label}" th:selected="${product.drugType == t}"></option>
+                                    </select>
+                                    <div class="form-text">Thuốc kê đơn: bắt buộc đơn thuốc. Kiểm soát đặc biệt: không bán online.</div></div>
+                                <div class="col-md-6"><label class="form-label">Hoạt chất</label><input name="activeIngredient" class="form-control" th:value="*{activeIngredient}"></div>
+                                <div class="col-md-4"><label class="form-label">Hàm lượng</label><input name="strength" class="form-control" th:value="*{strength}"></div>
+                                <div class="col-md-4"><label class="form-label">Dạng bào chế</label><input name="dosageForm" class="form-control" th:value="*{dosageForm}"></div>
+                                <div class="col-md-4"><label class="form-label">Quy cách đóng gói</label><input name="packaging" class="form-control" th:value="*{packaging}" placeholder="Hộp 10 vỉ x 10 viên"></div>
+                                <div class="col-md-4"><label class="form-label">Số đăng ký</label><input name="registrationNo" class="form-control" th:value="*{registrationNo}"></div>
+                                <div class="col-md-4"><label class="form-label">Nhà sản xuất</label><input name="manufacturer" class="form-control" th:value="*{manufacturer}"></div>
+                                <div class="col-md-4"><label class="form-label">Nước sản xuất</label><input name="country" class="form-control" th:value="*{country}"></div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">Thông tin dược</div>
+                            <div class="card-body row g-3">
+                                <div class="col-12"><label class="form-label">Công dụng / mô tả</label><textarea name="description" class="form-control" rows="3" maxlength="2000" th:text="*{description}"></textarea></div>
+                                <div class="col-12"><label class="form-label">Liều dùng - cách dùng</label><textarea name="usageInstruction" class="form-control" rows="3" maxlength="2000" th:text="*{usageInstruction}"></textarea></div>
+                                <div class="col-md-6"><label class="form-label">Chống chỉ định</label><textarea name="contraindications" class="form-control" rows="3" maxlength="1000" th:text="*{contraindications}"></textarea></div>
+                                <div class="col-md-6"><label class="form-label">Tác dụng phụ</label><textarea name="sideEffects" class="form-control" rows="3" maxlength="1000" th:text="*{sideEffects}"></textarea></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-4">
+                        <div class="card mb-4">
+                            <div class="card-header">Giá & bán hàng</div>
+                            <div class="card-body row g-3">
+                                <div class="col-6"><label class="form-label">Đơn vị tính *</label><input name="unit" class="form-control" th:value="*{unit}" required></div>
+                                <div class="col-6"><label class="form-label">Giá bán (đ) *</label><input type="number" name="price" min="1" class="form-control" th:value="*{id != null ? price : ''}" required></div>
+                                <div class="col-6"><label class="form-label">Giá gốc (đ)</label><input type="number" name="oldPrice" min="0" class="form-control" th:value="*{oldPrice}">
+                                    <div class="form-text">Để hiện giảm giá. Không áp dụng cho thuốc kê đơn.</div></div>
+                                <div class="col-6"><label class="form-label">Tối đa/đơn</label><input type="number" name="maxPerOrder" min="0" class="form-control" th:value="*{maxPerOrder}"></div>
+                                <div class="col-6"><label class="form-label">Định mức tồn</label><input type="number" name="minStock" min="0" class="form-control" th:value="*{minStock}"></div>
+                                <div class="col-12 form-check ms-2">
+                                    <input type="checkbox" class="form-check-input" name="active" value="true" id="active" th:checked="*{active}">
+                                    <label for="active" class="form-check-label">Đang kinh doanh</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card mb-4">
+                            <div class="card-header">Hình ảnh</div>
+                            <div class="card-body">
+                                <img th:if="*{image != null}" th:src="@{*{image}}" class="img-thumbnail mb-2" style="max-height: 160px" alt="Ảnh sản phẩm">
+                                <input type="file" name="imageFile" class="form-control" accept="image/jpeg,image/png,image/webp,image/gif" data-preview="imgPreview">
+                                <img id="imgPreview" class="img-thumbnail mt-2 d-none" style="max-height: 160px" alt="Xem trước">
+                                <div class="form-check mt-2" th:if="*{image != null}">
+                                    <input type="checkbox" class="form-check-input" name="removeImage" value="true" id="removeImage">
+                                    <label for="removeImage" class="form-check-label">Xóa ảnh hiện tại</label>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary w-100">Lưu sản phẩm</button>
+                        <a th:href="@{/admin/products}" class="btn btn-link w-100">Hủy</a>
+                    </div>
+                </div>
+            </form>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

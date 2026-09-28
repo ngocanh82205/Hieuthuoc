@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="staff-body">
+<div class="staff-shell">
+    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
+    <div class="staff-main">
+        <header th:replace="~{fragments/staff :: topbar}"></header>
+        <main class="p-3 p-lg-4">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="row g-4">
+                <div class="col-lg-7">
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table class="table mb-0">
+                                <thead><tr><th>Nhà cung cấp</th><th>Liên hệ</th><th class="text-end">Tổng giá trị nhập</th><th></th></tr></thead>
+                                <tbody>
+                                <tr th:if="${suppliers.isEmpty()}"><td colspan="4" class="text-center text-muted py-4">Chưa có nhà cung cấp.</td></tr>
+                                <tr th:each="s : ${suppliers}">
+                                    <td><div class="fw-semibold" th:text="${s.name}"></div><small class="text-muted" th:text="${s.address}"></small></td>
+                                    <td class="small"><div th:text="${s.phone}"></div><div th:text="${s.email}"></div></td>
+                                    <td class="text-end" th:text="${@fmt.money(value[s.id])}"></td>
+                                    <td><a th:href="@{/admin/suppliers(edit=${s.id})}" class="btn btn-sm btn-outline-primary">Sửa</a></td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-5">
+                    <form th:action="${edit.id == null} ? @{/admin/suppliers} : @{/admin/suppliers/{id}(id=${edit.id})}" method="post" class="card">
+                        <div class="card-header" th:text="${edit.id == null} ? 'Thêm nhà cung cấp' : 'Sửa nhà cung cấp'"></div>
+                        <div class="card-body">
+                            <div class="mb-3"><label class="form-label">Tên</label><input name="name" class="form-control" th:value="${edit.name}" required></div>
+                            <div class="mb-3"><label class="form-label">Điện thoại</label><input name="phone" class="form-control" th:value="${edit.phone}"></div>
+                            <div class="mb-3"><label class="form-label">Email</label><input type="email" name="email" class="form-control" th:value="${edit.email}"></div>
+                            <div class="mb-3"><label class="form-label">Địa chỉ</label><input name="address" class="form-control" th:value="${edit.address}"></div>
+                            <button class="btn btn-primary">Lưu</button>
+                            <a th:if="${edit.id != null}" th:href="@{/admin/suppliers}" class="btn btn-link">Hủy</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

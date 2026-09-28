@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="staff-body">
+<div class="staff-shell">
+    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
+    <div class="staff-main">
+        <header th:replace="~{fragments/staff :: topbar}"></header>
+        <main class="p-3 p-lg-4">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <form th:action="${user.id == null} ? @{/admin/users} : @{/admin/users/{id}(id=${user.id})}" method="post" class="card" style="max-width: 720px">
+                <div class="card-body row g-3">
+                    <div class="col-md-6"><label class="form-label">Họ tên</label><input name="fullName" class="form-control" th:value="${user.fullName}" required></div>
+                    <div class="col-md-6"><label class="form-label">Email đăng nhập</label><input type="email" name="email" class="form-control" th:value="${user.email}" required></div>
+                    <div class="col-md-6"><label class="form-label">Số điện thoại</label><input name="phone" class="form-control" th:value="${user.phone}"></div>
+                    <div class="col-md-6"><label class="form-label">Vai trò</label>
+                        <select name="role" class="form-select">
+                            <option value="PHARMACIST" th:selected="${user.role.name() == 'PHARMACIST'}">Dược sĩ / Nhân viên</option>
+                            <option value="ADMIN" th:selected="${user.role.name() == 'ADMIN'}">Quản trị viên</option>
+                        </select></div>
+                    <div class="col-md-6"><label class="form-label">Số chứng chỉ hành nghề dược</label><input name="licenseNo" class="form-control" th:value="${user.licenseNo}"></div>
+                    <div class="col-md-6"><label class="form-label" th:text="${user.id == null} ? 'Mật khẩu' : 'Mật khẩu mới (để trống nếu không đổi)'">Mật khẩu</label>
+                        <input type="password" name="password" class="form-control" minlength="6" th:required="${user.id == null}" autocomplete="new-password"></div>
+                </div>
+                <div class="card-footer bg-white"><button class="btn btn-primary">Lưu</button> <a th:href="@{/admin/users}" class="btn btn-link">Hủy</a></div>
+            </form>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

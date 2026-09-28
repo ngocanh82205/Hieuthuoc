@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="staff-body">
+<div class="staff-shell">
+    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
+    <div class="staff-main">
+        <header th:replace="~{fragments/staff :: topbar}"></header>
+        <main class="p-3 p-lg-4">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="row g-4" th:with="o=${order}, c=${rx.user}">
+                <div class="col-xl-6">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between">
+                            <span>Ảnh đơn thuốc</span>
+                            <a th:href="@{/files/prescriptions/{f}(f=${rx.image})}" target="_blank" class="small"><i class="bi bi-arrows-fullscreen"></i> Mở ảnh gốc</a>
+                        </div>
+                        <div class="card-body">
+                            <img class="rx-image" th:src="@{/files/prescriptions/{f}(f=${rx.image})}" alt="Ảnh đơn thuốc">
+                            <p class="small mt-2 mb-0" th:if="${rx.customerNote != null}"><strong>Ghi chú của khách:</strong> <span th:text="${rx.customerNote}"></span></p>
+                        </div>
+                    </div>
+                    <div class="card mt-3" th:if="${!previous.isEmpty()}">
+                        <div class="card-header">Các lần gửi trước</div>
+                        <ul class="list-group list-group-flush small">
+                            <li class="list-group-item" th:each="p : ${previous}">
+                                <a th:href="@{/files/prescriptions/{f}(f=${p.image})}" target="_blank" th:text="'#' + ${p.id} + ' - ' + ${@fmt.dateTime(p.createdAt)}"></a>
+                                <span class="badge" th:classappend="'text-bg-' + ${p.status.color}" th:text="${p.status.label}"></span>
+                                <span class="text-muted" th:text="${p.rejectReason}"></span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-xl-6">
+                    <div class="health-box p-3 mb-3 small">
+                        <div class="fw-semibold mb-1"><i class="bi bi-person-vcard"></i> <span th:text="${c.fullName}"></span> · <span th:text="${c.phone}"></span>
+                            <span th:if="${c.gender != null}" th:text="' · ' + ${c.gender}"></span>
+                            <span th:if="${c.birthday != null}" th:text="' · sinh ' + ${@fmt.date(c.birthday)}"></span></div>
+                        <div><strong>Dị ứng:</strong> <span th:text="${c.allergies ?: 'Không ghi nhận'}"></span></div>
+                        <div><strong>Bệnh nền:</strong> <span th:text="${c.chronicConditions ?: 'Không ghi nhận'}"></span></div>
+                        <div th:if="${c.pregnancy}" class="text-danger fw-semibold"><i class="bi bi-exclamation-triangle"></i> Đang mang thai / cho con bú</div>
+                    </div>
+
+                    <div th:if="${rx.status.name() != 'PENDING'}" class="card mb-3">
+                        <div class="card-body">
+                            <span class="badge" th:classappend="'text-bg-' + ${rx.status.color}" th:text="${rx.status.label}"></span>
+                            <span class="small text-muted" th:text="'bởi ' + ${rx.pharmacist != null ? rx.pharmacist.fullName : ''} + ' lúc ' + ${@fmt.dateTime(rx.reviewedAt)}"></span>
+                            <div class="small mt-2" th:if="${rx.patientName != null}">Bệnh nhân: <strong th:text="${rx.patientName}"></strong> · Bác sĩ: <strong th:text="${rx.doctorName}"></strong>
+                                <span th:if="${rx.clinic != null}" th:text="' · ' + ${rx.clinic}"></span></div>
+                            <div class="small" th:if="${rx.pharmacistNote != null}" th:text="'Ghi chú: ' + ${rx.pharmacistNote}"></div>
+                            <div class="small text-danger" th:if="${rx.rejectReason != null}" th:text="'Lý do từ chối: ' + ${rx.rejectReason}"></div>
+                        </div>
+                    </div>
+
+                    <form th:if="${rx.status.name() == 'PENDING'}" th:action="@{/staff/prescriptions/{id}/approve(id=${rx.id})}" method="post" class="card mb-3">
+                        <div class="card-header">Đơn hàng <a th:href="@{/staff/orders/{id}(id=${o.id})}" th:text="${o.code}"></a> - đối chiếu & điều chỉnh</div>
+                        <div class="table-responsive">
+                            <table class="table table-sm mb-0">
+                                <thead><tr><th>Sản phẩm</th><th>Loại</th><th>Tồn khả dụng</th><th style="width: 100px">SL bán</th></tr></thead>
+                                <tbody>
+                                <tr th:each="it : ${o.items}">
+                                    <td><div class="fw-semibold" th:text="${it.productName}"></div>
+                                        <small class="text-muted" th:text="${it.product.activeIngredient} + ' ' + ${it.product.strength ?: ''}"></small></td>
+                                    <td><span class="badge" th:classappend="'text-bg-' + ${it.drugType.color}" th:text="${it.drugType.shortLabel}"></span></td>
+                                    <td th:text="${available[it.id]}"></td>
+                                    <td><input type="number" class="form-control form-control-sm" min="0" th:max="${it.quantity}" th:name="'qty[' + ${it.id} + ']'" th:value="${it.quantity}"></td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="card-body">
+                            <p class="small text-muted">Chỉ được giảm số lượng so với khách đặt (đặt 0 để bỏ sản phẩm). Thông tin dưới đây được ghi vào <strong>sổ bán thuốc kê đơn</strong>.</p>
+                            <div class="row g-2">
+                                <div class="col-md-6"><label class="form-label small">Tên bệnh nhân *</label><input class="form-control form-control-sm" name="patientName" required></div>
+                                <div class="col-md-6"><label class="form-label small">Bác sĩ kê đơn *</label><input class="form-control form-control-sm" name="doctorName" required></div>
+                                <div class="col-md-8"><label class="form-label small">Cơ sở khám bệnh</label><input class="form-control form-control-sm" name="clinic"></div>
+                                <div class="col-md-4"><label class="form-label small">Ngày kê đơn</label><input class="form-control form-control-sm" type="date" name="rxDate"></div>
+                                <div class="col-12"><label class="form-label small">Hướng dẫn / ghi chú gửi khách</label>
+                                    <textarea class="form-control form-control-sm" name="pharmacistNote" rows="2" placeholder="VD: Uống Augmentin sau ăn, đủ 7 ngày..."></textarea></div>
+                            </div>
+                            <button class="btn btn-success mt-3"><i class="bi bi-check2-circle"></i> Duyệt đơn thuốc</button>
+                        </div>
+                    </form>
+
+                    <form th:if="${rx.status.name() == 'PENDING'}" th:action="@{/staff/prescriptions/{id}/reject(id=${rx.id})}" method="post" class="card border-danger">
+                        <div class="card-body">
+                            <label class="form-label small fw-semibold text-danger">Từ chối đơn thuốc</label>
+                            <select class="form-select form-select-sm mb-2" onchange="if(this.value){this.form.rejectReason.value=this.value}">
+                                <option value="">-- Lý do thường gặp --</option>
+                                <option>Ảnh đơn thuốc mờ, không đọc được</option>
+                                <option>Đơn thuốc đã hết hạn (quá 5 ngày kể từ ngày kê)</option>
+                                <option>Đơn thuốc thiếu chữ ký/dấu của bác sĩ, cơ sở khám bệnh</option>
+                                <option>Thuốc trong giỏ không khớp với đơn thuốc</option>
+                            </select>
+                            <textarea name="rejectReason" class="form-control form-control-sm mb-2" rows="2" required minlength="5" placeholder="Lý do (gửi cho khách)"></textarea>
+                            <button class="btn btn-outline-danger btn-sm">Từ chối</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

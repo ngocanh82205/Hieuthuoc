@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="staff-body">
+<div class="staff-shell">
+    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
+    <div class="staff-main">
+        <header th:replace="~{fragments/staff :: topbar}"></header>
+        <main class="p-3 p-lg-4">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <form class="card card-body mb-3 d-flex flex-row flex-wrap gap-2 align-items-end" method="get" th:action="@{/staff/inventory}">
+                <div class="flex-grow-1"><label class="form-label small">Tìm sản phẩm</label>
+                    <input name="q" class="form-control form-control-sm" th:value="${q}" placeholder="Tên hoặc hoạt chất"></div>
+                <div><label class="form-label small">Lọc</label>
+                    <select name="filter" class="form-select form-select-sm">
+                        <option value="">Tất cả</option>
+                        <option value="low" th:selected="${filter == 'low'}">Dưới định mức tồn</option>
+                        <option value="out" th:selected="${filter == 'out'}">Hết hàng khả dụng</option>
+                    </select></div>
+                <button class="btn btn-primary btn-sm">Lọc</button>
+                <a th:href="@{/staff/receipts/new}" class="btn btn-outline-primary btn-sm ms-auto"><i class="bi bi-plus"></i> Tạo phiếu nhập</a>
+            </form>
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead><tr><th>Sản phẩm</th><th>Loại</th><th class="text-end">Tồn thực tế</th><th class="text-end">Đang giữ chỗ</th><th class="text-end">Khả dụng</th><th class="text-end">Định mức</th><th>HSD gần nhất</th><th></th></tr></thead>
+                        <tbody>
+                        <tr th:each="p : ${products}" th:classappend="${p.lowStock} ? 'table-warning'">
+                            <td><span class="fw-semibold" th:text="${p.name}"></span>
+                                <span th:unless="${p.active}" class="badge text-bg-secondary">Ngừng bán</span></td>
+                            <td><span class="badge" th:classappend="'text-bg-' + ${p.drugType.color}" th:text="${p.drugType.shortLabel}"></span></td>
+                            <td class="text-end" th:text="${p.onHand} + ' ' + ${p.unit}"></td>
+                            <td class="text-end" th:text="${p.reserved}"></td>
+                            <td class="text-end fw-semibold" th:classappend="${p.available <= 0} ? 'text-danger'" th:text="${p.available}"></td>
+                            <td class="text-end" th:text="${p.minStock}"></td>
+                            <td class="small" th:with="d=${nextExp[p.id]}">
+                                <span th:if="${d != null}" th:text="${@fmt.date(d)}" th:classappend="${@fmt.daysUntil(d) <= 90} ? 'text-danger fw-semibold'"></span>
+                                <span th:if="${d == null}" class="text-muted">-</span></td>
+                            <td><a th:href="@{/staff/inventory/{id}(id=${p.id})}" class="btn btn-sm btn-outline-primary">Lô hàng</a></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body>
+<header th:replace="~{fragments/layout :: navbar}"></header>
+<main class="container py-4">
+    <h1 class="h4 fw-bold mb-3">Giỏ hàng</h1>
+    <div th:replace="~{fragments/layout :: flash}"></div>
+
+    <div th:if="${cart.empty}" class="card card-body text-center py-5">
+        <i class="bi bi-bag fs-1 text-muted"></i>
+        <p class="mt-2">Giỏ hàng của bạn đang trống.</p>
+        <a th:href="@{/products}" class="btn btn-primary align-self-center">Tiếp tục mua sắm</a>
+    </div>
+
+    <div th:unless="${cart.empty}" class="row g-4">
+        <div class="col-lg-8">
+            <div th:if="${cart.rxRequired}" class="rx-notice p-3 mb-3">
+                <i class="bi bi-file-earmark-medical text-danger me-1"></i>
+                Giỏ hàng có <strong>thuốc kê đơn</strong>. Ở bước thanh toán, bạn cần tải lên ảnh đơn thuốc.
+                Đơn hàng sẽ được dược sĩ duyệt trước khi xử lý.
+            </div>
+            <div th:if="${!cart.errors.isEmpty()}" class="alert alert-warning">
+                <ul class="mb-0 ps-3"><li th:each="e : ${cart.errors}" th:text="${e}"></li></ul>
+            </div>
+            <form th:action="@{/cart/update}" method="post" id="cartForm"></form>
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="table mb-0">
+                        <thead><tr><th>Sản phẩm</th><th class="text-end">Đơn giá</th><th style="width:110px">Số lượng</th><th class="text-end">Thành tiền</th><th></th></tr></thead>
+                        <tbody>
+                        <tr th:each="l : ${cart.lines}">
+                            <td>
+                                <a th:href="@{/products/{s}(s=${l.product.slug})}" class="fw-semibold" th:text="${l.product.name}"></a>
+                                <div><span class="badge" th:classappend="'text-bg-' + ${l.product.drugType.color}" th:text="${l.product.drugType.shortLabel}"></span>
+                                    <span class="small text-muted" th:text="${l.product.packaging}"></span></div>
+                                <div th:if="${l.error != null}" class="small text-danger" th:text="${l.error}"></div>
+                            </td>
+                            <td class="text-end text-nowrap" th:text="${@fmt.money(l.product.price)}"></td>
+                            <td><input type="number" class="form-control form-control-sm" min="0" max="999" form="cartForm"
+                                       th:name="'qty_' + ${l.product.id}" th:value="${l.quantity}"></td>
+                            <td class="text-end fw-semibold text-nowrap" th:text="${@fmt.money(l.lineTotal)}"></td>
+                            <td>
+                                <form th:action="@{/cart/remove/{id}(id=${l.product.id})}" method="post">
+                                    <button class="btn btn-sm btn-link text-danger" aria-label="Xóa"><i class="bi bi-trash"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-footer bg-white d-flex justify-content-between">
+                    <a th:href="@{/products}" class="btn btn-link px-0"><i class="bi bi-arrow-left"></i> Mua thêm</a>
+                    <button class="btn btn-outline-secondary btn-sm" form="cartForm"><i class="bi bi-arrow-repeat"></i> Cập nhật giỏ hàng</button>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <form th:action="@{/cart/voucher}" method="post" class="d-flex gap-2" th:unless="${cart.voucher != null}">
+                        <input class="form-control" name="code" placeholder="Mã giảm giá (VD: WELCOME10)">
+                        <button class="btn btn-outline-primary">Áp dụng</button>
+                    </form>
+                    <form th:if="${cart.voucher != null}" th:action="@{/cart/voucher}" method="post" class="d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-ticket-perforated text-primary"></i> Mã <strong th:text="${cart.voucher.code}"></strong></span>
+                        <button class="btn btn-sm btn-link text-danger" name="remove" value="1">Bỏ mã</button>
+                    </form>
+                    <div th:if="${cart.voucherError != null}" class="small text-danger mt-2" th:text="${cart.voucherError}"></div>
+                    <div class="small text-muted mt-2">Mã giảm giá không áp dụng cho thuốc kê đơn.</div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2"><span>Tạm tính</span><span th:text="${@fmt.money(cart.subtotal)}"></span></div>
+                    <div class="d-flex justify-content-between mb-2 text-success" th:if="${cart.discount > 0}"><span>Giảm giá</span><span th:text="'-' + ${@fmt.money(cart.discount)}"></span></div>
+                    <div class="d-flex justify-content-between mb-2"><span>Phí giao hàng (dự kiến)</span>
+                        <span th:text="${cart.shippingFee == 0} ? 'Miễn phí' : ${@fmt.money(cart.shippingFee)}"></span></div>
+                    <hr>
+                    <div class="d-flex justify-content-between fs-5 fw-bold mb-3"><span>Tổng cộng</span><span class="price fs-5" th:text="${@fmt.money(cart.total)}"></span></div>
+                    <a th:href="@{/checkout}" class="btn btn-primary w-100" th:classappend="${!cart.errors.isEmpty()} ? 'disabled'">Tiến hành đặt hàng</a>
+                    <p class="small text-muted mt-2 mb-0" th:if="${currentUser == null}">Bạn cần đăng nhập để đặt hàng.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

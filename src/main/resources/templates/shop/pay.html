@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body>
+<header th:replace="~{fragments/layout :: navbar}"></header>
+<main class="container py-5">
+    <div class="card mx-auto" style="max-width: 480px">
+        <div class="card-body p-4 text-center">
+            <div class="badge text-bg-warning mb-3">CỔNG THANH TOÁN MÔ PHỎNG (DEMO)</div>
+            <h1 class="h5">Thanh toán đơn hàng <span th:text="${order.code}"></span></h1>
+            <p class="display-6 fw-bold price my-3" th:text="${@fmt.money(order.total)}"></p>
+            <p class="small text-muted">Đây là màn hình giả lập cổng VNPay/MoMo. Khi triển khai thật, thay bằng tích hợp API của cổng thanh toán.</p>
+            <form th:action="@{/account/orders/{c}/pay(c=${order.code})}" method="post" class="d-grid gap-2">
+                <button class="btn btn-primary btn-lg" name="result" value="success"><i class="bi bi-check-circle"></i> Thanh toán thành công</button>
+                <button class="btn btn-outline-danger" name="result" value="fail">Hủy / thanh toán thất bại</button>
+            </form>
+            <a th:href="@{/account/orders/{c}(c=${order.code})}" class="d-inline-block mt-3">Thanh toán sau</a>
+        </div>
+    </div>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>
