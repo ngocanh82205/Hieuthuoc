@@ -21,8 +21,13 @@ public class Message {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     private Conversation conversation;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    /** Người gửi; null với tin nhắn của trợ lý AI / hệ thống. */
+    @ManyToOne(fetch = FetchType.LAZY)
     private User sender;
+
+    /** null = tin người gửi; AI = trợ lý AI trả lời; SYSTEM = thông báo hệ thống (chuyển dược sĩ...). */
+    @Column(length = 10)
+    private String kind;
 
     @Column(length = 2000)
     private String body;
@@ -30,8 +35,20 @@ public class Message {
     @Column(length = 200)
     private String image;
 
+    /** Giỏ hàng tư vấn dược sĩ gửi kèm tin nhắn. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    private SuggestedCart suggestedCart;
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
+
+    public boolean isAi() {
+        return "AI".equals(kind);
+    }
+
+    public boolean isSystem() {
+        return "SYSTEM".equals(kind);
+    }
 
     @PrePersist
     void prePersist() {

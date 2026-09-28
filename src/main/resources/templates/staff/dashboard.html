@@ -9,29 +9,29 @@
         <main class="p-3 p-lg-4">
             <div th:replace="~{fragments/layout :: flash}"></div>
             <div class="row g-3 mb-4">
-                <div class="col-6 col-xl-3"><a th:href="@{/staff/prescriptions}" class="stat-card"><div class="icon icon-red"><i class="bi bi-file-earmark-medical"></i></div>
+                <div class="col-6 col-xl-3" th:if="${currentUser.can('RX_REVIEW')}"><a th:href="@{/staff/prescriptions}" class="stat-card"><div class="icon icon-red"><i class="bi bi-file-earmark-medical"></i></div>
                     <div><div class="value" th:text="${pendingRx}">0</div><div class="label">Đơn thuốc chờ duyệt</div></div></a></div>
-                <div class="col-6 col-xl-3"><a th:href="@{/staff/orders(status='PENDING')}" class="stat-card"><div class="icon icon-blue"><i class="bi bi-receipt"></i></div>
+                <div class="col-6 col-xl-3" th:if="${currentUser.can('ORDER')}"><a th:href="@{/staff/orders(status='PENDING')}" class="stat-card"><div class="icon icon-blue"><i class="bi bi-receipt"></i></div>
                     <div><div class="value" th:text="${pendingOrders}">0</div><div class="label">Đơn chờ xác nhận / soạn</div></div></a></div>
-                <div class="col-6 col-xl-3"><a th:href="@{/staff/orders(status='SHIPPING')}" class="stat-card"><div class="icon icon-green"><i class="bi bi-truck"></i></div>
+                <div class="col-6 col-xl-3" th:if="${currentUser.can('ORDER')}"><a th:href="@{/staff/orders(status='SHIPPING')}" class="stat-card"><div class="icon icon-green"><i class="bi bi-truck"></i></div>
                     <div><div class="value" th:text="${inProgress}">0</div><div class="label">Đang chuẩn bị / giao</div></div></a></div>
-                <div class="col-6 col-xl-3"><a th:href="@{/staff/consultations}" class="stat-card"><div class="icon icon-violet"><i class="bi bi-chat-dots"></i></div>
+                <div class="col-6 col-xl-3" th:if="${currentUser.can('CONSULT')}"><a th:href="@{/staff/consultations}" class="stat-card"><div class="icon icon-violet"><i class="bi bi-chat-dots"></i></div>
                     <div><div class="value" th:text="${openChats}">0</div><div class="label">Cuộc tư vấn đang mở</div></div></a></div>
-                <div class="col-6 col-xl-3"><a th:href="@{/staff/questions}" class="stat-card"><div class="icon icon-blue"><i class="bi bi-question-circle"></i></div>
+                <div class="col-6 col-xl-3" th:if="${currentUser.can('CONSULT')}"><a th:href="@{/staff/questions}" class="stat-card"><div class="icon icon-blue"><i class="bi bi-question-circle"></i></div>
                     <div><div class="value" th:text="${openQuestions}">0</div><div class="label">Câu hỏi chờ trả lời</div></div></a></div>
-                <div class="col-6 col-xl-3"><a th:href="@{/staff/callbacks}" class="stat-card"><div class="icon icon-violet"><i class="bi bi-telephone-inbound"></i></div>
+                <div class="col-6 col-xl-3" th:if="${currentUser.can('CONSULT')}"><a th:href="@{/staff/callbacks}" class="stat-card"><div class="icon icon-violet"><i class="bi bi-telephone-inbound"></i></div>
                     <div><div class="value" th:text="${openCallbacks}">0</div><div class="label">Yêu cầu gọi lại</div></div></a></div>
-                <div class="col-6 col-xl-3"><a th:href="@{/staff/orders(returns=true)}" class="stat-card"><div class="icon icon-amber"><i class="bi bi-arrow-return-left"></i></div>
+                <div class="col-6 col-xl-3" th:if="${currentUser.can('ORDER')}"><a th:href="@{/staff/orders(returns=true)}" class="stat-card"><div class="icon icon-amber"><i class="bi bi-arrow-return-left"></i></div>
                     <div><div class="value" th:text="${returns}">0</div><div class="label">Yêu cầu đổi/trả</div></div></a></div>
-                <div class="col-6 col-xl-3"><a th:href="@{/staff/inventory(filter='low')}" class="stat-card"><div class="icon icon-amber"><i class="bi bi-box-seam"></i></div>
+                <div class="col-6 col-xl-3" th:if="${currentUser.can('INVENTORY')}"><a th:href="@{/staff/inventory(filter='low')}" class="stat-card"><div class="icon icon-amber"><i class="bi bi-box-seam"></i></div>
                     <div><div class="value" th:text="${lowStock}">0</div><div class="label">Sản phẩm dưới định mức</div></div></a></div>
-                <div class="col-6 col-xl-3"><a th:href="@{/staff/inventory/alerts}" class="stat-card"><div class="icon icon-amber"><i class="bi bi-hourglass-split"></i></div>
+                <div class="col-6 col-xl-3" th:if="${currentUser.can('INVENTORY')}"><a th:href="@{/staff/inventory/alerts}" class="stat-card"><div class="icon icon-amber"><i class="bi bi-hourglass-split"></i></div>
                     <div><div class="value" th:text="${nearExpiry}">0</div><div class="label">Lô cận hạn</div></div></a></div>
-                <div class="col-6 col-xl-3"><a th:href="@{/staff/inventory/alerts}" class="stat-card"><div class="icon icon-red"><i class="bi bi-exclamation-octagon"></i></div>
+                <div class="col-6 col-xl-3" th:if="${currentUser.can('INVENTORY')}"><a th:href="@{/staff/inventory/alerts}" class="stat-card"><div class="icon icon-red"><i class="bi bi-exclamation-octagon"></i></div>
                     <div><div class="value" th:text="${expired}">0</div><div class="label">Lô đã hết hạn còn tồn</div></div></a></div>
             </div>
             <div class="row g-4">
-                <div class="col-xl-6">
+                <div class="col-xl-6" th:if="${currentUser.can('RX_REVIEW')}">
                     <div class="card h-100">
                         <div class="card-header d-flex justify-content-between">Đơn thuốc chờ duyệt <a th:href="@{/staff/prescriptions}" class="small">Xem tất cả</a></div>
                         <ul class="list-group list-group-flush">
@@ -46,7 +46,7 @@
                         </ul>
                     </div>
                 </div>
-                <div class="col-xl-6">
+                <div class="col-xl-6" th:if="${currentUser.can('ORDER')}">
                     <div class="card h-100">
                         <div class="card-header d-flex justify-content-between">Đơn hàng cần xử lý <a th:href="@{/staff/orders}" class="small">Xem tất cả</a></div>
                         <ul class="list-group list-group-flush">

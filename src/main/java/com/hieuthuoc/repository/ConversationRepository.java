@@ -18,4 +18,12 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
     List<Conversation> findByClosedOrderByUpdatedAtDesc(boolean closed);
 
     long countByClosedFalse();
+
+    long countByPharmacistAndClosedFalse(User pharmacist);
+
+    List<Conversation> findByClosedAndPharmacistOrderByUpdatedAtDesc(boolean closed, User pharmacist);
+
+    List<Conversation> findByClosedAndPharmacistIsNullOrderByUpdatedAtDesc(boolean closed);
+
+    long countByPharmacistAndUpdatedAtBetween(User pharmacist, java.time.LocalDateTime from, java.time.LocalDateTime to);
 }

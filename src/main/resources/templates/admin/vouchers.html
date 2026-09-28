@@ -19,7 +19,11 @@
                                 <tr th:each="v : ${vouchers}">
                                     <td><strong th:text="${v.code}"></strong><div class="small text-muted" th:text="${v.description}"></div></td>
                                     <td class="text-nowrap" th:text="${v.type.name() == 'PERCENT'} ? ${v.value} + '%' + (${v.maxDiscount != null} ? ' (tối đa ' + ${@fmt.money(v.maxDiscount)} + ')' : '') : ${@fmt.money(v.value)}"></td>
-                                    <td class="small" th:text="'Đơn từ ' + ${@fmt.money(v.minOrder)}"></td>
+                                    <td class="small"><div th:text="'Đơn từ ' + ${@fmt.money(v.minOrder)}"></div>
+                                        <div th:if="${v.minTier != null}" class="text-primary" th:text="'Hạng ' + ${v.minTier.label} + ' trở lên'"></div>
+                                        <div th:if="${v.newOnly}" class="text-primary">Khách hàng mới</div>
+                                        <div th:if="${v.category != null}" class="text-primary" th:text="'Danh mục: ' + ${v.category.name}"></div>
+                                        <div th:if="${v.perUserLimit != null}" th:text="${v.perUserLimit} + ' lần/khách'"></div></td>
                                     <td class="small text-nowrap" th:text="${@fmt.date(v.startDate)} + ' - ' + ${@fmt.date(v.endDate)}"></td>
                                     <td class="text-end" th:text="${v.usedCount} + (${v.usageLimit != null} ? '/' + ${v.usageLimit} : '')"></td>
                                     <td><span class="badge" th:classappend="${v.active} ? 'text-bg-success' : 'text-bg-secondary'" th:text="${v.active} ? 'Bật' : 'Tắt'"></span>
@@ -46,7 +50,20 @@
                             <div class="col-6"><label class="form-label small">Giảm tối đa (đ)</label><input type="number" name="maxDiscount" min="0" class="form-control" th:value="${edit.maxDiscount}"></div>
                             <div class="col-6"><label class="form-label small">Từ ngày</label><input type="date" name="startDate" class="form-control" th:value="${@fmt.iso(edit.startDate)}"></div>
                             <div class="col-6"><label class="form-label small">Đến ngày</label><input type="date" name="endDate" class="form-control" th:value="${@fmt.iso(edit.endDate)}"></div>
-                            <div class="col-6"><label class="form-label small">Số lượt tối đa</label><input type="number" name="usageLimit" min="0" class="form-control" th:value="${edit.usageLimit}"></div>
+                            <div class="col-12"><hr class="my-1"><div class="small fw-semibold text-primary">Đối tượng áp dụng</div></div>
+                            <div class="col-6"><label class="form-label small">Hạng thành viên từ</label>
+                                <select name="minTier" class="form-select"><option value="">Mọi khách hàng</option>
+                                    <option th:each="t : ${tiers}" th:value="${t}" th:text="${t.label}" th:selected="${edit.minTier == t}"></option></select></div>
+                            <div class="col-6"><label class="form-label small">Danh mục</label>
+                                <select name="categoryId" class="form-select"><option value="">Mọi sản phẩm không kê đơn</option>
+                                    <option th:each="c : ${categories}" th:value="${c.id}" th:text="${#strings.repeat('— ', c.depth) + c.name}"
+                                            th:selected="${edit.category != null && edit.category.id == c.id}"></option></select></div>
+                            <div class="col-6"><label class="form-label small">Số lần / khách</label><input type="number" name="perUserLimit" min="0" class="form-control" th:value="${edit.perUserLimit}" placeholder="Không giới hạn"></div>
+                            <div class="col-6 d-flex align-items-end"><div class="form-check mb-2">
+                                <input type="checkbox" class="form-check-input" name="newCustomerOnly" value="true" id="vNew" th:checked="${edit.newOnly}">
+                                <label class="form-check-label small" for="vNew">Chỉ khách mua lần đầu</label></div></div>
+                            <div class="col-12 small text-muted">Theo quy định, mã giảm giá không áp dụng cho thuốc kê đơn - hệ thống tự loại phần thuốc kê đơn khỏi giá trị được giảm.</div>
+                            <div class="col-6"><label class="form-label small">Tổng số lượt tối đa</label><input type="number" name="usageLimit" min="0" class="form-control" th:value="${edit.usageLimit}"></div>
                             <div class="col-6 d-flex align-items-end"><div class="form-check">
                                 <input type="checkbox" class="form-check-input" name="active" value="true" id="vActive" th:checked="${edit.id == null || edit.active}">
                                 <label class="form-check-label" for="vActive">Kích hoạt</label></div></div>

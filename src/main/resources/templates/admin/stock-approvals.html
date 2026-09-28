@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="staff-body">
+<div class="staff-shell">
+    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
+    <div class="staff-main">
+        <header th:replace="~{fragments/staff :: topbar}"></header>
+        <main class="p-3 p-lg-4">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-truck me-1"></i>Phiếu nhập chờ duyệt (<span th:text="${receipts.size()}"></span>)</div>
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead><tr><th>Mã phiếu</th><th>Nhà cung cấp</th><th>Kho nhận</th><th class="text-end">Giá trị</th><th>Người lập</th><th></th></tr></thead>
+                        <tbody>
+                        <tr th:if="${receipts.isEmpty()}"><td colspan="6" class="text-center text-muted py-3">Không có phiếu nhập chờ duyệt.</td></tr>
+                        <tr th:each="r : ${receipts}">
+                            <td class="fw-semibold" th:text="${r.code}"></td>
+                            <td th:text="${r.supplier != null ? r.supplier.name : '-'}"></td>
+                            <td class="small" th:text="${r.warehouse != null ? r.warehouse.name : 'Kho chính'}"></td>
+                            <td class="text-end" th:text="${@fmt.money(r.total)}"></td>
+                            <td class="small"><div th:text="${r.createdBy != null ? r.createdBy.fullName : ''}"></div><div class="text-muted" th:text="${@fmt.dateTime(r.createdAt)}"></div></td>
+                            <td><a th:href="@{/staff/receipts/{id}(id=${r.id})}" class="btn btn-sm btn-primary">Xem & duyệt</a></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header"><i class="bi bi-trash3 me-1"></i>Phiếu hủy / điều chỉnh kiểm kê chờ duyệt (<span th:text="${adjustments.size()}"></span>)</div>
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead><tr><th>Loại</th><th>Sản phẩm / lô</th><th class="text-end">SL</th><th class="text-end">Giá trị</th><th>Lý do</th><th>Người lập</th><th></th></tr></thead>
+                        <tbody>
+                        <tr th:if="${adjustments.isEmpty()}"><td colspan="7" class="text-center text-muted py-3">Không có phiếu chờ duyệt.</td></tr>
+                        <tr th:each="a : ${adjustments}">
+                            <td><span class="badge text-bg-light border" th:text="${a.typeLabel}"></span></td>
+                            <td><div th:text="${a.batch.product.name}"></div><div class="small text-muted" th:text="'Lô ' + ${a.batch.batchNo} + ' · tồn ' + ${a.batch.quantity}"></div></td>
+                            <td class="text-end fw-semibold" th:classappend="${a.quantity < 0} ? 'text-danger' : 'text-success'" th:text="${a.quantity > 0 ? '+' + a.quantity : a.quantity}"></td>
+                            <td class="text-end small" th:text="${@fmt.money(a.quantity * a.batch.importPrice)}"></td>
+                            <td class="small" th:text="${a.reason}"></td>
+                            <td class="small"><div th:text="${a.user != null ? a.user.fullName : ''}"></div><div class="text-muted" th:text="${@fmt.dateTime(a.createdAt)}"></div></td>
+                            <td class="text-nowrap">
+                                <form th:action="@{/staff/adjustments/{id}/decide(id=${a.id})}" method="post" class="d-inline">
+                                    <input type="hidden" name="back" value="/admin/stock-approvals"><button name="decision" value="approve" class="btn btn-sm btn-success">Duyệt</button></form>
+                                <form th:action="@{/staff/adjustments/{id}/decide(id=${a.id})}" method="post" class="d-inline-flex gap-1">
+                                    <input type="hidden" name="back" value="/admin/stock-approvals">
+                                    <input name="reason" class="form-control form-control-sm" placeholder="Lý do từ chối" style="width: 140px" required>
+                                    <button name="decision" value="reject" class="btn btn-sm btn-outline-danger">Từ chối</button></form>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

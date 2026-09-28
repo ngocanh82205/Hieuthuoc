@@ -12,8 +12,17 @@
                 <div><label class="form-label small">Từ ngày</label><input type="date" name="from" class="form-control form-control-sm" th:value="${@fmt.iso(report.from)}"></div>
                 <div><label class="form-label small">Đến ngày</label><input type="date" name="to" class="form-control form-control-sm" th:value="${@fmt.iso(report.to)}"></div>
                 <button class="btn btn-primary btn-sm">Xem báo cáo</button>
-                <a class="btn btn-outline-success btn-sm ms-auto" th:href="@{/admin/reports/export.csv(from=${@fmt.iso(report.from)},to=${@fmt.iso(report.to)})}">
-                    <i class="bi bi-filetype-csv"></i> Xuất CSV doanh thu</a>
+                <div class="ms-auto d-flex flex-wrap gap-2">
+                    <a class="btn btn-success btn-sm" th:href="@{/admin/reports/export.xlsx(from=${@fmt.iso(report.from)},to=${@fmt.iso(report.to)})}">
+                        <i class="bi bi-file-earmark-excel"></i> Xuất Excel</a>
+                    <a class="btn btn-outline-danger btn-sm" target="_blank" th:href="@{/admin/reports/print(from=${@fmt.iso(report.from)},to=${@fmt.iso(report.to)})}">
+                        <i class="bi bi-file-earmark-pdf"></i> Bản in / PDF</a>
+                    <a class="btn btn-outline-success btn-sm" th:href="@{/admin/reports/export.csv(from=${@fmt.iso(report.from)},to=${@fmt.iso(report.to)})}">
+                        <i class="bi bi-filetype-csv"></i> CSV đơn hàng</a>
+                    <a class="btn btn-outline-primary btn-sm" th:href="@{/admin/reports/national.xlsx(from=${@fmt.iso(report.from)},to=${@fmt.iso(report.to)})}"
+                       title="Chi tiết bán ra theo lô, thông tin đơn thuốc và nhập hàng - để đối chiếu / tải lên hệ thống liên thông Dược Quốc gia">
+                        <i class="bi bi-bank"></i> Dữ liệu liên thông Dược QG</a>
+                </div>
             </form>
 
             <div class="row g-3 mb-4">
@@ -24,7 +33,15 @@
                 <div class="col-6 col-xl-3"><div class="stat-card"><div class="icon icon-violet"><i class="bi bi-basket"></i></div>
                     <div><div class="value fs-5" th:text="${@fmt.money(report.aov)}"></div><div class="label">Giá trị đơn trung bình</div></div></div></div>
                 <div class="col-6 col-xl-3"><div class="stat-card"><div class="icon icon-red"><i class="bi bi-x-circle"></i></div>
-                    <div><div class="value" th:text="${report.cancelRate} + '%'"></div><div class="label">Tỷ lệ hủy/trả (<span th:text="${report.cancelled}"></span>/<span th:text="${report.created}"></span> đơn)</div></div></div></div>
+                    <div><div class="value" th:text="${report.cancelOnlyRate} + '% / ' + ${report.returnRate} + '%'"></div><div class="label">Tỷ lệ hủy / trả hàng (<span th:text="${report.cancelledOnly}"></span> hủy, <span th:text="${report.returned}"></span> trả / <span th:text="${report.created}"></span> đơn)</div></div></div></div>
+            </div>
+            <div class="row g-3 mb-4">
+                <div class="col-md-4" th:each="c : ${report.byChannel}"><div class="stat-card"><div class="icon" th:classappend="${c.name() == 'Online'} ? 'icon-blue' : 'icon-amber'">
+                    <i class="bi" th:classappend="${c.name() == 'Online'} ? 'bi-globe' : 'bi-shop-window'"></i></div>
+                    <div><div class="value fs-5" th:text="${@fmt.money(c.revenue())}"></div><div class="label" th:text="'Kênh ' + ${c.name()} + ' · ' + ${c.orders()} + ' đơn'"></div></div></div></div>
+                <div class="col-md-4"><div class="stat-card"><div class="icon icon-violet"><i class="bi bi-people"></i></div>
+                    <div><div class="value fs-5"><span th:text="${report.newCustomers}"></span> mới · <span th:text="${report.returningCustomers}"></span> quay lại</div>
+                        <div class="label" th:text="'Tỷ lệ khách quay lại ' + ${report.returningRate} + '% · ' + ${report.registrations} + ' tài khoản đăng ký mới'"></div></div></div></div>
             </div>
 
             <div class="row g-4 mb-4">
@@ -38,6 +55,27 @@
                     <div class="card h-100">
                         <div class="card-header">Doanh thu theo danh mục</div>
                         <div class="card-body"><canvas id="catChart" height="220"></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4 mb-4">
+                <div class="col-xl-7">
+                    <div class="card h-100">
+                        <div class="card-header">Doanh thu theo tháng</div>
+                        <div class="card-body"><canvas id="monthChart" height="130"></canvas></div>
+                    </div>
+                </div>
+                <div class="col-xl-5">
+                    <div class="card h-100">
+                        <div class="card-header">Doanh thu theo nhân viên xử lý</div>
+                        <div class="table-responsive">
+                            <table class="table table-sm mb-0">
+                                <thead><tr><th>Nhân viên</th><th class="text-end">Đơn</th><th class="text-end">Doanh thu</th></tr></thead>
+                                <tbody><tr th:each="st : ${report.byStaff}"><td th:text="${st.name()}"></td><td class="text-end" th:text="${st.orders()}"></td>
+                                    <td class="text-end" th:text="${@fmt.money(st.revenue())}"></td></tr></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -80,15 +118,16 @@
                         <div class="card-header">Hiệu suất dược sĩ / nhân viên</div>
                         <div class="table-responsive">
                             <table class="table table-sm mb-0">
-                                <thead><tr><th>Nhân viên</th><th class="text-end">Duyệt đơn thuốc</th><th class="text-end">Từ chối</th><th class="text-end">TG duyệt TB</th><th class="text-end">Tin nhắn tư vấn</th><th class="text-end">Đơn hoàn thành</th></tr></thead>
+                                <thead><tr><th>Nhân viên</th><th class="text-end">Duyệt đơn thuốc</th><th class="text-end">Từ chối</th><th class="text-end">TG duyệt TB</th><th class="text-end">Cuộc tư vấn</th><th class="text-end">Tin nhắn</th><th class="text-end">Đơn xử lý</th></tr></thead>
                                 <tbody>
                                 <tr th:each="r : ${report.pharmacists}">
                                     <td><span th:text="${r.name()}"></span><div class="small text-muted" th:text="${r.licenseNo()}"></div></td>
                                     <td class="text-end" th:text="${r.approved()}"></td>
-                                    <td class="text-end" th:text="${r.rejected()}"></td>
+                                    <td class="text-end"><span th:text="${r.rejected()}"></span> <small class="text-muted" th:text="'(' + ${r.rejectRate} + '%)'"></small></td>
                                     <td class="text-end" th:text="${r.avgMinutes() != null ? r.avgMinutes() + ' phút' : '-'}"></td>
+                                    <td class="text-end" th:text="${r.consultations()}"></td>
                                     <td class="text-end" th:text="${r.messages()}"></td>
-                                    <td class="text-end" th:text="${r.orders()}"></td>
+                                    <td class="text-end"><span th:text="${r.orders()}"></span><div class="small text-muted" th:text="${@fmt.money(r.revenue())}"></div></td>
                                 </tr>
                                 </tbody>
                             </table>
@@ -107,6 +146,24 @@
                 </div>
             </div>
 
+            <div class="card mt-4">
+                <div class="card-header">Hàng cận hạn (<span th:text="${nearDays}"></span> ngày) và hết hạn</div>
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead><tr><th>Tình trạng</th><th>Sản phẩm</th><th>Số lô</th><th>HSD</th><th class="text-end">Tồn</th><th class="text-end">Giá trị (giá nhập)</th></tr></thead>
+                        <tbody>
+                        <tr th:if="${report.nearExpiry.isEmpty() && report.expired.isEmpty()}"><td colspan="6" class="text-center text-muted py-3">Không có lô cận hạn / hết hạn.</td></tr>
+                        <tr th:each="e : ${report.expired}" class="table-danger"><td>Hết hạn <span th:text="${e.days()} + ' ngày'"></span></td>
+                            <td th:text="${e.batch().product.name}"></td><td th:text="${e.batch().batchNo}"></td><td th:text="${@fmt.date(e.batch().expDate)}"></td>
+                            <td class="text-end" th:text="${e.batch().quantity}"></td><td class="text-end" th:text="${@fmt.money(e.value())}"></td></tr>
+                        <tr th:each="e : ${report.nearExpiry}" class="table-warning"><td>Còn <span th:text="${e.days()} + ' ngày'"></span></td>
+                            <td th:text="${e.batch().product.name}"></td><td th:text="${e.batch().batchNo}"></td><td th:text="${@fmt.date(e.batch().expDate)}"></td>
+                            <td class="text-end" th:text="${e.batch().quantity}"></td><td class="text-end" th:text="${@fmt.money(e.value())}"></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <script th:src="@{/webjars/chart.js/4.4.1/dist/chart.umd.js}"></script>
             <script th:inline="javascript">
                 (function () {
@@ -114,6 +171,13 @@
                     var dayRevenue = /*[[${dayRevenue}]]*/ [];
                     var catNames = /*[[${catNames}]]*/ [];
                     var catValues = /*[[${catValues}]]*/ [];
+                    var monthLabels = /*[[${monthLabels}]]*/ [];
+                    var monthValues = /*[[${monthValues}]]*/ [];
+                    new Chart(document.getElementById('monthChart'), {
+                        type: 'line',
+                        data: {labels: monthLabels, datasets: [{label: 'Doanh thu (đ)', data: monthValues, borderColor: '#0b63e5', backgroundColor: 'rgba(11,99,229,.15)', fill: true, tension: .3}]},
+                        options: {plugins: {legend: {display: false}}, scales: {y: {beginAtZero: true, ticks: {callback: function (v) { return (v / 1000).toLocaleString('vi-VN') + 'k'; }}}}}
+                    });
                     new Chart(document.getElementById('dayChart'), {
                         type: 'bar',
                         data: {

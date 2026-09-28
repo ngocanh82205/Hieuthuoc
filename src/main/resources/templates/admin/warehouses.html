@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="staff-body">
+<div class="staff-shell">
+    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
+    <div class="staff-main">
+        <header th:replace="~{fragments/staff :: topbar}"></header>
+        <main class="p-3 p-lg-4">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="row g-4">
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table class="table align-middle mb-0">
+                                <thead><tr><th>Kho / chi nhánh</th><th>Loại</th><th class="text-end">Tồn (đơn vị)</th><th class="text-end">Giá trị tồn</th><th>Trạng thái</th><th></th></tr></thead>
+                                <tbody>
+                                <tr th:each="w : ${list}">
+                                    <td><div class="fw-semibold"><span th:text="${w.name}"></span> <span th:if="${w.main}" class="badge text-bg-primary">Kho chính</span></div>
+                                        <div class="small text-muted" th:text="${w.address}"></div></td>
+                                    <td class="small" th:text="${w.sellable} ? 'Bán hàng (online + quầy)' : 'Dự trữ / không bán'"></td>
+                                    <td class="text-end" th:text="${qty[w.id]}"></td>
+                                    <td class="text-end" th:text="${@fmt.money(value[w.id])}"></td>
+                                    <td><span class="badge" th:classappend="${w.active} ? 'text-bg-success' : 'text-bg-secondary'" th:text="${w.active} ? 'Hoạt động' : 'Ngừng'"></span></td>
+                                    <td class="text-nowrap"><a th:href="@{/admin/warehouses(edit=${w.id})}" class="btn btn-sm btn-outline-primary">Sửa</a>
+                                        <a th:href="@{/staff/stocktake(warehouse=${w.id})}" class="btn btn-sm btn-outline-secondary" title="Kiểm kê kho"><i class="bi bi-clipboard-check"></i></a></td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <p class="small text-muted mt-2">Chuyển hàng giữa các kho tại <a th:href="@{/staff/transfers}">Phiếu chuyển kho</a>. Hàng ở kho dự trữ không tính vào tồn bán online / tại quầy.</p>
+                </div>
+                <div class="col-lg-4">
+                    <form th:action="${edit.id == null} ? @{/admin/warehouses} : @{/admin/warehouses/{id}(id=${edit.id})}" method="post" class="card">
+                        <div class="card-header" th:text="${edit.id == null} ? 'Thêm kho / chi nhánh' : 'Sửa kho'"></div>
+                        <div class="card-body">
+                            <div class="mb-3"><label class="form-label">Tên kho</label><input name="name" class="form-control" th:value="${edit.name}" required></div>
+                            <div class="mb-3"><label class="form-label">Địa chỉ</label><input name="address" class="form-control" th:value="${edit.address}"></div>
+                            <div class="form-check mb-2"><input type="checkbox" class="form-check-input" name="sellable" value="true" id="sellable" th:checked="${edit.id == null || edit.sellable}">
+                                <label class="form-check-label" for="sellable">Được bán hàng (tính vào tồn bán)</label></div>
+                            <div class="form-check mb-3" th:if="${edit.id != null}"><input type="checkbox" class="form-check-input" name="active" value="true" id="active" th:checked="${edit.active}">
+                                <label class="form-check-label" for="active">Đang hoạt động</label></div>
+                            <button class="btn btn-primary">Lưu</button> <a th:if="${edit.id != null}" th:href="@{/admin/warehouses}" class="btn btn-link">Hủy</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

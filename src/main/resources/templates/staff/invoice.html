@@ -8,6 +8,7 @@
             <h1 class="h5 fw-bold mb-0" th:text="${settings['store_name']}"></h1>
             <div class="small" th:text="${settings['store_address']}"></div>
             <div class="small" th:text="'Hotline: ' + ${settings['store_phone']}"></div>
+            <div class="small" th:text="'MST: ' + ${settings['company_tax_code']}"></div>
         </div>
         <div class="text-end">
             <h2 class="h5 fw-bold mb-0">HÓA ĐƠN BÁN HÀNG</h2>
@@ -16,7 +17,10 @@
         </div>
     </div>
     <p class="mb-1"><strong>Khách hàng:</strong> <span th:text="${o.recipient}"></span> · <span th:text="${o.phone}"></span></p>
-    <p class="mb-3" th:if="${o.address != null}"><strong>Địa chỉ:</strong> <span th:text="${o.address}"></span></p>
+    <p class="mb-1" th:if="${o.address != null}"><strong>Địa chỉ:</strong> <span th:text="${o.address}"></span></p>
+    <div class="mb-3 small border rounded p-2" th:if="${o.vatRequested}"><strong>Đơn vị mua hàng:</strong> <span th:text="${o.vatCompany}"></span> ·
+        MST <span th:text="${o.vatTaxCode}"></span> · <span th:text="${o.vatAddress}"></span>
+        <span th:if="${o.einvoiceNo != null}" th:text="' · Số HĐĐT: ' + ${o.einvoiceNo}"></span></div>
     <table class="table table-bordered table-sm">
         <thead><tr><th>#</th><th>Tên hàng</th><th>ĐVT</th><th>Số lô / HSD</th><th class="text-end">SL</th><th class="text-end">Đơn giá</th><th class="text-end">Thành tiền</th></tr></thead>
         <tbody>
@@ -32,9 +36,13 @@
         </tbody>
         <tfoot>
         <tr><td colspan="6" class="text-end">Tạm tính</td><td class="text-end" th:text="${@fmt.money(o.subtotal)}"></td></tr>
+        <tr th:if="${o.promoDiscountValue > 0}"><td colspan="6" class="text-end">Khuyến mãi</td><td class="text-end" th:text="'-' + ${@fmt.money(o.promoDiscountValue)}"></td></tr>
+        <tr th:if="${o.pointsDiscountValue > 0}"><td colspan="6" class="text-end">Dùng điểm</td><td class="text-end" th:text="'-' + ${@fmt.money(o.pointsDiscountValue)}"></td></tr>
         <tr th:if="${o.discount > 0}"><td colspan="6" class="text-end">Giảm giá</td><td class="text-end" th:text="'-' + ${@fmt.money(o.discount)}"></td></tr>
         <tr><td colspan="6" class="text-end">Phí giao hàng</td><td class="text-end" th:text="${@fmt.money(o.shippingFee)}"></td></tr>
         <tr class="fw-bold"><td colspan="6" class="text-end">Tổng thanh toán</td><td class="text-end" th:text="${@fmt.money(o.total)}"></td></tr>
+        <tr class="small text-muted"><td colspan="6" class="text-end" th:text="'Trong đó: tiền hàng chưa VAT / thuế GTGT ' + ${vatRate} + '%'"></td>
+            <td class="text-end"><span th:text="${@fmt.money(preVat)}"></span> / <span th:text="${@fmt.money(vatAmount)}"></span></td></tr>
         </tfoot>
     </table>
     <p class="small" th:text="'Hình thức thanh toán: ' + ${o.paymentMethod.label} + ' - ' + ${o.paymentStatus.label}"></p>

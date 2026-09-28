@@ -27,6 +27,29 @@ public class Conversation {
 
     private boolean closed;
 
+    /** AI = trợ lý AI đang hỗ trợ; HUMAN (hoặc null) = dược sĩ / nhân viên tư vấn. */
+    @Column(length = 10)
+    private String mode;
+
+    /** Tóm tắt của trợ lý AI khi chuyển cho dược sĩ, và lý do chuyển. */
+    @Column(length = 1500)
+    private String aiSummary;
+
+    @Column(length = 200)
+    private String handoffReason;
+
+    private LocalDateTime handedOffAt;
+
+    /** Trợ lý đã hỏi sàng lọc triệu chứng (chế độ trả lời tự động). */
+    private Boolean triageAsked;
+
+    /** Số lần trợ lý không hiểu câu hỏi liên tiếp. */
+    private Integer aiMisses;
+
+    public boolean isAiMode() {
+        return "AI".equals(mode);
+    }
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
 

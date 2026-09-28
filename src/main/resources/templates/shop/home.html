@@ -9,12 +9,26 @@
     <!-- ===== HERO (slide) ===== -->
     <div id="heroCarousel" class="carousel slide hero-carousel mb-4" data-bs-ride="carousel" data-bs-interval="6000">
         <div class="carousel-indicators">
-            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
-            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
-            <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="2" aria-label="Slide 3"></button>
+            <button th:each="i : ${#numbers.sequence(0, banners.size() + 2)}" type="button" data-bs-target="#heroCarousel" th:attr="data-bs-slide-to=${i},aria-label='Slide ' + ${i + 1}"
+                    th:classappend="${i == 0} ? 'active'"></button>
         </div>
         <div class="carousel-inner">
-            <div class="carousel-item active">
+            <div class="carousel-item" th:each="b, st : ${banners}" th:classappend="${st.first} ? 'active'">
+                <section class="hero hero-banner-admin" th:classappend="'theme-' + ${b.theme}"
+                         th:style="${b.image != null} ? |background-image: linear-gradient(100deg, rgba(3,37,76,.8), rgba(3,37,76,.2)), url('${b.image}'); background-size: cover; background-position: center;| : ''">
+                    <div class="bubbles"><span></span><span></span><span></span><span></span><span></span></div>
+                    <div class="row align-items-center g-4">
+                        <div class="col-lg-8">
+                            <span class="eyebrow mb-3"><i class="bi bi-megaphone"></i> Chương trình nổi bật</span>
+                            <h1 class="display-5 mb-3" th:text="${b.title}">Banner</h1>
+                            <p class="lead mb-4" th:if="${b.subtitle != null}" th:text="${b.subtitle}"></p>
+                            <a th:if="${b.link != null}" th:href="${b.link}" class="btn btn-light btn-lg px-4"
+                               th:text="${b.buttonText != null ? b.buttonText : 'Xem ngay'}">Xem ngay</a>
+                        </div>
+                    </div>
+                </section>
+            </div>
+            <div class="carousel-item" th:classappend="${banners.isEmpty()} ? 'active'">
                 <section class="hero">
                     <div class="bubbles"><span></span><span></span><span></span><span></span><span></span></div>
                     <div class="row align-items-center g-4">
@@ -97,7 +111,7 @@
     <section class="mb-5">
         <h2 class="section-title reveal">Danh mục nổi bật</h2>
         <div class="row row-cols-3 row-cols-md-5 g-2 g-md-3 reveal-stagger">
-            <div class="col" th:each="c : ${navCategories}">
+            <div class="col" th:each="c : ${navCategories}" th:if="${c.depth == 1 || (c.depth == 0 && !c.hasChildren)}">
                 <a class="category-tile" th:href="@{/products(category=${c.slug})}">
                     <i class="bi" th:classappend="${c.icon}"></i>
                     <span th:text="${c.name}">Danh mục</span>
@@ -111,8 +125,8 @@
     <section class="mb-5 reveal" th:if="${!onSale.isEmpty()}">
         <div class="flash-sale">
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 position-relative">
-                <div class="flash-title"><i class="bi bi-lightning-charge-fill"></i> GIÁ SỐC HÔM NAY</div>
-                <div class="countdown" id="countdown"><small class="me-1">Kết thúc sau</small><span data-h>00</span>:<span data-m>00</span>:<span data-s>00</span></div>
+                <div class="flash-title"><i class="bi bi-lightning-charge-fill"></i> <span th:text="${flashEndsAt != null} ? 'FLASH SALE' : 'GIÁ SỐC HÔM NAY'"></span></div>
+                <div class="countdown" id="countdown" th:attr="data-end=${flashEndsAt}"><small class="me-1">Kết thúc sau</small><span data-h>00</span>:<span data-m>00</span>:<span data-s>00</span></div>
             </div>
             <div class="row row-cols-2 row-cols-md-4 g-3 position-relative">
                 <div class="col" th:each="p : ${onSale}"><div th:replace="~{fragments/layout :: productCard(${p})}"></div></div>

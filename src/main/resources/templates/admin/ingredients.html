@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="staff-body">
+<div class="staff-shell">
+    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
+    <div class="staff-main">
+        <header th:replace="~{fragments/staff :: topbar}"></header>
+        <main class="p-3 p-lg-4">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="row g-4">
+                <div class="col-lg-8">
+                    <div class="d-flex gap-2 mb-3">
+                        <form class="d-flex gap-2 flex-grow-1" method="get"><input name="q" th:value="${q}" class="form-control form-control-sm" placeholder="Tìm hoạt chất, nhóm dược lý">
+                            <button class="btn btn-sm btn-primary">Tìm</button></form>
+                        <form th:action="@{/admin/masters/sync}" method="post"><input type="hidden" name="back" value="/admin/ingredients">
+                            <button class="btn btn-sm btn-outline-primary"><i class="bi bi-arrow-repeat"></i> Đồng bộ từ sản phẩm</button></form>
+                    </div>
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table class="table align-middle mb-0">
+                                <thead><tr><th>Hoạt chất</th><th>Nhóm dược lý</th><th>Ghi chú</th><th class="text-end">Sản phẩm</th><th></th></tr></thead>
+                                <tbody>
+                                <tr th:each="i : ${list}">
+                                    <td class="fw-semibold" th:text="${i.name}"></td>
+                                    <td class="small" th:text="${i.drugGroup}"></td>
+                                    <td class="small text-muted" th:text="${i.note}"></td>
+                                    <td class="text-end"><a th:href="@{/admin/products(q=${i.name})}" th:text="${counts[i.id]}"></a></td>
+                                    <td class="text-nowrap"><a th:href="@{/admin/ingredients(edit=${i.id})}" class="btn btn-sm btn-outline-primary">Sửa</a>
+                                        <form th:action="@{/admin/ingredients/{id}/delete(id=${i.id})}" method="post" class="d-inline" data-confirm="Xóa hoạt chất?">
+                                            <button class="btn btn-sm btn-outline-danger" th:disabled="${counts[i.id] > 0}"><i class="bi bi-trash"></i></button></form></td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <form th:action="${edit.id == null} ? @{/admin/ingredients} : @{/admin/ingredients/{id}(id=${edit.id})}" method="post" class="card">
+                        <div class="card-header" th:text="${edit.id == null} ? 'Thêm hoạt chất' : 'Sửa hoạt chất'"></div>
+                        <div class="card-body">
+                            <div class="mb-3"><label class="form-label">Tên hoạt chất (INN)</label><input name="name" class="form-control" th:value="${edit.name}" required>
+                                <div class="form-text" th:if="${edit.id != null}">Đổi tên sẽ cập nhật thành phần của các sản phẩm đang dùng.</div></div>
+                            <div class="mb-3"><label class="form-label">Nhóm dược lý</label><input name="drugGroup" class="form-control" th:value="${edit.drugGroup}" placeholder="VD: Kháng sinh beta-lactam"></div>
+                            <div class="mb-3"><label class="form-label">Ghi chú</label><textarea name="note" class="form-control" rows="3" th:text="${edit.note}"></textarea></div>
+                            <button class="btn btn-primary">Lưu</button> <a th:if="${edit.id != null}" th:href="@{/admin/ingredients}" class="btn btn-link">Hủy</a>
+                            <a th:href="@{/admin/interactions}" class="btn btn-link">Tương tác thuốc →</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

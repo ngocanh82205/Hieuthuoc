@@ -99,7 +99,6 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(a -> a
                         .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/staff/receipts/*/decide").hasRole("ADMIN")
                         .requestMatchers("/staff/**").hasAnyRole("PHARMACIST", "ADMIN")
                         .requestMatchers("/account/**", "/checkout/**", "/consult/**", "/wishlist/**", "/stock-alert/**").hasRole("CUSTOMER")
                         .requestMatchers(HttpMethod.POST, "/products/*/questions").hasRole("CUSTOMER")

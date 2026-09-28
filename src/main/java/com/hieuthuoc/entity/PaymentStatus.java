@@ -3,6 +3,7 @@ package com.hieuthuoc.entity;
 public enum PaymentStatus {
     UNPAID("Chưa thanh toán", "warning"),
     PAID("Đã thanh toán", "success"),
+    REFUND_PENDING("Chờ hoàn tiền", "info"),
     REFUNDED("Đã hoàn tiền", "secondary");
 
     private final String label;

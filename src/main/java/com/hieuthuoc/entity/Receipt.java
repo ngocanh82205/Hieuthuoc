@@ -33,6 +33,10 @@ public class Receipt {
     @ManyToOne(fetch = FetchType.LAZY)
     private User createdBy;
 
+    /** Kho nhận hàng (null = kho chính). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    private Warehouse warehouse;
+
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(nullable = false, length = 20)

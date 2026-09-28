@@ -48,6 +48,11 @@ public class Fmt {
         return d == null ? "" : d.format(ISO);
     }
 
+    /** Giá trị cho input datetime-local. */
+    public String isoTime(LocalDateTime d) {
+        return d == null ? "" : d.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"));
+    }
+
     public long daysUntil(LocalDate d) {
         return d == null ? 0 : ChronoUnit.DAYS.between(LocalDate.now(), d);
     }

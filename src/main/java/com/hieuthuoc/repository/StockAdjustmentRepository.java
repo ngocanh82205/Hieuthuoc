@@ -14,4 +14,10 @@ import java.util.Optional;
 
 public interface StockAdjustmentRepository extends JpaRepository<StockAdjustment, Long> {
     List<StockAdjustment> findTop20ByBatchProductOrderByIdDesc(Product product);
+
+    List<StockAdjustment> findByStatusOrderByIdAsc(ApprovalStatus status);
+
+    List<StockAdjustment> findTop200ByOrderByIdDesc();
+
+    long countByStatus(ApprovalStatus status);
 }

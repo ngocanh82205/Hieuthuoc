@@ -21,12 +21,20 @@
                     <div class="col-md-3"><label class="form-label small">Thanh toán</label>
                         <select name="payment" class="form-select form-select-sm">
                             <option value="">Tất cả</option>
-                            <option value="COD" th:selected="${payment != null && payment.name() == 'COD'}">COD</option>
-                            <option value="ONLINE" th:selected="${payment != null && payment.name() == 'ONLINE'}">Online</option>
+                            <option th:each="pm : ${paymentMethods}" th:value="${pm}" th:text="${pm.label}" th:selected="${payment == pm}"></option>
                         </select></div>
                     <div class="col-md-2"><button class="btn btn-primary btn-sm w-100">Lọc</button></div>
+                    <div class="col-md-3"><label class="form-label small">Từ ngày</label><input type="date" name="from" class="form-control form-control-sm" th:value="${@fmt.iso(from)}"></div>
+                    <div class="col-md-3"><label class="form-label small">Đến ngày</label><input type="date" name="to" class="form-control form-control-sm" th:value="${@fmt.iso(to)}"></div>
+                    <div class="col-md-3"><label class="form-label small">Kênh bán</label>
+                        <select name="channel" class="form-select form-select-sm">
+                            <option value="">Tất cả</option>
+                            <option value="ONLINE" th:selected="${channel == 'ONLINE'}">Online</option>
+                            <option value="POS" th:selected="${channel == 'POS'}">Tại quầy (POS)</option></select></div>
                 </div>
-                <div class="mt-2 small">
+                <div class="mt-2 small d-flex gap-2">
+                    <a th:href="@{/staff/orders(mine=true)}" class="badge text-decoration-none" th:classappend="${mine} ? 'text-bg-primary' : 'text-bg-light border'"
+                       th:text="'Đơn được giao cho tôi (' + ${mineCount} + ' đang xử lý)'"></a>
                     <a th:href="@{/staff/orders(returns=true)}" class="badge text-bg-warning text-decoration-none" th:if="${returnCount > 0}"
                        th:text="${returnCount} + ' yêu cầu đổi/trả cần xử lý'"></a>
                 </div>
@@ -34,12 +42,13 @@
             <div class="card">
                 <div class="table-responsive">
                     <table class="table table-hover mb-0">
-                        <thead><tr><th>Mã đơn</th><th>Khách hàng</th><th>Ngày đặt</th><th class="text-end">Tổng tiền</th><th>Thanh toán</th><th>Trạng thái</th></tr></thead>
+                        <thead><tr><th>Mã đơn</th><th>Khách hàng</th><th>Ngày đặt</th><th class="text-end">Tổng tiền</th><th>Thanh toán</th><th>Trạng thái</th><th>Phụ trách</th></tr></thead>
                         <tbody>
-                        <tr th:if="${page.empty}"><td colspan="6" class="text-center text-muted py-4">Không có đơn hàng.</td></tr>
+                        <tr th:if="${page.empty}"><td colspan="7" class="text-center text-muted py-4">Không có đơn hàng.</td></tr>
                         <tr th:each="o : ${page.content}">
                             <td><a class="fw-semibold" th:href="@{/staff/orders/{id}(id=${o.id})}" th:text="${o.code}"></a>
-                                <i th:if="${o.needsPrescription}" class="bi bi-file-earmark-medical text-danger" title="Có thuốc kê đơn"></i></td>
+                                <i th:if="${o.needsPrescription}" class="bi bi-file-earmark-medical text-danger" title="Có thuốc kê đơn"></i>
+                                <span th:if="${o.pos}" class="badge text-bg-info">Quầy</span></td>
                             <td><div th:text="${o.recipient}"></div><small class="text-muted" th:text="${o.phone}"></small></td>
                             <td class="small text-nowrap" th:text="${@fmt.dateTime(o.createdAt)}"></td>
                             <td class="text-end fw-semibold text-nowrap" th:text="${@fmt.money(o.total)}"></td>
@@ -47,6 +56,8 @@
                                 <span class="badge" th:classappend="'text-bg-' + ${o.paymentStatus.color}" th:text="${o.paymentStatus.label}"></span></td>
                             <td><span th:replace="~{fragments/staff :: orderStatus(${o.status})}"></span>
                                 <span th:if="${o.returnStatus != null}" class="badge" th:classappend="'text-bg-' + ${o.returnStatus.color}" th:text="${o.returnStatus.label}"></span></td>
+                            <td class="small" th:text="${o.assignedTo != null ? o.assignedTo.fullName : (o.handledBy != null ? o.handledBy.fullName : '')}"
+                                th:classappend="${o.assignedTo == null} ? 'text-muted'"></td>
                         </tr>
                         </tbody>
                     </table>

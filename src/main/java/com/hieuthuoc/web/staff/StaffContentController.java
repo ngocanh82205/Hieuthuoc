@@ -21,6 +21,7 @@ import java.util.Map;
 @RequestMapping("/staff")
 @RequiredArgsConstructor
 public class StaffContentController {
+    private final AiAssistantService aiAssistant;
     private final ConversationRepository conversationRepo;
     private final MessageRepository messageRepo;
     private final OrderRepository orderRepo;
@@ -33,12 +34,24 @@ public class StaffContentController {
     private final ProductQuestionRepository questionRepo;
     private final CallbackRequestRepository callbackRepo;
     private final CustomerCareService care;
+    private final SafetyService safety;
+    private final UserRepository userRepo;
 
     /* ---------------- Tư vấn ---------------- */
 
     @GetMapping("/consultations")
-    public String consultations(@RequestParam(defaultValue = "false") boolean closed, Model model) {
-        List<Conversation> list = conversationRepo.findByClosedOrderByUpdatedAtDesc(closed);
+    public String consultations(@RequestParam(defaultValue = "false") boolean closed, @RequestParam(defaultValue = "all") String view, Model model) {
+        User me = currentUser.get();
+        List<Conversation> list = switch (view) {
+            case "mine" -> conversationRepo.findByClosedAndPharmacistOrderByUpdatedAtDesc(closed, me);
+            // Chưa ai nhận: không tính các hội thoại trợ lý AI đang tự trả lời
+            case "unassigned" -> conversationRepo.findByClosedAndPharmacistIsNullOrderByUpdatedAtDesc(closed).stream().filter(c -> !c.isAiMode()).toList();
+            case "ai" -> conversationRepo.findByClosedOrderByUpdatedAtDesc(closed).stream().filter(Conversation::isAiMode).toList();
+            default -> conversationRepo.findByClosedOrderByUpdatedAtDesc(closed);
+        };
+        model.addAttribute("aiEngine", aiAssistant.engineLabel());
+        model.addAttribute("view", view);
+        model.addAttribute("online", chatService.onlineStaff());
         Map<Long, Message> last = new HashMap<>();
         for (Conversation c : list) messageRepo.findFirstByConversationOrderByIdDesc(c).ifPresent(m -> last.put(c.getId(), m));
         model.addAttribute("list", list);
@@ -53,10 +66,15 @@ public class StaffContentController {
         Conversation c = chatService.get(id);
         List<Order> orders = orderRepo.findByUserOrderByCreatedAtDescIdDesc(c.getCustomer());
         model.addAttribute("conv", c);
+        model.addAttribute("aiName", chatService.aiName());
         model.addAttribute("customer", c.getCustomer());
         model.addAttribute("messages", chatService.messages(c, 0));
         model.addAttribute("orders", orders.subList(0, Math.min(5, orders.size())));
         model.addAttribute("products", productRepo.findByActiveTrueOrderByNameAsc().stream().filter(p -> p.getDrugType().isSellableOnline()).toList());
+        List<Product> recent = safety.recentProducts(c.getCustomer());
+        model.addAttribute("recent", recent);
+        model.addAttribute("warnings", safety.check(c.getCustomer(), recent, List.of()));
+        model.addAttribute("staffList", userRepo.findByRoleInOrderByRoleAscFullNameAsc(List.of(Role.PHARMACIST, Role.ADMIN)));
         model.addAttribute("title", "Tư vấn: " + c.getCustomer().getFullName());
         return "staff/consultation";
     }
@@ -73,6 +91,77 @@ public class StaffContentController {
                                     @RequestParam(required = false) MultipartFile image) {
         chatService.staffSend(id, currentUser.get(), body, image);
         return Map.of("ok", true);
+    }
+
+    @PostMapping("/consultations/{id}/claim")
+    @Transactional
+    public String claim(@PathVariable Long id, RedirectAttributes ra) {
+        chatService.claim(id, currentUser.get());
+        Flash.success(ra, "Bạn đã nhận cuộc tư vấn này.");
+        return "redirect:/staff/consultations/" + id;
+    }
+
+    @PostMapping("/consultations/{id}/transfer")
+    @Transactional
+    public String transfer(@PathVariable Long id, @RequestParam Long toUserId, RedirectAttributes ra) {
+        chatService.transfer(id, currentUser.get(), toUserId);
+        Flash.success(ra, "Đã chuyển cuộc tư vấn.");
+        return "redirect:/staff/consultations/" + id;
+    }
+
+    /** Gửi giỏ hàng tư vấn: danh sách "productId:unitId" + số lượng. */
+    @PostMapping("/consultations/{id}/suggest")
+    @Transactional
+    public String suggest(@PathVariable Long id, @RequestParam(value = "items", required = false) List<String> items,
+                          @RequestParam(value = "qtys", required = false) List<Integer> qtys,
+                          @RequestParam(required = false) String note, RedirectAttributes ra) {
+        chatService.sendSuggestedCart(id, currentUser.get(), items == null ? List.of() : items, qtys == null ? List.of() : qtys, note);
+        Flash.success(ra, "Đã gửi giỏ hàng tư vấn cho khách.");
+        return "redirect:/staff/consultations/" + id;
+    }
+
+    /* ---------------- Cập nhật thông tin chuyên môn sản phẩm (quyền Nội dung) ---------------- */
+
+    private void requireContent() {
+        if (!currentUser.get().hasPermission(StaffPermission.CONTENT)) throw new BusinessException("Bạn chưa được cấp quyền quản lý nội dung.");
+    }
+
+    @GetMapping("/products")
+    public String products(@RequestParam(required = false) String q, Model model) {
+        String k = Texts.trim(q).toLowerCase();
+        model.addAttribute("products", productRepo.findAllByOrderByNameAsc().stream()
+                .filter(p -> k.isEmpty() || p.getName().toLowerCase().contains(k)
+                        || (p.getActiveIngredient() != null && p.getActiveIngredient().toLowerCase().contains(k))).toList());
+        model.addAttribute("q", q);
+        model.addAttribute("title", "Thông tin sản phẩm");
+        return "staff/products";
+    }
+
+    @GetMapping("/products/{id}/info")
+    public String productInfo(@PathVariable Long id, Model model) {
+        requireContent();
+        model.addAttribute("product", productRepo.findById(id).orElseThrow(() -> BusinessException.notFound("Không tìm thấy sản phẩm.")));
+        model.addAttribute("title", "Cập nhật thông tin chuyên môn");
+        return "staff/product-info";
+    }
+
+    @PostMapping("/products/{id}/info")
+    @Transactional
+    public String saveProductInfo(@PathVariable Long id, @RequestParam(required = false) String description,
+                                  @RequestParam(required = false) String usageInstruction, @RequestParam(required = false) String contraindications,
+                                  @RequestParam(required = false) String sideEffects, @RequestParam(required = false) String activeIngredient,
+                                  @RequestParam(required = false) String strength, RedirectAttributes ra) {
+        requireContent();
+        Product p = productRepo.findById(id).orElseThrow(() -> BusinessException.notFound("Không tìm thấy sản phẩm."));
+        p.setDescription(Texts.emptyToNull(Texts.trim(description, 2000)));
+        p.setUsageInstruction(Texts.emptyToNull(Texts.trim(usageInstruction, 2000)));
+        p.setContraindications(Texts.emptyToNull(Texts.trim(contraindications, 1000)));
+        p.setSideEffects(Texts.emptyToNull(Texts.trim(sideEffects, 1000)));
+        p.setActiveIngredient(Texts.emptyToNull(Texts.trim(activeIngredient, 200)));
+        p.setStrength(Texts.emptyToNull(Texts.trim(strength, 100)));
+        notifications.log(currentUser.get(), "product.info", p.getName());
+        Flash.success(ra, "Đã cập nhật thông tin chuyên môn của " + p.getName() + ".");
+        return "redirect:/staff/products";
     }
 
     @PostMapping("/consultations/{id}/close")
@@ -103,6 +192,7 @@ public class StaffContentController {
     @PostMapping("/questions/{id}/toggle")
     @Transactional
     public String toggleQuestion(@PathVariable Long id) {
+        requireContent();
         care.toggleQuestionHidden(id, currentUser.get());
         return "redirect:/staff/questions?all=true";
     }
@@ -137,6 +227,7 @@ public class StaffContentController {
     @PostMapping("/reviews/{id}/toggle")
     @Transactional
     public String toggleReview(@PathVariable Long id) {
+        requireContent();
         Review r = reviewRepo.findById(id).orElseThrow(() -> BusinessException.notFound("Không tìm thấy đánh giá."));
         r.setHidden(!r.isHidden());
         notifications.log(currentUser.get(), r.isHidden() ? "review.hide" : "review.show", "Đánh giá #" + id);
@@ -154,6 +245,7 @@ public class StaffContentController {
 
     @GetMapping("/posts/new")
     public String newPost(Model model) {
+        requireContent();
         model.addAttribute("post", new Post());
         model.addAttribute("title", "Viết bài mới");
         return "staff/post-form";
@@ -161,6 +253,7 @@ public class StaffContentController {
 
     @GetMapping("/posts/{id}/edit")
     public String editPost(@PathVariable Long id, Model model) {
+        requireContent();
         model.addAttribute("post", postRepo.findById(id).orElseThrow(() -> BusinessException.notFound("Không tìm thấy bài viết.")));
         model.addAttribute("title", "Sửa bài viết");
         return "staff/post-form";
@@ -171,6 +264,7 @@ public class StaffContentController {
     public String savePost(@PathVariable(required = false) Long id, @RequestParam String title,
                            @RequestParam(required = false) String summary, @RequestParam String content,
                            @RequestParam(defaultValue = "false") boolean published, RedirectAttributes ra) {
+        requireContent();
         if (Texts.trim(title).length() < 5 || Texts.trim(content).length() < 20) {
             throw new BusinessException("Tiêu đề tối thiểu 5 ký tự, nội dung tối thiểu 20 ký tự.");
         }
@@ -194,6 +288,7 @@ public class StaffContentController {
     @PostMapping("/posts/{id}/delete")
     @Transactional
     public String deletePost(@PathVariable Long id, RedirectAttributes ra) {
+        requireContent();
         postRepo.deleteById(id);
         notifications.log(currentUser.get(), "post.delete", "#" + id);
         Flash.info(ra, "Đã xóa bài viết.");

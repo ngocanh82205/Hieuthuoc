@@ -19,6 +19,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     List<User> findByPhone(String phone);
 
+    List<User> findByRoleAndLockedFalse(Role role);
+
     boolean existsByPhone(String phone);
 
     List<User> findByRoleInOrderByRoleAscFullNameAsc(Collection<Role> roles);
@@ -36,4 +38,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
           or u.phone like concat('%', :q, '%'))
         order by u.createdAt desc""")
     Page<User> searchCustomers(@Param("q") String q, Pageable pageable);
+
+    long countByStaffRole(com.hieuthuoc.entity.StaffRole role);
+
+    long countByRoleAndCreatedAtBetween(Role role, LocalDateTime from, LocalDateTime to);
 }

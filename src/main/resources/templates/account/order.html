@@ -43,10 +43,14 @@
                     <form th:action="@{/account/orders/{c}/confirm(c=${o.code})}" method="post" class="row g-2">
                         <div class="col-md-6"><label class="form-label small">Người nhận</label><input name="recipient" class="form-control form-control-sm" th:value="${o.recipient}" required></div>
                         <div class="col-md-6"><label class="form-label small">Số điện thoại</label><input name="phone" class="form-control form-control-sm" th:value="${o.phone}" required pattern="0[0-9]{9,10}"></div>
-                        <div class="col-md-4"><label class="form-label small">Nhận hàng</label>
+                        <div class="col-md-3"><label class="form-label small">Nhận hàng</label>
                             <select name="shippingMethod" class="form-select form-select-sm">
                                 <option th:each="m : ${shippingMethods}" th:value="${m}" th:text="${m.label}" th:selected="${o.shippingMethod == m}"></option></select></div>
-                        <div class="col-md-8"><label class="form-label small">Địa chỉ giao hàng</label>
+                        <div class="col-md-3"><label class="form-label small">Tỉnh / thành</label>
+                            <select name="province" class="form-select form-select-sm">
+                                <option value="">-- Chọn --</option>
+                                <option th:each="p : ${provinces}" th:value="${p}" th:text="${p}" th:selected="${o.province == p}"></option></select></div>
+                        <div class="col-md-6"><label class="form-label small">Địa chỉ giao hàng</label>
                             <input name="address" class="form-control form-control-sm" th:value="${o.address}" list="addrList" placeholder="Bỏ trống nếu nhận tại nhà thuốc">
                             <datalist id="addrList"><option th:each="a : ${addresses}" th:value="${a.addressLine}"></option></datalist></div>
                         <div class="col-12"><label class="form-label small">Thanh toán</label>
@@ -156,6 +160,7 @@
                             <i class="bi bi-arrow-return-left"></i> Yêu cầu đổi/trả</button>
                     </div>
                     <form th:if="${canReturn}" id="returnForm" class="collapse card card-body mt-3" th:action="@{/account/orders/{c}/return(c=${o.code})}" method="post">
+                        <div class="small text-muted mb-2"><i class="bi bi-info-circle"></i> <span th:text="${settings['return_policy']}"></span></div>
                         <label class="form-label">Lý do đổi/trả</label>
                         <textarea name="reason" class="form-control mb-2" rows="3" minlength="10" required placeholder="VD: giao sai sản phẩm, hộp bị móp méo, hàng cận hạn..."></textarea>
                         <button class="btn btn-primary btn-sm align-self-start">Gửi yêu cầu</button>
@@ -167,6 +172,8 @@
                         <div class="card-body small">
                             <div class="fw-semibold" th:text="${o.recipient} + ' · ' + ${o.phone}"></div>
                             <div th:text="${o.shippingMethod.label}"></div>
+                            <div th:if="${o.carrier != null}" class="text-primary"><i class="bi bi-truck"></i> <span th:text="${o.carrier}"></span>
+                                <span th:if="${o.trackingCode != null}" th:text="'- mã vận đơn ' + ${o.trackingCode}"></span></div>
                             <div class="text-muted" th:if="${o.address != null}" th:text="${o.address}"></div>
                             <div class="text-muted" th:if="${o.address == null}" th:text="${settings['store_address']}"></div>
                             <hr>

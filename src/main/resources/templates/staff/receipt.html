@@ -15,7 +15,8 @@
                 </div>
                 <div class="card-body small">
                     <div class="row">
-                        <div class="col-md-4"><strong>Nhà cung cấp:</strong> <span th:text="${r.supplier != null ? r.supplier.name : '-'}"></span></div>
+                        <div class="col-md-4"><strong>Nhà cung cấp:</strong> <span th:text="${r.supplier != null ? r.supplier.name : '-'}"></span>
+                            <div><strong>Kho nhận:</strong> <span th:text="${r.warehouse != null ? r.warehouse.name : 'Kho chính'}"></span></div></div>
                         <div class="col-md-4"><strong>Người tạo:</strong> <span th:text="${r.createdBy != null ? r.createdBy.fullName : ''}"></span> · <span th:text="${@fmt.dateTime(r.createdAt)}"></span></div>
                         <div class="col-md-4" th:if="${r.approvedBy != null}"><strong>Người duyệt:</strong> <span th:text="${r.approvedBy.fullName}"></span> · <span th:text="${@fmt.dateTime(r.approvedAt)}"></span></div>
                     </div>
@@ -39,11 +40,11 @@
                     </table>
                 </div>
                 <div class="card-footer bg-white" th:if="${r.status.name() == 'PENDING'}">
-                    <form th:if="${currentUser.role.name() == 'ADMIN'}" th:action="@{/staff/receipts/{id}/decide(id=${r.id})}" method="post" class="d-flex gap-2">
+                    <form th:if="${currentUser.can('APPROVE_STOCK')}" th:action="@{/staff/receipts/{id}/decide(id=${r.id})}" method="post" class="d-flex gap-2">
                         <button class="btn btn-success" name="decision" value="approve" data-confirm="Duyệt phiếu nhập và đưa hàng vào kho?"><i class="bi bi-check2"></i> Duyệt nhập kho</button>
                         <button class="btn btn-outline-danger" name="decision" value="reject">Từ chối</button>
                     </form>
-                    <span th:unless="${currentUser.role.name() == 'ADMIN'}" class="small text-muted">Đang chờ admin duyệt.</span>
+                    <span th:unless="${currentUser.can('APPROVE_STOCK')}" class="small text-muted">Đang chờ admin / quản lý duyệt.</span>
                 </div>
             </div>
         </main>

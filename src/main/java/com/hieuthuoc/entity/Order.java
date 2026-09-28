@@ -99,6 +99,80 @@ public class Order {
 
     private LocalDateTime completedAt;
 
+    /** Kênh bán: ONLINE (mặc định) hoặc POS (bán tại quầy). */
+    @Column(length = 10)
+    private String channel;
+
+    /** Đơn vị vận chuyển và mã vận đơn khi giao cho bên vận chuyển. */
+    @Column(length = 50)
+    private String carrier;
+
+    @Column(length = 60)
+    private String trackingCode;
+
+    /** Gọi điện xác minh đơn COD giá trị lớn. */
+    private LocalDateTime verifiedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    private User verifiedBy;
+
+    @Column(length = 300)
+    private String verifyNote;
+
+    /** Tỉnh/thành giao hàng (tính phí ship theo khu vực). */
+    @Column(length = 50)
+    private String province;
+
+    /** Nhân viên / dược sĩ được admin phân công xử lý đơn. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    private User assignedTo;
+
+    /** Hoàn tiền: số tiền, người duyệt, thời điểm, ghi chú (mã giao dịch...). */
+    private Long refundAmount;
+
+    private LocalDateTime refundedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    private User refundedBy;
+
+    @Column(length = 300)
+    private String refundNote;
+
+    /** Yêu cầu xuất hóa đơn VAT (hóa đơn điện tử). */
+    @Column(length = 200)
+    private String vatCompany;
+
+    @Column(length = 20)
+    private String vatTaxCode;
+
+    @Column(length = 300)
+    private String vatAddress;
+
+    @Column(length = 150)
+    private String vatEmail;
+
+    /** Số hóa đơn điện tử đã phát hành. */
+    @Column(length = 50)
+    private String einvoiceNo;
+
+    /** Giảm giá từ chương trình khuyến mãi (flash sale / combo). */
+    private Long promoDiscount;
+
+    @Column(length = 500)
+    private String promoNote;
+
+    public long getPromoDiscountValue() {
+        return promoDiscount == null ? 0 : promoDiscount;
+    }
+
+    public boolean isVatRequested() {
+        return vatTaxCode != null;
+    }
+
+    public boolean isPos() {
+        return "POS".equals(channel);
+    }
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
 

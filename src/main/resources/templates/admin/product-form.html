@@ -18,20 +18,20 @@
                                 <div class="col-md-4"><label class="form-label">Danh mục</label>
                                     <select name="categoryId" class="form-select">
                                         <option value="">-- Không --</option>
-                                        <option th:each="c : ${categories}" th:value="${c.id}" th:text="${c.name}" th:selected="${product.category != null && product.category.id == c.id}"></option>
+                                        <option th:each="c : ${categories}" th:value="${c.id}" th:text="${#strings.repeat('— ', c.depth) + c.name}" th:selected="${product.category != null && product.category.id == c.id}"></option>
                                     </select></div>
                                 <div class="col-md-6"><label class="form-label">Loại sản phẩm *</label>
                                     <select name="drugType" class="form-select">
                                         <option th:each="t : ${drugTypes}" th:value="${t}" th:text="${t.label}" th:selected="${product.drugType == t}"></option>
                                     </select>
                                     <div class="form-text">Thuốc kê đơn: bắt buộc đơn thuốc. Kiểm soát đặc biệt: không bán online.</div></div>
-                                <div class="col-md-6"><label class="form-label">Hoạt chất</label><input name="activeIngredient" class="form-control" th:value="*{activeIngredient}"></div>
+                                <div class="col-md-6"><label class="form-label">Hoạt chất</label><input name="activeIngredient" class="form-control" list="ingList" placeholder="VD: Paracetamol, Caffeine" th:value="*{activeIngredient}"></div>
                                 <div class="col-md-4"><label class="form-label">Hàm lượng</label><input name="strength" class="form-control" th:value="*{strength}"></div>
                                 <div class="col-md-4"><label class="form-label">Dạng bào chế</label><input name="dosageForm" class="form-control" th:value="*{dosageForm}"></div>
                                 <div class="col-md-4"><label class="form-label">Quy cách đóng gói</label><input name="packaging" class="form-control" th:value="*{packaging}" placeholder="Hộp 10 vỉ x 10 viên"></div>
                                 <div class="col-md-4"><label class="form-label">Số đăng ký</label><input name="registrationNo" class="form-control" th:value="*{registrationNo}"></div>
-                                <div class="col-md-4"><label class="form-label">Nhà sản xuất</label><input name="manufacturer" class="form-control" th:value="*{manufacturer}"></div>
-                                <div class="col-md-4"><label class="form-label">Nước sản xuất</label><input name="country" class="form-control" th:value="*{country}"></div>
+                                <div class="col-md-4"><label class="form-label">Thương hiệu / NSX</label><input name="manufacturer" class="form-control" list="manList" th:value="*{manufacturer}"></div>
+                                <div class="col-md-4"><label class="form-label">Nước sản xuất</label><input name="country" class="form-control" list="countryList" th:value="*{country}"></div>
                             </div>
                         </div>
                         <div class="card">
@@ -43,6 +43,31 @@
                                 <div class="col-md-6"><label class="form-label">Tác dụng phụ</label><textarea name="sideEffects" class="form-control" rows="3" maxlength="1000" th:text="*{sideEffects}"></textarea></div>
                             </div>
                         </div>
+                        <div class="card mb-4">
+                            <div class="card-header"><i class="bi bi-arrow-left-right me-1"></i>Thuốc thay thế / tương đương</div>
+                            <div class="card-body">
+                                <p class="small text-muted">Hệ thống tự coi thuốc <strong>cùng hoạt chất và cùng hàm lượng</strong> là tương đương. Chọn thêm các thuốc khác được phép thay thế
+                                    (VD: biệt dược gốc - thuốc generic có tên hoạt chất ghi khác). Quan hệ áp dụng hai chiều khi dược sĩ duyệt đơn.</p>
+                                <select name="equivalentIds" class="form-select" multiple size="6">
+                                    <option th:each="o : ${allProducts}" th:if="${o.id != product.id}" th:value="${o.id}"
+                                            th:text="${o.name + (o.activeIngredient != null ? ' - ' + o.activeIngredient : '') + (o.strength != null ? ' ' + o.strength : '')}"
+                                            th:selected="${equivalentIds.contains(o.id)}"></option>
+                                </select>
+                                <div class="form-text">Giữ Ctrl (Cmd) để chọn nhiều.</div>
+                            </div>
+                        </div>
+                        <div class="card mb-4">
+                            <div class="card-header"><i class="bi bi-google me-1"></i>SEO</div>
+                            <div class="card-body row g-3">
+                                <div class="col-md-6"><label class="form-label">Đường dẫn (slug)</label>
+                                    <div class="input-group"><span class="input-group-text small">/products/</span><input name="slug" class="form-control" th:value="*{slug}" placeholder="tự tạo từ tên"></div></div>
+                                <div class="col-md-6"><label class="form-label">Tiêu đề SEO</label><input name="metaTitle" class="form-control" maxlength="150" th:value="*{metaTitle}" placeholder="Để trống = tên sản phẩm"></div>
+                                <div class="col-12"><label class="form-label">Mô tả SEO</label><textarea name="metaDescription" class="form-control" rows="2" maxlength="300" th:text="*{metaDescription}" placeholder="~160 ký tự hiển thị trên kết quả tìm kiếm"></textarea></div>
+                            </div>
+                        </div>
+                        <datalist id="ingList"><option th:each="i : ${ingredients}" th:value="${i.name}"></option></datalist>
+                        <datalist id="manList"><option th:each="m : ${manufacturers}" th:value="${m.name}"></option></datalist>
+                        <datalist id="countryList"><option th:each="c : ${countries}" th:value="${c}"></option></datalist>
                     </div>
                     <div class="col-xl-4">
                         <div class="card mb-4">

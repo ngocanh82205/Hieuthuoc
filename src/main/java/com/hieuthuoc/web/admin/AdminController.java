@@ -34,6 +34,7 @@ public class AdminController {
     private final AuditLogRepository auditRepo;
     private final ProductRepository productRepo;
     private final ReportService reportService;
+    private final ReportExportService exportService;
     private final StockService stockService;
     private final SettingService settings;
     private final AccountService accountService;
@@ -70,76 +71,14 @@ public class AdminController {
         return "admin/dashboard";
     }
 
-    /* ---------------- Nhân viên ---------------- */
+    /* ---------------- Hoàn tiền ---------------- */
 
-    @GetMapping("/users")
-    public String users(Model model) {
-        List<User> staff = userRepo.findByRoleInOrderByRoleAscFullNameAsc(List.of(Role.ADMIN, Role.PHARMACIST));
-        Map<Long, Long> rxCount = new HashMap<>();
-        for (User u : staff) rxCount.put(u.getId(), prescriptionRepo.countByPharmacist(u));
-        model.addAttribute("staff", staff);
-        model.addAttribute("rxCount", rxCount);
-        model.addAttribute("title", "Nhân viên & phân quyền");
-        return "admin/users";
-    }
-
-    @GetMapping("/users/new")
-    public String newUser(Model model) {
-        User u = new User();
-        u.setRole(Role.PHARMACIST);
-        model.addAttribute("user", u);
-        model.addAttribute("title", "Thêm nhân viên");
-        return "admin/user-form";
-    }
-
-    @GetMapping("/users/{id}/edit")
-    public String editUser(@PathVariable Long id, Model model) {
-        User u = userRepo.findById(id).filter(User::isStaff).orElseThrow(() -> BusinessException.notFound("Không tìm thấy nhân viên."));
-        model.addAttribute("user", u);
-        model.addAttribute("title", "Sửa nhân viên");
-        return "admin/user-form";
-    }
-
-    @PostMapping({"/users", "/users/{id}"})
-    @Transactional
-    public String saveUser(@PathVariable(required = false) Long id, @RequestParam String fullName, @RequestParam String email,
-                           @RequestParam(required = false) String phone, @RequestParam Role role,
-                           @RequestParam(required = false) String licenseNo, @RequestParam(required = false) String password,
-                           RedirectAttributes ra) {
-        User me = currentUser.get();
-        if (role == Role.CUSTOMER) throw new BusinessException("Vai trò không hợp lệ.");
-        if (Texts.trim(fullName).length() < 2) throw new BusinessException("Vui lòng nhập họ tên.");
-        if (!Texts.isEmail(Texts.trim(email))) throw new BusinessException("Email không hợp lệ.");
-        Optional<User> dup = userRepo.findByEmailIgnoreCase(email.trim());
-        if (dup.isPresent() && !dup.get().getId().equals(id)) throw new BusinessException("Email đã được sử dụng.");
-        if (id == null && (password == null || password.length() < 6)) throw new BusinessException("Mật khẩu tối thiểu 6 ký tự.");
-        if (id != null && !Texts.isBlank(password) && password.length() < 6) throw new BusinessException("Mật khẩu mới tối thiểu 6 ký tự.");
-        if (me.getId().equals(id) && role != Role.ADMIN) throw new BusinessException("Bạn không thể tự hạ quyền của chính mình.");
-
-        User u = id == null ? new User() : userRepo.findById(id).filter(User::isStaff)
-                .orElseThrow(() -> BusinessException.notFound("Không tìm thấy nhân viên."));
-        u.setFullName(Texts.trim(fullName, 100));
-        u.setEmail(email.trim().toLowerCase());
-        u.setPhone(Texts.emptyToNull(phone));
-        u.setRole(role);
-        u.setLicenseNo(Texts.emptyToNull(licenseNo));
-        if (!Texts.isBlank(password)) u.setPasswordHash(accountService.encode(password));
-        userRepo.save(u);
-        notifications.log(me, id == null ? "user.create" : "user.update", u.getEmail() + " (" + role + ")");
-        Flash.success(ra, "Đã lưu thông tin nhân viên.");
-        return "redirect:/admin/users";
-    }
-
-    @PostMapping("/users/{id}/lock")
-    @Transactional
-    public String toggleLock(@PathVariable Long id, RedirectAttributes ra) {
-        User me = currentUser.get();
-        User u = userRepo.findById(id).orElseThrow(() -> BusinessException.notFound("Không tìm thấy tài khoản."));
-        if (u.getId().equals(me.getId())) throw new BusinessException("Không thể khóa chính mình.");
-        u.setLocked(!u.isLocked());
-        notifications.log(me, u.isLocked() ? "user.lock" : "user.unlock", u.getEmail());
-        Flash.success(ra, (u.isLocked() ? "Đã khóa" : "Đã mở khóa") + " tài khoản " + u.getEmail() + ".");
-        return u.getRole() == Role.CUSTOMER ? "redirect:/admin/customers/" + u.getId() : "redirect:/admin/users";
+    @GetMapping("/refunds")
+    public String refunds(Model model) {
+        model.addAttribute("pending", orderRepo.findByPaymentStatusOrderByUpdatedAtAsc(PaymentStatus.REFUND_PENDING));
+        model.addAttribute("done", orderRepo.findTop50ByPaymentStatusOrderByRefundedAtDesc(PaymentStatus.REFUNDED));
+        model.addAttribute("title", "Duyệt hoàn tiền");
+        return "admin/refunds";
     }
 
     /* ---------------- Khách hàng ---------------- */
@@ -234,16 +173,49 @@ public class AdminController {
                           Model model) {
         LocalDate[] r = range(from, to);
         long nearDays = settings.getLong("near_expiry_days");
-        ReportService.Report report = reportService.build(r[0], r[1]);
+        ReportService.Report report = reportService.build(r[0], r[1], nearDays);
         model.addAttribute("report", report);
         model.addAttribute("dayLabels", report.getByDay().stream().map(d -> d.day().format(DateTimeFormatter.ofPattern("dd/MM"))).toList());
         model.addAttribute("dayRevenue", report.getByDay().stream().map(ReportService.DayRow::revenue).toList());
         model.addAttribute("catNames", report.getByCategory().stream().map(ReportService.NameValue::name).toList());
         model.addAttribute("catValues", report.getByCategory().stream().map(ReportService.NameValue::value).toList());
+        model.addAttribute("monthLabels", report.getByMonth().stream().map(ReportService.NameValue::name).toList());
+        model.addAttribute("monthValues", report.getByMonth().stream().map(ReportService.NameValue::value).toList());
         model.addAttribute("inventory", reportService.inventoryValue(nearDays));
         model.addAttribute("nearDays", nearDays);
         model.addAttribute("title", "Báo cáo thống kê");
         return "admin/reports";
+    }
+
+    /** Bản in báo cáo (dùng "In" của trình duyệt -> Lưu thành PDF). */
+    @GetMapping("/reports/print")
+    public String printReport(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+                              @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to, Model model) {
+        reports(from, to, model);
+        model.addAttribute("printedAt", java.time.LocalDateTime.now());
+        return "admin/report-print";
+    }
+
+    @GetMapping("/reports/export.xlsx")
+    public void exportXlsx(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+                           @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+                           HttpServletResponse res) throws IOException {
+        LocalDate[] r = range(from, to);
+        res.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        res.setHeader("Content-Disposition", "attachment; filename=\"bao-cao_" + r[0] + "_" + r[1] + ".xlsx\"");
+        exportService.exportReport(r[0], r[1], res.getOutputStream());
+        notifications.log(currentUser.get(), "report.export", "Excel " + r[0] + " - " + r[1]);
+    }
+
+    @GetMapping("/reports/national.xlsx")
+    public void exportNational(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+                               @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+                               HttpServletResponse res) throws IOException {
+        LocalDate[] r = range(from, to);
+        res.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        res.setHeader("Content-Disposition", "attachment; filename=\"lien-thong-duoc_" + r[0] + "_" + r[1] + ".xlsx\"");
+        exportService.exportNational(r[0], r[1], res.getOutputStream());
+        notifications.log(currentUser.get(), "report.national", r[0] + " - " + r[1]);
     }
 
     @GetMapping("/reports/export.csv")
@@ -278,22 +250,22 @@ public class AdminController {
         model.addAttribute("values", settings.all());
         model.addAttribute("labels", SettingService.LABELS);
         model.addAttribute("numeric", SettingService.NUMERIC);
+        model.addAttribute("groups", SettingService.GROUPS);
+        model.addAttribute("booleans", SettingService.BOOLEAN);
+        model.addAttribute("textareas", SettingService.TEXTAREA);
         model.addAttribute("title", "Cấu hình hệ thống");
         return "admin/settings";
     }
 
     @PostMapping("/settings")
     public String saveSettings(@RequestParam Map<String, String> values, RedirectAttributes ra) {
+        if ("0".equals(values.get("pay_cod")) && "0".equals(values.get("pay_bank_transfer")) && "0".equals(values.get("pay_online"))) {
+            throw new BusinessException("Cần bật ít nhất một phương thức thanh toán.");
+        }
         settings.save(values);
         notifications.log(currentUser.get(), "settings.update", null);
         Flash.success(ra, "Đã lưu cấu hình.");
         return "redirect:/admin/settings";
     }
 
-    @GetMapping("/logs")
-    public String logs(@RequestParam(defaultValue = "1") int page, Model model) {
-        model.addAttribute("page", auditRepo.findAllByOrderByIdDesc(PageRequest.of(Math.max(page, 1) - 1, 50)));
-        model.addAttribute("title", "Nhật ký hệ thống");
-        return "admin/logs";
-    }
 }

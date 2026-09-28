@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="staff-body">
+<div class="staff-shell">
+    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
+    <div class="staff-main">
+        <header th:replace="~{fragments/staff :: topbar}"></header>
+        <main class="p-3 p-lg-4">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <p class="text-muted small">Mỗi vai trò là một tập quyền theo chức năng. Nhân viên được gán vai trò sẽ chỉ thấy và thao tác được các chức năng tương ứng (menu, đường dẫn và nghiệp vụ đều được kiểm tra). Quản trị viên luôn có toàn quyền.</p>
+            <div class="card mb-4">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0 role-matrix">
+                        <thead><tr><th style="min-width: 220px">Vai trò</th>
+                            <th th:each="p : ${allPerms}" class="text-center small" th:title="${p.label}"><i class="bi d-block fs-5" th:classappend="${p.icon}"></i><span th:text="${p.shortLabel}"></span></th>
+                            <th></th></tr></thead>
+                        <tbody>
+                        <tr th:each="r : ${roles}">
+                            <td>
+                                <form th:id="'role' + ${r.id}" th:action="@{/admin/roles/{id}(id=${r.id})}" method="post"></form>
+                                <input th:form="'role' + ${r.id}" name="name" class="form-control form-control-sm fw-semibold mb-1" th:value="${r.name}" required>
+                                <input th:form="'role' + ${r.id}" name="description" class="form-control form-control-sm" th:value="${r.description}" placeholder="Mô tả">
+                                <div class="small text-muted mt-1"><a th:href="@{/admin/users(role=${r.id})}" th:text="${members[r.id]} + ' nhân viên'"></a></div>
+                            </td>
+                            <td th:each="p : ${allPerms}" class="text-center">
+                                <input th:form="'role' + ${r.id}" class="form-check-input" type="checkbox" name="perms" th:value="${p}" th:checked="${r.has(p)}">
+                            </td>
+                            <td class="text-nowrap">
+                                <button th:form="'role' + ${r.id}" class="btn btn-sm btn-primary">Lưu</button>
+                                <form th:if="${members[r.id] == 0}" th:action="@{/admin/roles/{id}/delete(id=${r.id})}" method="post" class="d-inline"
+                                      onsubmit="return confirm('Xóa vai trò này?')"><button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <form th:action="@{/admin/roles}" method="post" class="card" style="max-width: 820px">
+                <div class="card-header">Thêm vai trò mới</div>
+                <div class="card-body row g-2">
+                    <div class="col-md-5"><input name="name" class="form-control" placeholder="Tên vai trò, VD: Thu ngân" required></div>
+                    <div class="col-md-7"><input name="description" class="form-control" placeholder="Mô tả"></div>
+                    <div class="col-md-6" th:each="p, st : ${allPerms}">
+                        <div class="form-check"><input class="form-check-input" type="checkbox" name="perms" th:value="${p}" th:id="'np' + ${st.index}">
+                            <label class="form-check-label small" th:for="'np' + ${st.index}" th:text="${p.label}"></label></div>
+                    </div>
+                </div>
+                <div class="card-footer bg-white"><button class="btn btn-primary">Thêm vai trò</button></div>
+            </form>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

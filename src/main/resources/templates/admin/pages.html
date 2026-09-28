@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="staff-body">
+<div class="staff-shell">
+    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
+    <div class="staff-main">
+        <header th:replace="~{fragments/staff :: topbar}"></header>
+        <main class="p-3 p-lg-4">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="row g-4">
+                <div class="col-lg-5">
+                    <div class="card">
+                        <div class="list-group list-group-flush">
+                            <div class="list-group-item d-flex justify-content-between align-items-center" th:each="p : ${list}">
+                                <div><div class="fw-semibold" th:text="${p.title}"></div>
+                                    <a class="small" th:href="@{/pages/{s}(s=${p.slug})}" target="_blank" th:text="'/pages/' + ${p.slug}"></a>
+                                    <span th:unless="${p.published}" class="badge text-bg-secondary">Ẩn</span>
+                                    <span th:if="${p.showInFooter}" class="badge text-bg-light border">Chân trang</span></div>
+                                <a th:href="@{/admin/pages(edit=${p.id})}" class="btn btn-sm btn-outline-primary">Sửa</a>
+                            </div>
+                        </div>
+                    </div>
+                    <a th:href="@{/admin/pages}" class="btn btn-outline-primary btn-sm mt-2"><i class="bi bi-plus"></i> Trang mới</a>
+                </div>
+                <div class="col-lg-7">
+                    <form th:action="${edit.id == null} ? @{/admin/pages} : @{/admin/pages/{id}(id=${edit.id})}" method="post" class="card">
+                        <div class="card-header" th:text="${edit.id == null} ? 'Thêm trang' : 'Sửa trang'"></div>
+                        <div class="card-body row g-2">
+                            <div class="col-md-7"><label class="form-label small">Tiêu đề</label><input name="title" class="form-control" th:value="${edit.title}" required></div>
+                            <div class="col-md-5"><label class="form-label small">Đường dẫn</label><input name="slug" class="form-control" th:value="${edit.slug}" placeholder="tự tạo từ tiêu đề"></div>
+                            <div class="col-12"><label class="form-label small">Nội dung</label>
+                                <textarea name="content" class="form-control font-monospace small" rows="16" th:text="${edit.content}" required></textarea>
+                                <div class="form-text">Các đoạn cách nhau 1 dòng trống. Dòng bắt đầu bằng "## " là tiêu đề mục; đoạn gồm các dòng "- " là danh sách.</div></div>
+                            <div class="col-12"><label class="form-label small">Mô tả SEO</label><input name="metaDescription" class="form-control" maxlength="300" th:value="${edit.metaDescription}"></div>
+                            <div class="col-4"><label class="form-label small">Thứ tự</label><input type="number" name="sortOrder" class="form-control" th:value="${edit.sortOrder}"></div>
+                            <div class="col-8 d-flex gap-3 align-items-end">
+                                <div class="form-check"><input type="checkbox" class="form-check-input" name="published" value="true" id="pgPub" th:checked="${edit.id == null || edit.published}">
+                                    <label class="form-check-label" for="pgPub">Hiển thị</label></div>
+                                <div class="form-check"><input type="checkbox" class="form-check-input" name="showInFooter" value="true" id="pgFoot" th:checked="${edit.id == null || edit.showInFooter}">
+                                    <label class="form-check-label" for="pgFoot">Link ở chân trang</label></div>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-white"><button class="btn btn-primary">Lưu trang</button></div>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

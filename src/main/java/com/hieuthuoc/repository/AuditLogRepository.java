@@ -12,6 +12,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
+public interface AuditLogRepository extends JpaRepository<AuditLog, Long>, org.springframework.data.jpa.repository.JpaSpecificationExecutor<AuditLog> {
     Page<AuditLog> findAllByOrderByIdDesc(Pageable pageable);
 }

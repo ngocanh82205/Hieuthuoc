@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="staff-body">
+<div class="staff-shell">
+    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
+    <div class="staff-main">
+        <header th:replace="~{fragments/staff :: topbar}"></header>
+        <main class="p-3 p-lg-4">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="row g-4">
+                <div class="col-lg-7">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span>Bản sao lưu (<span th:text="${files.size()}"></span>)</span>
+                            <form th:action="@{/admin/backup}" method="post" th:if="${supported}"><button class="btn btn-sm btn-primary"><i class="bi bi-database-add"></i> Sao lưu ngay</button></form>
+                        </div>
+                        <div class="list-group list-group-flush">
+                            <div class="list-group-item text-muted" th:if="${files.isEmpty()}">Chưa có bản sao lưu.</div>
+                            <div class="list-group-item d-flex justify-content-between align-items-center" th:each="f : ${files}">
+                                <div><i class="bi bi-file-earmark-zip text-primary"></i> <span class="fw-semibold" th:text="${f.name()}"></span>
+                                    <div class="small text-muted" th:text="${@fmt.dateTime(f.modified())} + ' · ' + ${#numbers.formatDecimal(f.size() / 1024.0, 1, 1)} + ' KB'"></div></div>
+                                <a th:href="@{/admin/backup/files/{n}(n=${f.name()})}" class="btn btn-sm btn-outline-primary"><i class="bi bi-download"></i> Tải về</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-5">
+                    <div class="card small">
+                        <div class="card-header">Thông tin</div>
+                        <div class="card-body">
+                            <p>CSDL: <strong th:text="${database}"></strong><br>Thư mục lưu: <code th:text="${dir}"></code></p>
+                            <p th:if="${supported}">Hệ thống <strong>tự sao lưu lúc 2h30 sáng mỗi ngày</strong> và giữ 7 bản gần nhất. Nên tải bản sao lưu về máy khác định kỳ.</p>
+                            <p class="mb-1 fw-semibold">Khôi phục (H2):</p>
+                            <ol class="ps-3">
+                                <li>Dừng ứng dụng, đổi tên thư mục <code>data/</code> (giữ lại phòng khi cần).</li>
+                                <li>Giải nén file .zip để lấy file .sql.</li>
+                                <li>Chạy: <code>java -cp h2*.jar org.h2.tools.RunScript -url jdbc:h2:file:./data/hieuthuoc -user sa -script vinapharma_....sql</code></li>
+                                <li>Chạy lại ứng dụng.</li>
+                            </ol>
+                            <p class="mb-1 fw-semibold">Với MySQL:</p>
+                            <code>mysqldump -u root -p hieuthuoc | gzip > vinapharma.sql.gz</code>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

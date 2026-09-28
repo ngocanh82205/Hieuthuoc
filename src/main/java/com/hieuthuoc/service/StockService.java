@@ -52,10 +52,34 @@ public class StockService {
     /** Xuất kho theo FEFO cho toàn bộ đơn hàng; ghi nhận lô đã xuất để truy vết. */
     @Transactional
     public void allocateFefo(Order order) {
+        allocate(order, Map.of());
+    }
+
+    /**
+     * Xuất kho: nếu nhân viên chọn/quét lô cho dòng hàng thì lấy lô đó trước, phần còn thiếu lấy tiếp theo FEFO.
+     * preferred: orderItemId -> batch.
+     */
+    @Transactional
+    public void allocate(Order order, Map<Long, Batch> preferred) {
         LocalDate today = LocalDate.now();
         for (OrderItem item : order.getItems()) {
             int need = item.getBaseQuantity();
-            for (Batch b : batchRepo.findSellableFefo(item.getProduct().getId(), today)) {
+            List<Batch> candidates = new java.util.ArrayList<>(batchRepo.findSellableFefo(item.getProduct().getId(), today));
+            Batch pick = item.getId() == null ? null : preferred.get(item.getId());
+            if (pick != null) {
+                if (!pick.getProduct().getId().equals(item.getProduct().getId())) {
+                    throw new BusinessException("Lô " + pick.getBatchNo() + " không phải của sản phẩm \"" + item.getProductName() + "\".");
+                }
+                if (pick.getWarehouse() != null && !pick.getWarehouse().isSellable()) {
+                    throw new BusinessException("Lô " + pick.getBatchNo() + " đang ở " + pick.getWarehouse().getName() + " (kho không xuất bán) - cần chuyển kho trước.");
+                }
+                if (pick.isLocked() || pick.isExpired() || pick.getQuantity() <= 0) {
+                    throw new BusinessException("Lô " + pick.getBatchNo() + " đã khóa, hết hạn hoặc hết hàng - không được xuất.");
+                }
+                candidates.remove(pick);
+                candidates.add(0, pick);
+            }
+            for (Batch b : candidates) {
                 if (need <= 0) break;
                 int take = Math.min(need, b.getQuantity());
                 b.setQuantity(b.getQuantity() - take);

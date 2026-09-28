@@ -13,7 +13,7 @@
                     <div class="col-md-4"><input name="q" class="form-control form-control-sm" th:value="${q}" placeholder="Tên, hoạt chất, số đăng ký"></div>
                     <div class="col-md-3"><select name="category" class="form-select form-select-sm">
                         <option value="">Tất cả danh mục</option>
-                        <option th:each="c : ${categories}" th:value="${c.id}" th:text="${c.name}" th:selected="${category == c.id}"></option></select></div>
+                        <option th:each="c : ${categories}" th:value="${c.id}" th:text="${#strings.repeat('— ', c.depth) + c.name}" th:selected="${category == c.id}"></option></select></div>
                     <div class="col-md-3"><select name="type" class="form-select form-select-sm">
                         <option value="">Tất cả loại</option>
                         <option th:each="t : ${drugTypes}" th:value="${t}" th:text="${t.label}" th:selected="${type == t}"></option></select></div>
@@ -21,6 +21,18 @@
                         <a th:href="@{/admin/products/new}" class="btn btn-success btn-sm" title="Thêm sản phẩm"><i class="bi bi-plus-lg"></i></a></div>
                 </div>
             </form>
+            <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+                <a th:href="@{/admin/products/export.xlsx}" class="btn btn-sm btn-outline-success"><i class="bi bi-file-earmark-excel"></i> Xuất Excel (cũng là file mẫu)</a>
+                <form th:action="@{/admin/products/import}" method="post" enctype="multipart/form-data" class="d-flex gap-2">
+                    <input type="file" name="file" accept=".xlsx" class="form-control form-control-sm" required style="max-width: 260px">
+                    <button class="btn btn-sm btn-success"><i class="bi bi-upload"></i> Nhập Excel</button>
+                </form>
+                <span class="small text-muted">Dòng có ID / số đăng ký / tên trùng sẽ được cập nhật, còn lại thêm mới. File có lỗi sẽ không nhập dòng nào.</span>
+            </div>
+            <div th:if="${importErrors != null}" class="alert alert-danger small">
+                <div class="fw-semibold mb-1">Lỗi khi nhập file:</div>
+                <ul class="mb-0"><li th:each="e : ${importErrors}" th:text="${e}"></li></ul>
+            </div>
             <div class="card">
                 <div class="table-responsive">
                     <table class="table table-hover mb-0">

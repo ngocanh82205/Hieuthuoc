@@ -6,6 +6,9 @@
 <head th:fragment="head">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" th:if="${metaDescription != null}" th:content="${metaDescription}">
+    <meta property="og:title" th:if="${metaDescription != null}" th:content="${title}">
+    <meta property="og:description" th:if="${metaDescription != null}" th:content="${metaDescription}">
     <meta name="_csrf" th:if="${_csrf != null}" th:content="${_csrf.token}">
     <meta name="_csrf_header" th:if="${_csrf != null}" th:content="${_csrf.headerName}">
     <title th:text="${(title != null ? title + ' | ' : '') + (settings != null ? settings['store_name'] : 'Nhà thuốc')}">Nhà thuốc</title>
@@ -89,8 +92,9 @@
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Danh mục</a>
                         <ul class="dropdown-menu">
-                            <li th:each="c : ${navCategories}">
-                                <a class="dropdown-item" th:href="@{/products(category=${c.slug})}">
+                            <li th:each="c : ${navCategories}" th:if="${c.depth < 3}">
+                                <a class="dropdown-item" th:href="@{/products(category=${c.slug})}" th:style="${c.depth > 0} ? |padding-left: ${1 + c.depth * 1.1}rem| : ''"
+                                   th:classappend="${c.depth == 0} ? 'fw-semibold' : 'small'">
                                     <i class="bi me-2" th:classappend="${c.icon}"></i><span th:text="${c.name}">Danh mục</span></a>
                             </li>
                             <li><hr class="dropdown-divider"></li>
@@ -120,7 +124,8 @@
         <span th:unless="${p.image != null}" class="thumb-placeholder">
             <i class="bi" th:classappend="${p.category != null ? p.category.icon : 'bi-capsule'}"></i>
         </span>
-        <span th:if="${p.onSale}" class="badge bg-danger sale-badge" th:text="'-' + ${p.discountPercent} + '%'">-10%</span>
+        <span th:if="${p.onSale && !p.flashSale}" class="badge bg-danger sale-badge" th:text="'-' + ${p.discountPercent} + '%'">-10%</span>
+        <span th:if="${p.flashSale}" class="badge sale-badge flash-badge"><i class="bi bi-lightning-charge-fill"></i> -<span th:text="${p.flashPercent}"></span>%</span>
     </a>
     <form th:if="${currentUser == null || currentUser.role.name() == 'CUSTOMER'}" th:action="@{/wishlist/toggle/{id}(id=${p.id})}" method="post"
           class="wish-form js-wish">
@@ -134,10 +139,12 @@
         <div class="small text-muted mb-2" th:text="${p.packaging}">Hộp</div>
         <div class="mt-auto">
             <div class="d-flex align-items-baseline gap-2 flex-wrap">
-                <span class="price" th:classappend="${p.onSale} ? 'price-sale'" th:text="${@fmt.money(p.price)}">0 ₫</span>
+                <span class="price" th:classappend="${p.onSale || p.flashSale} ? 'price-sale'" th:text="${@fmt.money(p.flashSale ? p.flashPrice : p.price)}">0 ₫</span>
                 <span class="small text-muted">/ <span th:text="${p.unit}">Hộp</span></span>
-                <del th:if="${p.onSale}" class="small text-muted" th:text="${@fmt.money(p.oldPrice)}"></del>
+                <del th:if="${p.flashSale}" class="small text-muted" th:text="${@fmt.money(p.price)}"></del>
+                <del th:if="${p.onSale && !p.flashSale}" class="small text-muted" th:text="${@fmt.money(p.oldPrice)}"></del>
             </div>
+            <div class="small text-success" th:each="lb : ${p.promoLabels}"><i class="bi bi-gift"></i> <span th:text="${lb}"></span></div>
             <div class="small text-muted" th:if="${!p.units.isEmpty()}">
                 <span th:each="u, st : ${p.units}" th:text="${u.name} + ': ' + ${@fmt.money(u.price)} + (${!st.last} ? ' · ' : '')"></span>
             </div>
@@ -210,8 +217,8 @@
             <div class="col-lg-2 small">
                 <h6 class="fw-semibold mb-3">Hỗ trợ</h6>
                 <ul class="list-unstyled mb-0 d-grid gap-2">
-                    <li><a th:href="@{/about}">Giới thiệu & chính sách</a></li>
-                    <li><a th:href="@{/about#returns}">Chính sách đổi trả</a></li>
+                    <li><a th:href="@{/about}">Giới thiệu nhà thuốc</a></li>
+                    <li th:each="pg : ${footerPages}"><a th:href="@{/pages/{s}(s=${pg.slug})}" th:text="${pg.title}"></a></li>
                     <li><a th:href="@{/consult}">Tư vấn với dược sĩ</a></li>
                     <li><a th:href="@{/posts}">Góc sức khỏe</a></li>
                 </ul>
@@ -264,6 +271,15 @@
         }
     </script>
 </th:block>
+
+<!-- ============ GIỎ HÀNG TƯ VẤN TRONG CHAT ============ -->
+<div th:fragment="chatCart(m, canAdd)" th:if="${m.cartId() != null}" class="chat-cart">
+    <div th:each="line : ${m.cartLines()}" th:text="'• ' + ${line}"></div>
+    <div class="fw-semibold mt-1" th:text="'Tạm tính: ' + ${@fmt.money(m.cartTotal())}"></div>
+    <form th:if="${canAdd}" th:action="@{/consult/carts/{id}/add(id=${m.cartId()})}" method="post" class="mt-2">
+        <button class="btn btn-sm btn-light"><i class="bi bi-cart-plus"></i> Thêm tất cả vào giỏ</button>
+    </form>
+</div>
 
 <!-- ============ ACCOUNT MENU ============ -->
 <div th:fragment="accountMenu" class="list-group account-menu mb-4">

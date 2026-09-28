@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="staff-body">
+<div class="staff-shell">
+    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
+    <div class="staff-main">
+        <header th:replace="~{fragments/staff :: topbar}"></header>
+        <main class="p-3 p-lg-4">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="row g-4">
+                <div class="col-lg-8">
+                    <div class="d-flex justify-content-end mb-3">
+                        <form th:action="@{/admin/masters/sync}" method="post"><input type="hidden" name="back" value="/admin/manufacturers">
+                            <button class="btn btn-sm btn-outline-primary"><i class="bi bi-arrow-repeat"></i> Đồng bộ từ sản phẩm</button></form>
+                    </div>
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table class="table align-middle mb-0">
+                                <thead><tr><th>Thương hiệu / NSX</th><th>Quốc gia</th><th>Website</th><th class="text-end">Sản phẩm</th><th></th></tr></thead>
+                                <tbody>
+                                <tr th:each="m : ${list}">
+                                    <td><div class="fw-semibold" th:text="${m.name}"></div><div class="small text-muted" th:text="${m.note}"></div></td>
+                                    <td class="small" th:text="${m.country}"></td>
+                                    <td class="small" th:text="${m.website}"></td>
+                                    <td class="text-end"><a th:href="@{/products(brand=${m.name})}" target="_blank" th:text="${counts[m.id]}"></a></td>
+                                    <td class="text-nowrap"><a th:href="@{/admin/manufacturers(edit=${m.id})}" class="btn btn-sm btn-outline-primary">Sửa</a>
+                                        <form th:action="@{/admin/manufacturers/{id}/delete(id=${m.id})}" method="post" class="d-inline" data-confirm="Xóa?">
+                                            <button class="btn btn-sm btn-outline-danger" th:disabled="${counts[m.id] > 0}"><i class="bi bi-trash"></i></button></form></td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <form th:action="${edit.id == null} ? @{/admin/manufacturers} : @{/admin/manufacturers/{id}(id=${edit.id})}" method="post" class="card">
+                        <div class="card-header" th:text="${edit.id == null} ? 'Thêm thương hiệu / NSX' : 'Sửa'"></div>
+                        <div class="card-body">
+                            <div class="mb-3"><label class="form-label">Tên</label><input name="name" class="form-control" th:value="${edit.name}" required></div>
+                            <div class="mb-3"><label class="form-label">Quốc gia</label><input name="country" class="form-control" th:value="${edit.country}"></div>
+                            <div class="mb-3"><label class="form-label">Website</label><input name="website" class="form-control" th:value="${edit.website}"></div>
+                            <div class="mb-3"><label class="form-label">Ghi chú</label><textarea name="note" class="form-control" rows="2" th:text="${edit.note}"></textarea></div>
+                            <button class="btn btn-primary">Lưu</button> <a th:if="${edit.id != null}" th:href="@{/admin/manufacturers}" class="btn btn-link">Hủy</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

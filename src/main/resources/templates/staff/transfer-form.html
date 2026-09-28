@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="staff-body">
+<div class="staff-shell">
+    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
+    <div class="staff-main">
+        <header th:replace="~{fragments/staff :: topbar}"></header>
+        <main class="p-3 p-lg-4">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <form method="get" class="d-flex gap-2 align-items-center mb-3">
+                <label class="small fw-semibold">Kho xuất:</label>
+                <select name="from" class="form-select form-select-sm" style="max-width: 300px" onchange="this.form.submit()">
+                    <option th:each="w : ${warehouses}" th:value="${w.id}" th:text="${w.name}" th:selected="${w.id == from.id}"></option>
+                </select>
+            </form>
+            <form th:action="@{/staff/transfers}" method="post" class="card">
+                <input type="hidden" name="fromId" th:value="${from.id}">
+                <div class="card-header d-flex flex-wrap gap-2 align-items-center">
+                    <span>Từ <strong th:text="${from.name}"></strong> đến</span>
+                    <select name="toId" class="form-select form-select-sm" style="max-width: 280px" required>
+                        <option th:each="w : ${warehouses}" th:if="${w.id != from.id}" th:value="${w.id}" th:text="${w.name + (w.sellable ? '' : ' (không bán)')}"></option>
+                    </select>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead><tr><th>Sản phẩm</th><th>Số lô</th><th>HSD</th><th class="text-end">Tồn tại kho</th><th style="width: 130px">SL chuyển</th></tr></thead>
+                        <tbody>
+                        <tr th:if="${batches.isEmpty()}"><td colspan="5" class="text-center text-muted py-4">Kho không có lô nào còn hàng.</td></tr>
+                        <tr th:each="b : ${batches}">
+                            <td th:text="${b.product.name}"></td>
+                            <td class="fw-semibold" th:text="${b.batchNo}"></td>
+                            <td class="small" th:text="${@fmt.date(b.expDate)}"></td>
+                            <td class="text-end" th:text="${b.quantity} + ' ' + ${b.product.unit}"></td>
+                            <td><input type="number" min="0" th:max="${b.quantity}" class="form-control form-control-sm" th:name="'qty_' + ${b.id}"></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-footer bg-white d-flex gap-2 align-items-center">
+                    <input name="note" class="form-control form-control-sm" placeholder="Ghi chú (VD: bổ sung hàng cho quầy)" style="max-width: 400px">
+                    <button class="btn btn-primary ms-auto" data-confirm="Xác nhận chuyển kho?">Chuyển kho</button>
+                </div>
+            </form>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

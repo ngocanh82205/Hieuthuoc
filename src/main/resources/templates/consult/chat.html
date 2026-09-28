@@ -6,21 +6,45 @@
 <main class="container py-4">
     <div class="row g-4">
         <div class="col-lg-8">
-            <div class="card" id="chat" th:attr="data-me=${currentUser.id},data-last-id=${messages.isEmpty() ? 0 : messages[messages.size() - 1].id()},data-fetch-url=@{/consult/messages}">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-chat-dots text-primary"></i> Tư vấn với dược sĩ</span>
-                    <small class="text-muted" th:if="${conv != null && conv.pharmacist != null}" th:text="'Dược sĩ phụ trách: ' + ${conv.pharmacist.fullName}"></small>
+            <div class="card" id="chat" th:with="aiMode=${conv == null ? aiEnabled : conv.aiMode}"
+                 th:attr="data-me=${currentUser.id},data-last-id=${messages.isEmpty() ? 0 : messages[messages.size() - 1].id()},data-fetch-url=@{/consult/messages},data-cart-action=@{/consult/carts/},data-handoff-url=@{/consult/handoff},data-mode=${aiMode ? 'AI' : 'HUMAN'},data-ai-name=${aiName}">
+                <div class="card-header d-flex justify-content-between align-items-center gap-2">
+                    <div class="d-flex align-items-center gap-2" id="chatHeader">
+                        <span class="chat-avatar" th:classappend="${aiMode} ? 'ai' : ''"><i class="bi" th:classappend="${aiMode} ? 'bi-robot' : 'bi-person-badge'"></i></span>
+                        <div>
+                            <div class="fw-semibold" data-title th:text="${aiMode} ? ${aiName} : (${conv != null && conv.pharmacist != null} ? ${conv.pharmacist.fullName} : 'Dược sĩ VinaPharma')"></div>
+                            <div class="small text-muted" data-subtitle th:text="${aiMode} ? 'Trợ lý tự động · trả lời ngay' : (${conv != null && conv.pharmacist != null} ? 'Dược sĩ phụ trách' : 'Đang chờ dược sĩ tiếp nhận')"></div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary text-nowrap" id="handoffBtn" th:classappend="${aiMode} ? '' : 'd-none'">
+                        <i class="bi bi-person-badge"></i> Gặp dược sĩ</button>
                 </div>
+                <div class="ai-note small px-3 py-2" id="aiNote" th:classappend="${aiMode} ? '' : 'd-none'">
+                    <i class="bi bi-info-circle"></i> Bạn đang chat với trợ lý AI: thông tin chỉ mang tính tham khảo. Câu hỏi về thuốc, liều dùng
+                    sẽ được chuyển cho dược sĩ có chứng chỉ hành nghề.</div>
                 <div class="card-body">
                     <div class="chat-box mb-3">
-                        <div th:if="${messages.isEmpty()}" class="chat-empty text-center text-muted py-5">
-                            <i class="bi bi-chat-heart fs-1"></i>
-                            <p class="mt-2 mb-0">Hãy mô tả triệu chứng hoặc câu hỏi về thuốc. Dược sĩ sẽ trả lời bạn sớm nhất.</p>
+                        <div th:if="${messages.isEmpty()}" class="chat-empty text-center text-muted py-4">
+                            <i class="bi bi-robot fs-1 text-primary" th:if="${aiEnabled}"></i>
+                            <i class="bi bi-chat-heart fs-1" th:unless="${aiEnabled}"></i>
+                            <p class="mt-2 mb-3" th:text="${aiEnabled} ? 'Xin chào! Mình là ' + ${aiName} + '. Bạn cần hỗ trợ gì? Mình sẽ chuyển dược sĩ khi cần tư vấn thuốc.'
+                                : 'Hãy mô tả triệu chứng hoặc câu hỏi về thuốc. Dược sĩ sẽ trả lời bạn sớm nhất.'"></p>
+                            <div class="d-flex flex-wrap gap-2 justify-content-center" th:if="${aiEnabled}">
+                                <button type="button" class="btn btn-sm btn-light border quick-reply" data-quick="Kiểm tra đơn hàng của tôi">📦 Đơn hàng của tôi</button>
+                                <button type="button" class="btn btn-sm btn-light border quick-reply" data-quick="Phí giao hàng bao nhiêu?">🚚 Phí giao hàng</button>
+                                <button type="button" class="btn btn-sm btn-light border quick-reply" data-quick="Chính sách đổi trả thế nào?">↩️ Đổi trả</button>
+                                <button type="button" class="btn btn-sm btn-light border quick-reply" data-quick="Đang có khuyến mãi gì?">🎁 Khuyến mãi</button>
+                                <button type="button" class="btn btn-sm btn-light border quick-reply" data-quick="Tôi bị đau đầu, sốt nhẹ">🤒 Tôi có triệu chứng</button>
+                            </div>
                         </div>
-                        <div th:each="m : ${messages}" class="chat-msg" th:classappend="${m.senderId() == currentUser.id} ? 'mine'">
-                            <div class="bubble"><th:block th:text="${m.body()}"></th:block><a th:if="${m.imageUrl() != null}" th:href="${m.imageUrl()}" target="_blank"><img th:src="${m.imageUrl()}" alt="Ảnh đính kèm"></a></div>
-                            <div class="meta" th:text="${m.senderId() == currentUser.id} ? ${m.time()} : ${m.senderName()} + (${m.fromStaff()} ? ' (Dược sĩ)' : '') + ' · ' + ${m.time()}"></div>
-                        </div>
+                        <th:block th:each="m : ${messages}">
+                            <div th:if="${m.kind() == 'SYSTEM'}" class="chat-system" th:text="${m.body()}"></div>
+                            <div th:unless="${m.kind() == 'SYSTEM'}" class="chat-msg" th:classappend="${m.senderId() == currentUser.id} ? 'mine' : (${m.kind() == 'AI'} ? 'ai' : '')">
+                                <div class="bubble"><th:block th:text="${m.body()}"></th:block><a th:if="${m.imageUrl() != null}" th:href="${m.imageUrl()}" target="_blank"><img th:src="${m.imageUrl()}" alt="Ảnh đính kèm"></a><div th:replace="~{fragments/layout :: chatCart(${m}, true)}"></div></div>
+                                <div class="meta" th:text="${m.senderId() == currentUser.id} ? ${m.time()} : (${m.kind() == 'AI'} ? '🤖 ' : '') + ${m.senderName()} + (${m.fromStaff()} ? ' (Dược sĩ)' : '') + ' · ' + ${m.time()}"></div>
+                            </div>
+                        </th:block>
+                        <div class="chat-msg ai d-none" id="typing"><div class="bubble typing"><span></span><span></span><span></span></div></div>
                     </div>
                     <form th:action="@{/consult/messages}" method="post" enctype="multipart/form-data">
                         <textarea name="body" class="form-control mb-2" rows="2" maxlength="2000" placeholder="Nhập tin nhắn..."></textarea>
@@ -36,6 +60,12 @@
         <div class="col-lg-4">
             <div class="card">
                 <div class="card-body small">
+                    <h2 class="h6 fw-semibold" th:if="${aiEnabled}"><i class="bi bi-robot text-primary"></i> Trợ lý AI trả lời ngay</h2>
+                    <ul class="ps-3" th:if="${aiEnabled}">
+                        <li>Tra cứu đơn hàng, phí giao hàng, đổi trả, khuyến mãi</li>
+                        <li>Thông tin sản phẩm không kê đơn, ghi nhận triệu chứng</li>
+                        <li>Tự chuyển dược sĩ khi cần tư vấn thuốc, kèm tóm tắt để bạn không phải kể lại</li>
+                    </ul>
                     <h2 class="h6 fw-semibold">Dược sĩ có thể giúp bạn</h2>
                     <ul class="ps-3">
                         <li>Tư vấn cách dùng, liều dùng, tương tác thuốc</li>

@@ -34,6 +34,8 @@ public class GlobalControllerAdvice {
     private final Cart cart;
     private final SettingService settings;
     private final CategoryRepository categoryRepo;
+    private final com.hieuthuoc.service.CategoryService categoryService;
+    private final com.hieuthuoc.repository.StaticPageRepository pageRepo;
     private final NotificationRepository notificationRepo;
     private final com.hieuthuoc.service.CustomerCareService care;
 
@@ -52,9 +54,14 @@ public class GlobalControllerAdvice {
         return settings.all();
     }
 
+    @ModelAttribute("footerPages")
+    public List<com.hieuthuoc.entity.StaticPage> footerPages() {
+        return pageRepo.findByPublishedTrueAndShowInFooterTrueOrderBySortOrderAscIdAsc();
+    }
+
     @ModelAttribute("navCategories")
     public List<Category> navCategories() {
-        return categoryRepo.findAllByOrderBySortOrderAscNameAsc();
+        return categoryService.tree();
     }
 
     /** Lưu ý: không nhận User qua @ModelAttribute (sẽ bị data-binding từ request vào entity). */

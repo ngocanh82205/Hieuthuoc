@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="staff-body">
+<div class="staff-shell">
+    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
+    <div class="staff-main">
+        <header th:replace="~{fragments/staff :: topbar}"></header>
+        <main class="p-3 p-lg-4">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="row g-4">
+                <div class="col-lg-7">
+                    <div class="card">
+                        <div class="list-group list-group-flush">
+                            <div class="list-group-item text-muted" th:if="${list.isEmpty()}">Chưa có banner - trang chủ đang dùng 3 slide mặc định.</div>
+                            <div class="list-group-item d-flex gap-3 align-items-center" th:each="b : ${list}">
+                                <div class="hero-banner p-3" th:classappend="'theme-' + ${b.theme}" style="min-height: 80px; width: 200px; border-radius: .8rem"
+                                     th:style="${b.image != null} ? |min-height: 80px; width: 200px; border-radius: .8rem; background-image: url('${b.image}')| : 'min-height: 80px; width: 200px; border-radius: .8rem'">
+                                    <div class="small fw-semibold" th:text="${b.title}"></div></div>
+                                <div class="flex-grow-1 small">
+                                    <div class="fw-semibold" th:text="${b.title}"></div>
+                                    <div class="text-muted" th:text="${b.subtitle}"></div>
+                                    <div><span th:text="${b.link}"></span> · thứ tự <span th:text="${b.sortOrder}"></span>
+                                        <span th:if="${b.startDate != null || b.endDate != null}" th:text="' · ' + ${@fmt.date(b.startDate)} + ' - ' + ${@fmt.date(b.endDate)}"></span></div>
+                                    <span class="badge" th:classappend="${b.showing} ? 'text-bg-success' : 'text-bg-secondary'" th:text="${b.showing} ? 'Đang hiển thị' : 'Không hiển thị'"></span>
+                                </div>
+                                <div class="text-nowrap"><a th:href="@{/admin/banners(edit=${b.id})}" class="btn btn-sm btn-outline-primary">Sửa</a>
+                                    <form th:action="@{/admin/banners/{id}/delete(id=${b.id})}" method="post" class="d-inline" data-confirm="Xóa banner?">
+                                        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-5">
+                    <form th:action="${edit.id == null} ? @{/admin/banners} : @{/admin/banners/{id}(id=${edit.id})}" method="post" enctype="multipart/form-data" class="card">
+                        <div class="card-header" th:text="${edit.id == null} ? 'Thêm banner' : 'Sửa banner'"></div>
+                        <div class="card-body row g-2">
+                            <div class="col-12"><label class="form-label small">Tiêu đề</label><input name="title" class="form-control" th:value="${edit.title}" required></div>
+                            <div class="col-12"><label class="form-label small">Mô tả ngắn</label><input name="subtitle" class="form-control" th:value="${edit.subtitle}"></div>
+                            <div class="col-7"><label class="form-label small">Liên kết</label><input name="link" class="form-control" th:value="${edit.link}" placeholder="/products?type=SUPPLEMENT"></div>
+                            <div class="col-5"><label class="form-label small">Chữ trên nút</label><input name="buttonText" class="form-control" th:value="${edit.buttonText}" placeholder="Xem ngay"></div>
+                            <div class="col-6"><label class="form-label small">Màu nền</label>
+                                <select name="theme" class="form-select"><option th:each="t : ${themes}" th:value="${t.key}" th:text="${t.value}" th:selected="${edit.theme == t.key}"></option></select></div>
+                            <div class="col-6"><label class="form-label small">Thứ tự</label><input type="number" name="sortOrder" class="form-control" th:value="${edit.sortOrder}"></div>
+                            <div class="col-6"><label class="form-label small">Từ ngày</label><input type="date" name="startDate" class="form-control" th:value="${@fmt.iso(edit.startDate)}"></div>
+                            <div class="col-6"><label class="form-label small">Đến ngày</label><input type="date" name="endDate" class="form-control" th:value="${@fmt.iso(edit.endDate)}"></div>
+                            <div class="col-12"><label class="form-label small">Ảnh nền (tùy chọn, ≤ 5MB)</label><input type="file" name="imageFile" class="form-control" accept="image/*">
+                                <div class="form-check mt-1" th:if="${edit.image != null}"><input type="checkbox" class="form-check-input" name="removeImage" value="true" id="rmImg">
+                                    <label class="form-check-label small" for="rmImg">Xóa ảnh hiện tại</label></div></div>
+                            <div class="col-12 form-check ms-2" th:if="${edit.id != null}"><input type="checkbox" class="form-check-input" name="active" value="true" id="bActive" th:checked="${edit.active}">
+                                <label class="form-check-label" for="bActive">Đang bật</label></div>
+                        </div>
+                        <div class="card-footer bg-white"><button class="btn btn-primary">Lưu banner</button>
+                            <a th:if="${edit.id != null}" th:href="@{/admin/banners}" class="btn btn-link">Hủy</a></div>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

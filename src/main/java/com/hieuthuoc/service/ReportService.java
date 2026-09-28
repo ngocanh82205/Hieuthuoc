@@ -23,6 +23,7 @@ public class ReportService {
     private final BatchRepository batchRepo;
     private final ProductRepository productRepo;
     private final StockService stockService;
+    private final ConversationRepository conversationRepo;
 
     public record DayRow(LocalDate day, long orders, long revenue) {
     }
@@ -33,7 +34,18 @@ public class ReportService {
     public record ProductRow(String name, String unit, long quantity, long revenue) {
     }
 
-    public record PharmacistRow(String name, String licenseNo, long approved, long rejected, Long avgMinutes, long messages, long orders) {
+    public record PharmacistRow(String name, String licenseNo, long approved, long rejected, Long avgMinutes, long messages, long orders,
+                                long consultations, long revenue) {
+        public double getRejectRate() {
+            long total = approved + rejected;
+            return total == 0 ? 0 : Math.round(1000.0 * rejected / total) / 10.0;
+        }
+    }
+
+    public record ChannelRow(String name, long orders, long revenue) {
+    }
+
+    public record ExpiryRow(Batch batch, long days, long value) {
     }
 
     @Getter
@@ -46,6 +58,17 @@ public class ReportService {
         private long cost;
         private long created;
         private long cancelled;
+        private long cancelledOnly;
+        private long returned;
+        private long customersOrdered;
+        private long newCustomers;
+        private long returningCustomers;
+        private long registrations;
+        private final List<NameValue> byMonth = new ArrayList<>();
+        private final List<ChannelRow> byChannel = new ArrayList<>();
+        private final List<ChannelRow> byStaff = new ArrayList<>();
+        private final List<ExpiryRow> nearExpiry = new ArrayList<>();
+        private final List<ExpiryRow> expired = new ArrayList<>();
         private final List<DayRow> byDay = new ArrayList<>();
         private final List<NameValue> byCategory = new ArrayList<>();
         private final List<ProductRow> topProducts = new ArrayList<>();
@@ -63,6 +86,22 @@ public class ReportService {
         public double getCancelRate() {
             return created == 0 ? 0 : Math.round(1000.0 * cancelled / created) / 10.0;
         }
+
+        public double getCancelOnlyRate() {
+            return created == 0 ? 0 : Math.round(1000.0 * cancelledOnly / created) / 10.0;
+        }
+
+        public double getReturnRate() {
+            return created == 0 ? 0 : Math.round(1000.0 * returned / created) / 10.0;
+        }
+
+        public double getReturningRate() {
+            return customersOrdered == 0 ? 0 : Math.round(1000.0 * returningCustomers / customersOrdered) / 10.0;
+        }
+
+        public double getMarginRate() {
+            return revenue == 0 ? 0 : Math.round(1000.0 * (revenue - cost) / revenue) / 10.0;
+        }
     }
 
     public List<Order> completedBetween(LocalDate from, LocalDate to) {
@@ -70,6 +109,10 @@ public class ReportService {
     }
 
     public Report build(LocalDate from, LocalDate to) {
+        return build(from, to, 90);
+    }
+
+    public Report build(LocalDate from, LocalDate to, long nearExpiryDays) {
         Report r = new Report();
         r.from = from;
         r.to = to;
@@ -78,6 +121,11 @@ public class ReportService {
         List<Order> orders = completedBetween(from, to);
 
         Map<LocalDate, long[]> days = new TreeMap<>();
+        Map<String, Long> months = new TreeMap<>();
+        Map<String, long[]> channels = new LinkedHashMap<>();
+        channels.put("Online", new long[2]);
+        channels.put("Tại quầy (POS)", new long[2]);
+        Map<String, long[]> staff = new TreeMap<>();
         Map<String, Long> categories = new HashMap<>();
         Map<Long, ProductRow> products = new HashMap<>();
         Set<Long> soldIds = new HashSet<>();
@@ -88,6 +136,14 @@ public class ReportService {
             long[] d = days.computeIfAbsent(o.getCompletedAt().toLocalDate(), k -> new long[2]);
             d[0]++;
             d[1] += o.getTotal();
+            months.merge(o.getCompletedAt().format(java.time.format.DateTimeFormatter.ofPattern("MM/yyyy")), o.getTotal(), Long::sum);
+            long[] ch = channels.get(o.isPos() ? "Tại quầy (POS)" : "Online");
+            ch[0]++;
+            ch[1] += o.getTotal();
+            User handler = o.getAssignedTo() != null ? o.getAssignedTo() : o.getHandledBy();
+            long[] st = staff.computeIfAbsent(handler == null ? "(Chưa ghi nhận)" : handler.getFullName(), k -> new long[2]);
+            st[0]++;
+            st[1] += o.getTotal();
             for (OrderItem it : o.getItems()) {
                 Product p = it.getProduct();
                 soldIds.add(p.getId());
@@ -99,6 +155,11 @@ public class ReportService {
             }
         }
         days.forEach((k, v) -> r.byDay.add(new DayRow(k, v[0], v[1])));
+        months.entrySet().stream().sorted(Comparator.comparing(e -> e.getKey().substring(3) + e.getKey().substring(0, 2)))
+                .forEach(e -> r.byMonth.add(new NameValue(e.getKey(), e.getValue())));
+        channels.forEach((k, v) -> r.byChannel.add(new ChannelRow(k, v[0], v[1])));
+        staff.entrySet().stream().sorted(Comparator.comparingLong((Map.Entry<String, long[]> e) -> e.getValue()[1]).reversed())
+                .forEach(e -> r.byStaff.add(new ChannelRow(e.getKey(), e.getValue()[0], e.getValue()[1])));
         categories.entrySet().stream().sorted(Map.Entry.<String, Long>comparingByValue().reversed())
                 .forEach(e -> r.byCategory.add(new NameValue(e.getKey(), e.getValue())));
         products.values().stream().sorted(Comparator.comparingLong(ProductRow::quantity).reversed()).limit(10).forEach(r.topProducts::add);
@@ -109,6 +170,28 @@ public class ReportService {
 
         r.created = orderRepo.countByCreatedAtBetween(start, end);
         r.cancelled = orderRepo.countByStatusInAndCreatedAtBetween(EnumSet.of(OrderStatus.CANCELLED, OrderStatus.RETURNED), start, end);
+        r.cancelledOnly = orderRepo.countByStatusInAndCreatedAtBetween(EnumSet.of(OrderStatus.CANCELLED), start, end);
+        r.returned = r.cancelled - r.cancelledOnly;
+
+        // Khách hàng mới / quay lại: trong số khách có đơn hoàn thành trong kỳ
+        Set<Long> seen = new HashSet<>();
+        for (Order o : orders) {
+            if (o.isPos() && o.getUser().isLocked()) continue; // khách lẻ tại quầy
+            if (!seen.add(o.getUser().getId())) continue;
+            r.customersOrdered++;
+            if (orderRepo.countByUserAndStatusAndCompletedAtBefore(o.getUser(), OrderStatus.COMPLETED, start) > 0) r.returningCustomers++;
+            else r.newCustomers++;
+        }
+        r.registrations = userRepo.countByRoleAndCreatedAtBetween(Role.CUSTOMER, start, end);
+
+        // Hàng cận hạn / hết hạn (giá trị theo giá nhập)
+        LocalDate today = LocalDate.now();
+        for (Batch b : batchRepo.findNearExpiry(today, today.plusDays(nearExpiryDays))) {
+            r.nearExpiry.add(new ExpiryRow(b, java.time.temporal.ChronoUnit.DAYS.between(today, b.getExpDate()), (long) b.getQuantity() * b.getImportPrice()));
+        }
+        for (Batch b : batchRepo.findExpired(today)) {
+            r.expired.add(new ExpiryRow(b, java.time.temporal.ChronoUnit.DAYS.between(b.getExpDate(), today), (long) b.getQuantity() * b.getImportPrice()));
+        }
 
         List<Prescription> reviewed = prescriptionRepo.findByReviewedAtBetween(start, end);
         for (User u : userRepo.findByRoleInOrderByRoleAscFullNameAsc(List.of(Role.PHARMACIST, Role.ADMIN))) {
@@ -118,8 +201,10 @@ public class ReportService {
             Long avg = mine.isEmpty() ? null
                     : Math.round(mine.stream().mapToLong(p -> Duration.between(p.getCreatedAt(), p.getReviewedAt()).toMinutes()).average().orElse(0));
             long handled = orders.stream().filter(o -> o.getHandledBy() != null && o.getHandledBy().getId().equals(u.getId())).count();
+            long revenue = orders.stream().filter(o -> o.getHandledBy() != null && o.getHandledBy().getId().equals(u.getId())).mapToLong(Order::getTotal).sum();
             r.pharmacists.add(new PharmacistRow(u.getFullName(), u.getLicenseNo(), approved, rejected, avg,
-                    messageRepo.countBySenderAndCreatedAtBetween(u, start, end), handled));
+                    messageRepo.countBySenderAndCreatedAtBetween(u, start, end), handled,
+                    conversationRepo.countByPharmacistAndUpdatedAtBetween(u, start, end), revenue));
         }
         r.pharmacists.sort(Comparator.comparingLong(PharmacistRow::approved).reversed());
         return r;

@@ -89,6 +89,18 @@ public class Product {
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
+    /** SEO: tiêu đề & mô tả hiển thị trên Google (để trống = tự sinh từ tên, mô tả). */
+    @Column(length = 150)
+    private String metaTitle;
+
+    @Column(length = 300)
+    private String metaDescription;
+
+    /** Thuốc thay thế / tương đương do admin cấu hình thêm (ngoài quy tắc cùng hoạt chất + hàm lượng). */
+    @ManyToMany
+    @JoinTable(name = "product_equivalents", joinColumns = @JoinColumn(name = "product_id"), inverseJoinColumns = @JoinColumn(name = "equivalent_id"))
+    private java.util.Set<Product> equivalents = new java.util.HashSet<>();
+
     /** Các đơn vị bán lớn hơn đơn vị gốc (VD: Hộp = 10 Vỉ). Đơn vị gốc là {@link #unit}. */
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("factor ASC")
@@ -113,6 +125,27 @@ public class Product {
 
     @Transient
     private long sold;
+
+    /** Khuyến mãi đang chạy (PromotionService điền): giá flash sale theo đơn vị gốc, hạn kết thúc, suất còn lại, nhãn KM. */
+    @Transient
+    private Long flashPrice;
+
+    @Transient
+    private LocalDateTime flashEndsAt;
+
+    @Transient
+    private Integer flashRemaining;
+
+    @Transient
+    private java.util.List<String> promoLabels = new java.util.ArrayList<>();
+
+    public boolean isFlashSale() {
+        return flashPrice != null && flashPrice < price;
+    }
+
+    public int getFlashPercent() {
+        return isFlashSale() ? (int) Math.round(100.0 * (price - flashPrice) / price) : 0;
+    }
 
     @PrePersist
     void prePersist() {
