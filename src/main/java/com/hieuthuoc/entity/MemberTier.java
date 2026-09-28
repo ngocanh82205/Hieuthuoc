@@ -8,8 +8,9 @@ public enum MemberTier {
     KIM_CUONG("Kim cương", 10_000_000L, 2.0, "#0b63e5");
 
     private final String label;
-    private final long minSpent;
-    private final double pointMultiplier;
+    /** Ngưỡng và hệ số điểm do admin cấu hình (Quản trị > Tích điểm & hạng); giá trị trong enum là mặc định. */
+    private volatile long minSpent;
+    private volatile double pointMultiplier;
     private final String color;
 
     MemberTier(String label, long minSpent, double pointMultiplier, String color) {
@@ -33,6 +34,15 @@ public enum MemberTier {
 
     public String getColor() {
         return color;
+    }
+
+    public static void configure(MemberTier t, long minSpent, double multiplier) {
+        t.minSpent = t == DONG ? 0 : minSpent;
+        t.pointMultiplier = multiplier;
+    }
+
+    public String getKey() {
+        return name().toLowerCase();
     }
 
     public static MemberTier of(long spent) {

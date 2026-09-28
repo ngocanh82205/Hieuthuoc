@@ -21,9 +21,9 @@
                 <div class="card-header">Danh sách lô (xếp theo hạn dùng - FEFO)</div>
                 <div class="table-responsive">
                     <table class="table mb-0">
-                        <thead><tr><th>Số lô</th><th>NSX</th><th>HSD</th><th class="text-end">Tồn</th><th class="text-end">Đã bán</th><th class="text-end">Giá nhập</th><th>Nhà cung cấp</th><th>Trạng thái</th><th style="min-width: 260px">Thao tác</th></tr></thead>
+                        <thead><tr><th>Số lô</th><th>NSX</th><th>HSD</th><th class="text-end">Tồn</th><th class="text-end">Đã bán</th><th class="text-end">Giá nhập</th><th>Kho</th><th>Nhà cung cấp</th><th>Trạng thái</th><th style="min-width: 260px">Thao tác</th></tr></thead>
                         <tbody>
-                        <tr th:if="${batches.isEmpty()}"><td colspan="9" class="text-center text-muted py-4">Chưa có lô hàng.</td></tr>
+                        <tr th:if="${batches.isEmpty()}"><td colspan="10" class="text-center text-muted py-4">Chưa có lô hàng.</td></tr>
                         <tr th:each="b : ${batches}" th:classappend="${b.expired} ? 'table-danger' : (${b.locked} ? 'table-secondary' : '')">
                             <td class="fw-semibold" th:text="${b.batchNo}"></td>
                             <td class="small" th:text="${@fmt.date(b.mfgDate)}"></td>
@@ -31,6 +31,8 @@
                             <td class="text-end" th:text="${b.quantity}"></td>
                             <td class="text-end" th:text="${sold[b.id]}"></td>
                             <td class="text-end small" th:text="${@fmt.money(b.importPrice)}"></td>
+                            <td class="small" th:text="${b.warehouse != null ? b.warehouse.name : 'Kho chính'}"
+                                th:classappend="${b.warehouse != null && !b.warehouse.sellable} ? 'text-warning-emphasis'"></td>
                             <td class="small" th:text="${b.supplier != null ? b.supplier.name : ''}"></td>
                             <td class="small">
                                 <span th:if="${b.expired}" class="badge text-bg-danger">Hết hạn</span>
@@ -64,6 +66,7 @@
                         <span th:text="${@fmt.dateTime(a.createdAt)}"></span> · Lô <strong th:text="${a.batch.batchNo}"></strong>:
                         <strong th:text="${a.quantity > 0 ? '+' + a.quantity : a.quantity}"></strong> · <span th:text="${a.reason}"></span>
                         <span class="text-muted" th:if="${a.user != null}" th:text="'(' + ${a.user.fullName} + ')'"></span>
+                        <span class="badge" th:classappend="'text-bg-' + ${a.statusValue.color}" th:text="${a.statusValue.label}"></span>
                     </li>
                 </ul>
             </div>

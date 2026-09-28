@@ -18,6 +18,7 @@ import java.util.*;
 @Transactional(readOnly = true)
 public class SafetyService {
     private final OrderRepository orderRepo;
+    private final com.hieuthuoc.repository.DrugInteractionRepository interactionRepo;
 
     public record Warning(String level, String message) {
         public String getIcon() {
@@ -37,8 +38,8 @@ public class SafetyService {
 
     private static final List<String> NSAIDS = List.of("ibuprofen", "diclofenac", "naproxen", "meloxicam", "aspirin");
 
-    /** Cặp tương tác: hoạt chất A, hoạt chất B, mức độ, nội dung. */
-    private static final String[][] INTERACTIONS = {
+    /** Bộ quy tắc tương tác mẫu (nạp vào CSDL lần đầu; admin sửa/thêm tại Quản trị > Tương tác thuốc). */
+    public static final String[][] DEFAULT_INTERACTIONS = {
             {"ibuprofen", "aspirin", "danger", "Phối hợp hai NSAID làm tăng nguy cơ loét, xuất huyết tiêu hóa."},
             {"ibuprofen", "losartan", "warning", "NSAID làm giảm tác dụng hạ áp của losartan, tăng nguy cơ suy thận."},
             {"ibuprofen", "amlodipin", "warning", "NSAID có thể làm giảm tác dụng hạ huyết áp."},
@@ -141,7 +142,10 @@ public class SafetyService {
         }
 
         // Tương tác giữa thuốc sắp bán với nhau và với thuốc đã mua gần đây
-        for (String[] rule : INTERACTIONS) {
+        List<String[]> rules = interactionRepo.findAll().stream()
+                .map(r -> new String[]{r.getIngredientA().toLowerCase().trim(), r.getIngredientB().toLowerCase().trim(), r.getLevel(), r.getMessage()})
+                .filter(r -> !r[0].isEmpty() && !r[1].isEmpty()).toList();
+        for (String[] rule : rules) {
             for (Product a : cur) {
                 if (!ing(a).contains(rule[0]) && !ing(a).contains(rule[1])) continue;
                 String other = ing(a).contains(rule[0]) ? rule[1] : rule[0];

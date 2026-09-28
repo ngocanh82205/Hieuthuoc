@@ -38,4 +38,14 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     List<Product> findTop4ByActiveTrueAndActiveIngredientIgnoreCaseAndIdNot(String activeIngredient, Long id);
 
     List<Product> findTop4ByActiveTrueAndCategoryAndIdNotAndDrugTypeNot(Category category, Long id, DrugType drugType);
+
+    List<Product> findByActiveTrueAndActiveIngredientIgnoreCaseAndIdNot(String activeIngredient, Long id);
+
+    /** Các sản phẩm đã khai báo p là thuốc tương đương của chúng (chiều ngược). */
+    @Query("select x from Product x join x.equivalents e where e = :p")
+    List<Product> findEquivalentOf(@Param("p") Product p);
+
+    Optional<Product> findFirstByRegistrationNoIgnoreCase(String registrationNo);
+
+    Optional<Product> findFirstByNameIgnoreCase(String name);
 }

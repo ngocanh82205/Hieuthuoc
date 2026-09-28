@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="staff-body">
+<div class="staff-shell">
+    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
+    <div class="staff-main">
+        <header th:replace="~{fragments/staff :: topbar}"></header>
+        <main class="p-3 p-lg-4">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="alert alert-warning small" th:if="${!zones.isEmpty() && !uncovered.isEmpty()}"><i class="bi bi-exclamation-triangle"></i>
+                Chưa giao hàng tới: <span th:text="${#strings.listJoin(uncovered, ', ')}"></span> (khách ở các tỉnh này chỉ chọn được nhận tại nhà thuốc).</div>
+            <div class="alert alert-info small" th:if="${zones.isEmpty()}">Chưa cấu hình khu vực: giao toàn quốc với phí ship chung trong Cấu hình.</div>
+            <div class="row g-4">
+                <div class="col-xl-7">
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table class="table align-middle mb-0">
+                                <thead><tr><th>Khu vực</th><th class="text-end">Phí ship</th><th class="text-end">Miễn phí từ</th><th>Thời gian</th><th></th></tr></thead>
+                                <tbody>
+                                <tr th:each="z : ${zones}" th:classappend="${!z.active} ? 'text-muted'">
+                                    <td><div class="fw-semibold"><span th:text="${z.name}"></span> <span th:unless="${z.active}" class="badge text-bg-secondary">Tắt</span></div>
+                                        <div class="small text-muted" th:text="${z.provinces}"></div></td>
+                                    <td class="text-end" th:text="${@fmt.money(z.fee)}"></td>
+                                    <td class="text-end" th:text="${z.freeThreshold != null ? @fmt.money(z.freeThreshold) : '-'}"></td>
+                                    <td class="small" th:text="${z.eta}"></td>
+                                    <td class="text-nowrap"><a th:href="@{/admin/shipping-zones(edit=${z.id})}" class="btn btn-sm btn-outline-primary">Sửa</a>
+                                        <form th:action="@{/admin/shipping-zones/{id}/delete(id=${z.id})}" method="post" class="d-inline" data-confirm="Xóa khu vực?">
+                                            <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form></td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-5">
+                    <form th:action="${edit.id == null} ? @{/admin/shipping-zones} : @{/admin/shipping-zones/{id}(id=${edit.id})}" method="post" class="card">
+                        <div class="card-header" th:text="${edit.id == null} ? 'Thêm khu vực giao hàng' : 'Sửa khu vực'"></div>
+                        <div class="card-body row g-2">
+                            <div class="col-12"><label class="form-label small">Tên khu vực</label><input name="name" class="form-control" th:value="${edit.name}" required></div>
+                            <div class="col-6"><label class="form-label small">Phí ship (đ)</label><input type="number" name="fee" min="0" class="form-control" th:value="${edit.fee}" required></div>
+                            <div class="col-6"><label class="form-label small">Miễn phí cho đơn từ (đ)</label><input type="number" name="freeThreshold" min="0" class="form-control" th:value="${edit.freeThreshold}"></div>
+                            <div class="col-6"><label class="form-label small">Thời gian giao</label><input name="eta" class="form-control" th:value="${edit.eta}" placeholder="1 - 2 ngày"></div>
+                            <div class="col-6"><label class="form-label small">Thứ tự</label><input type="number" name="sortOrder" class="form-control" th:value="${edit.sortOrder}"></div>
+                            <div class="col-12"><label class="form-label small">Tỉnh / thành thuộc khu vực</label>
+                                <div class="border rounded p-2 row g-1 mx-0" style="max-height: 240px; overflow: auto">
+                                    <div class="col-6" th:each="p, st : ${provinces}"><div class="form-check small">
+                                        <input class="form-check-input" type="checkbox" name="provinces" th:value="${p}" th:id="'pv' + ${st.index}" th:checked="${editProvinces.contains(p)}">
+                                        <label class="form-check-label" th:for="'pv' + ${st.index}" th:text="${p}"></label></div></div>
+                                </div></div>
+                            <div class="col-12 form-check ms-2" th:if="${edit.id != null}"><input type="checkbox" class="form-check-input" name="active" value="true" id="zActive" th:checked="${edit.active}">
+                                <label class="form-check-label" for="zActive">Đang giao hàng</label></div>
+                        </div>
+                        <div class="card-footer bg-white"><button class="btn btn-primary">Lưu</button>
+                            <a th:if="${edit.id != null}" th:href="@{/admin/shipping-zones}" class="btn btn-link">Hủy</a></div>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

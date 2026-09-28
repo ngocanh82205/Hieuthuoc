@@ -26,6 +26,15 @@ import java.util.*;
 @ConditionalOnProperty(name = "app.seed-demo-data", havingValue = "true", matchIfMissing = true)
 public class DataSeeder implements CommandLineRunner {
     private final UserRepository userRepo;
+    private final StaffRoleRepository staffRoleRepo;
+    private final WarehouseRepository warehouseRepo;
+    private final StockAdjustmentRepository adjustmentRepo;
+    private final SupplierPaymentRepository supplierPaymentRepo;
+    private final DrugInteractionRepository interactionRepo;
+    private final PromotionRepository promotionRepo;
+    private final StaticPageRepository pageRepo;
+    private final ShippingZoneRepository zoneRepo;
+    private final com.hieuthuoc.service.CatalogService catalogService;
     private final AddressRepository addressRepo;
     private final CategoryRepository categoryRepo;
     private final SupplierRepository supplierRepo;
@@ -170,9 +179,85 @@ public class DataSeeder implements CommandLineRunner {
                             + "Ghi lại kết quả vào sổ theo dõi và mang theo khi đi tái khám để bác sĩ điều chỉnh thuốc phù hợp."},
     };
 
+    private StaffRole role(String name) {
+        return staffRoleRepo.findByNameIgnoreCase(name).orElseThrow();
+    }
+
+    /** Dữ liệu danh mục hệ thống (tạo nếu chưa có, kể cả khi database đã có dữ liệu cũ). */
+    private void seedReferenceData() {
+        if (staffRoleRepo.count() == 0) {
+            staffRoleRepo.save(new StaffRole("Dược sĩ quản lý", "Dược sĩ phụ trách chuyên môn / quản lý nhà thuốc - toàn quyền nghiệp vụ",
+                    StaffPermission.values()));
+            staffRoleRepo.save(new StaffRole("Dược sĩ", "Duyệt đơn thuốc, tư vấn, xử lý đơn và bán tại quầy",
+                    StaffPermission.RX_REVIEW, StaffPermission.ORDER, StaffPermission.CONSULT, StaffPermission.POS));
+            staffRoleRepo.save(new StaffRole("Nhân viên kho", "Nhập hàng, soạn hàng, kiểm kê, chuyển kho",
+                    StaffPermission.INVENTORY, StaffPermission.ORDER));
+            staffRoleRepo.save(new StaffRole("Nhân viên CSKH", "Chat, hỏi đáp, yêu cầu gọi lại, theo dõi đơn",
+                    StaffPermission.CONSULT, StaffPermission.ORDER));
+            staffRoleRepo.save(new StaffRole("Biên tập viên", "Bài viết sức khỏe, thông tin sản phẩm, kiểm duyệt đánh giá",
+                    StaffPermission.CONTENT));
+        }
+        if (warehouseRepo.count() == 0) {
+            warehouseRepo.save(new Warehouse("Kho chính - Nhà thuốc Thanh Xuân", "123 Nguyễn Trãi, Thanh Xuân, Hà Nội", true, true));
+            warehouseRepo.save(new Warehouse("Kho dự trữ Long Biên", "KCN Sài Đồng, Long Biên, Hà Nội", false, false));
+        }
+        if (zoneRepo.count() == 0) {
+            zoneRepo.save(new ShippingZone("Nội thành Hà Nội", List.of("Hà Nội"), 15000, 300000L, "2 - 4 giờ", 1));
+            zoneRepo.save(new ShippingZone("Miền Bắc", List.of("Hải Phòng", "Tuyên Quang", "Cao Bằng", "Lai Châu", "Lào Cai", "Thái Nguyên", "Điện Biên",
+                    "Lạng Sơn", "Sơn La", "Phú Thọ", "Bắc Ninh", "Quảng Ninh", "Hưng Yên", "Ninh Bình"), 25000, 500000L, "1 - 2 ngày", 2));
+            zoneRepo.save(new ShippingZone("Miền Trung - Tây Nguyên", List.of("Thanh Hóa", "Nghệ An", "Hà Tĩnh", "Quảng Trị", "Huế", "Đà Nẵng", "Quảng Ngãi",
+                    "Gia Lai", "Khánh Hòa", "Lâm Đồng", "Đắk Lắk"), 30000, 500000L, "2 - 3 ngày", 3));
+            zoneRepo.save(new ShippingZone("Miền Nam", List.of("TP. Hồ Chí Minh", "Đồng Nai", "Tây Ninh", "Vĩnh Long", "Đồng Tháp", "Cà Mau", "An Giang", "Cần Thơ"),
+                    30000, 500000L, "2 - 4 ngày", 4));
+        }
+        if (pageRepo.count() == 0) {
+            pageRepo.save(new StaticPage("chinh-sach-doi-tra", "Chính sách đổi trả & hoàn tiền", """
+                    ## Điều kiện đổi trả
+                    Khách hàng được đổi/trả trong 7 ngày kể từ khi nhận hàng khi sản phẩm bị lỗi từ nhà sản xuất, giao sai sản phẩm, hư hỏng do vận chuyển hoặc còn nguyên tem niêm phong.
+
+                    ## Không áp dụng đổi trả
+                    - Thuốc kê đơn (trừ trường hợp lỗi từ nhà thuốc)
+                    - Sản phẩm đã mở niêm phong, đã sử dụng
+                    - Sản phẩm cần bảo quản lạnh
+
+                    ## Hoàn tiền
+                    Sau khi nhà thuốc duyệt yêu cầu, tiền được hoàn về tài khoản / ví của khách trong 3 - 7 ngày làm việc. Điểm tích lũy đã dùng được hoàn lại.""", 1));
+            pageRepo.save(new StaticPage("chinh-sach-giao-hang", "Chính sách giao hàng", """
+                    ## Phạm vi & phí giao hàng
+                    Nhà thuốc giao hàng toàn quốc. Phí ship tính theo khu vực, miễn phí cho đơn đạt ngưỡng (xem chi tiết khi thanh toán).
+
+                    ## Thời gian
+                    - Nội thành Hà Nội: 2 - 4 giờ
+                    - Các tỉnh miền Bắc: 1 - 2 ngày
+                    - Miền Trung, miền Nam: 2 - 4 ngày
+
+                    Đơn có thuốc kê đơn chỉ được giao sau khi dược sĩ duyệt đơn thuốc.""", 2));
+            pageRepo.save(new StaticPage("chinh-sach-bao-mat", "Chính sách bảo mật thông tin", """
+                    ## Thông tin thu thập
+                    Họ tên, số điện thoại, địa chỉ giao hàng, hồ sơ sức khỏe (dị ứng, bệnh nền) và ảnh đơn thuốc khách hàng cung cấp.
+
+                    ## Mục đích sử dụng
+                    Xử lý đơn hàng, tư vấn dùng thuốc an toàn, chăm sóc khách hàng. Ảnh đơn thuốc và hồ sơ sức khỏe chỉ dược sĩ được xem.
+
+                    ## Cam kết
+                    Không chia sẻ thông tin cho bên thứ ba trừ khi pháp luật yêu cầu. Khách hàng có thể yêu cầu xem, sửa hoặc xóa dữ liệu cá nhân.""", 3));
+            pageRepo.save(new StaticPage("dieu-khoan-su-dung", "Điều khoản sử dụng", """
+                    Khi sử dụng website, khách hàng đồng ý cung cấp thông tin chính xác và sử dụng thuốc theo hướng dẫn của bác sĩ, dược sĩ.
+
+                    Thông tin trên website chỉ mang tính tham khảo, không thay thế chẩn đoán và điều trị của bác sĩ.
+
+                    Thuốc kiểm soát đặc biệt không được bán online theo quy định của pháp luật.""", 4));
+        }
+        if (interactionRepo.count() == 0) {
+            for (String[] r : com.hieuthuoc.service.SafetyService.DEFAULT_INTERACTIONS) interactionRepo.save(new DrugInteraction(r[0], r[1], r[2], r[3]));
+        }
+        if (productRepo.count() > 0) catalogService.syncMasters();
+    }
+
     @Override
     @Transactional
     public void run(String... args) {
+        seedReferenceData();
         if (userRepo.count() > 0) return;
         log.info("Database trống - đang tạo dữ liệu mẫu...");
         LocalDate today = LocalDate.now();
@@ -181,9 +266,20 @@ public class DataSeeder implements CommandLineRunner {
         User admin = user(Role.ADMIN, "Quản trị viên", "admin@hieuthuoc.vn", "0901000001", "admin123", null);
         User ds1 = user(Role.PHARMACIST, "DS. Nguyễn Thị Lan", "duocsi@hieuthuoc.vn", "0901000002", "duocsi123", "012345/HNO-CCHND");
         User ds2 = user(Role.PHARMACIST, "DS. Phạm Quốc Huy", "duocsi2@hieuthuoc.vn", "0901000003", "duocsi123", "023456/HNO-CCHND");
-        // DS. Lan là dược sĩ quản lý: đủ quyền; DS. Huy: bán quầy + nội dung
-        ds1.setPermissions("REFUND,APPROVE_RECEIPT,INVENTORY_ADJUST,POS,CONTENT");
-        ds2.setPermissions("POS,CONTENT");
+        // DS. Lan là dược sĩ quản lý: đủ quyền; DS. Huy: dược sĩ bán hàng, cấp thêm quyền nội dung
+        ds1.setStaffRole(role("Dược sĩ quản lý"));
+        ds1.setDegree("Dược sĩ đại học - ĐH Dược Hà Nội");
+        ds1.setShift("Ca sáng 7h - 15h");
+        ds2.setStaffRole(role("Dược sĩ"));
+        ds2.setPermissions("CONTENT");
+        ds2.setDegree("Dược sĩ cao đẳng");
+        ds2.setShift("Ca chiều 14h - 22h");
+        User kho = user(Role.PHARMACIST, "Vũ Văn Kho", "kho@hieuthuoc.vn", "0901000004", "nhanvien123", null);
+        kho.setStaffRole(role("Nhân viên kho"));
+        kho.setShift("Hành chính 8h - 17h");
+        User cskh = user(Role.PHARMACIST, "Đỗ Thu Hà", "cskh@hieuthuoc.vn", "0901000005", "nhanvien123", null);
+        cskh.setStaffRole(role("Nhân viên CSKH"));
+        cskh.setShift("Ca chiều 14h - 22h");
         User kh1 = user(Role.CUSTOMER, "Trần Văn An", "khachhang@gmail.com", "0912345678", "123456", null);
         kh1.setAllergies("Dị ứng Aspirin");
         kh1.setChronicConditions("Viêm dạ dày");
@@ -207,6 +303,20 @@ public class DataSeeder implements CommandLineRunner {
             c.setSortOrder(i + 1);
             cats.add(categoryRepo.save(c));
         }
+        // Danh mục đa cấp: Thuốc > Tim mạch - Huyết áp > Thuốc huyết áp
+        Category drugRoot = new Category();
+        drugRoot.setName("Thuốc");
+        drugRoot.setSlug("thuoc");
+        drugRoot.setIcon("bi-capsule-pill");
+        drugRoot.setSortOrder(0);
+        categoryRepo.save(drugRoot);
+        for (int i : new int[]{0, 1, 2, 3, 4, 9}) cats.get(i).setParent(drugRoot);
+        Category bp = new Category();
+        bp.setName("Thuốc huyết áp");
+        bp.setSlug("thuoc-huyet-ap");
+        bp.setIcon("bi-heart-pulse");
+        bp.setParent(cats.get(2));
+        categoryRepo.save(bp);
 
         Supplier sup1 = supplier("Công ty CP Dược phẩm Trung ương 1", "02438252000", "sales@pharbaco.vn", "160 Tôn Đức Thắng, Hà Nội");
         Supplier sup2 = supplier("Công ty TNHH Phân phối Zuellig Pharma", "02838123456", "order@zuellig.vn", "KCN Tân Tạo, TP.HCM");
@@ -246,6 +356,8 @@ public class DataSeeder implements CommandLineRunner {
             p.setContraindications((String) d[16]);
             p.setSideEffects((String) d[17]);
             p.setMinStock(10);
+            if (p.getCategory() == cats.get(2) && p.getActiveIngredient() != null
+                    && p.getActiveIngredient().toLowerCase().matches(".*(amlodipin|losartan|bisoprolol).*")) p.setCategory(bp);
             p.setCreatedAt(now.minusDays(60).plusMinutes(i));
             products.add(productRepo.save(p));
 
@@ -317,6 +429,45 @@ public class DataSeeder implements CommandLineRunner {
         voucher("FREESHIP20", "Giảm 20.000đ cho đơn từ 150.000đ", VoucherType.FIXED, 20000, 150000, null, 500, today.minusDays(5), today.plusDays(90));
         voucher("VITAMIN15", "Giảm 15% cho đơn từ 200.000đ (tối đa 40.000đ)", VoucherType.PERCENT, 15, 200000, 40000L, 300, today.minusDays(5), today.plusDays(45));
         voucherRepo.findAll().forEach(v -> v.setShowInWallet(!v.getCode().equals("WELCOME10")));
+        // Voucher theo đối tượng
+        voucherRepo.findByCodeIgnoreCase("VITAMIN15").ifPresent(v -> v.setCategory(cats.get(5)));
+        voucher("VIPVANG", "Thành viên Vàng trở lên: giảm 50.000đ cho đơn từ 400.000đ", VoucherType.FIXED, 50000, 400000, null, null, today.minusDays(1), today.plusDays(90));
+        voucherRepo.findByCodeIgnoreCase("VIPVANG").ifPresent(v -> { v.setMinTier(MemberTier.VANG); v.setPerUserLimit(2); v.setShowInWallet(true); });
+        voucher("MOIDEN25K", "Khách mua lần đầu: giảm 25.000đ cho đơn từ 150.000đ", VoucherType.FIXED, 25000, 150000, null, null, today.minusDays(1), today.plusDays(120));
+        voucherRepo.findByCodeIgnoreCase("MOIDEN25K").ifPresent(v -> { v.setNewCustomerOnly(true); v.setPerUserLimit(1); v.setShowInWallet(true); });
+
+        // Khuyến mãi: flash sale, combo, mua X tặng Y (chỉ OTC / TPCN)
+        java.util.function.Function<String, Product> byName = n -> products.stream().filter(x -> x.getName().equals(n)).findFirst().orElseThrow();
+        Product vitC = byName.apply("Viên sủi Vitamin C 1000mg");
+        Promotion flash = new Promotion();
+        flash.setName("Flash sale Vitamin C tăng đề kháng");
+        flash.setType(Promotion.FLASH_SALE);
+        flash.setProduct(vitC);
+        flash.setSalePrice(Math.round(vitC.getPrice() * 0.7 / 100) * 100);
+        flash.setQuantityLimit(50);
+        flash.setSoldCount(12);
+        flash.setStartAt(now.minusHours(2));
+        flash.setEndAt(now.plusDays(2).withHour(23).withMinute(59));
+        promotionRepo.save(flash);
+        Promotion combo = new Promotion();
+        combo.setName("Combo tăng đề kháng: Vitamin C + Canxi D3");
+        combo.setType(Promotion.COMBO);
+        combo.setComboDiscount(20000L);
+        combo.getItems().add(new PromotionItem(combo, vitC, 1));
+        combo.getItems().add(new PromotionItem(combo, byName.apply("Canxi D3 Corbiere"), 1));
+        combo.setStartAt(now.minusDays(3));
+        combo.setEndAt(now.plusDays(30));
+        promotionRepo.save(combo);
+        Promotion gift = new Promotion();
+        gift.setName("Mua 2 Omega-3 tặng khẩu trang");
+        gift.setType(Promotion.GIFT);
+        gift.setProduct(byName.apply("Omega-3 Fish Oil 1000mg"));
+        gift.setBuyQuantity(2);
+        gift.setGiftProduct(byName.apply("Khẩu trang y tế 4 lớp"));
+        gift.setGiftQuantity(1);
+        gift.setStartAt(now.minusDays(1));
+        gift.setEndAt(now.plusDays(20));
+        promotionRepo.save(gift);
 
         for (int i = 0; i < POSTS.length; i++) {
             Post p = new Post();
@@ -431,6 +582,43 @@ public class DataSeeder implements CommandLineRunner {
         a.setAction("system.seed");
         a.setDetail("Khởi tạo dữ liệu mẫu");
         auditRepo.save(a);
+        // Kho dự trữ, phiếu hủy chờ duyệt, công nợ nhà cung cấp
+        Warehouse reserve = warehouseRepo.findAllByOrderByMainDescNameAsc().stream().filter(w -> !w.isMain()).findFirst().orElse(null);
+        for (int i = 0; i < 3 && reserve != null; i++) {
+            Batch b = new Batch();
+            b.setProduct(products.get(i));
+            b.setBatchNo(String.format("DT25%03d", i + 1));
+            b.setMfgDate(today.minusDays(30));
+            b.setExpDate(today.plusDays(900));
+            b.setQuantity(60);
+            b.setImportPrice(Math.round(products.get(i).getPrice() * 0.7));
+            b.setSupplier(sup1);
+            b.setWarehouse(reserve);
+            batchRepo.save(b);
+        }
+        batchRepo.findByProductOrderByExpDateAsc(products.get(1)).stream().findFirst().ifPresent(b -> {
+            StockAdjustment wo = new StockAdjustment();
+            wo.setBatch(b);
+            wo.setQuantity(-3);
+            wo.setType("WRITE_OFF");
+            wo.setReason("Hộp bị móp, ẩm - đề nghị hủy");
+            wo.setUser(kho);
+            wo.setStatus(ApprovalStatus.PENDING);
+            adjustmentRepo.save(wo);
+        });
+        sup1.setPaymentTermDays(30);
+        sup1.setTaxCode("0100108536");
+        sup2.setPaymentTermDays(45);
+        SupplierPayment pay = new SupplierPayment();
+        pay.setSupplier(sup1);
+        pay.setAmount(5_000_000);
+        pay.setPaidDate(today.minusDays(20));
+        pay.setMethod("Chuyển khoản");
+        pay.setNote("Thanh toán đợt 1");
+        pay.setCreatedBy(admin);
+        supplierPaymentRepo.save(pay);
+
+        catalogService.syncMasters();
         log.info("Đã tạo dữ liệu mẫu. Tài khoản: admin@hieuthuoc.vn/admin123, duocsi@hieuthuoc.vn/duocsi123, khachhang@gmail.com/123456");
     }
 

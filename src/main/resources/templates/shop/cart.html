@@ -36,7 +36,9 @@
                                     <span class="small text-muted" th:text="'Đơn vị: ' + ${l.unit.name()} + (${l.unit.factor() > 1} ? ' (' + ${l.unit.factor()} + ' ' + ${l.product.unit} + ')' : '')"></span></div>
                                 <div th:if="${l.error != null}" class="small text-danger" th:text="${l.error}"></div>
                             </td>
-                            <td class="text-end text-nowrap" th:text="${@fmt.money(l.unitPrice)} + '/' + ${l.unit.name()}"></td>
+                            <td class="text-end text-nowrap"><span th:text="${@fmt.money(l.unitPrice)} + '/' + ${l.unit.name()}"></span>
+                                <div th:if="${l.flash}"><del class="small text-muted" th:text="${@fmt.money(l.listPrice)}"></del>
+                                    <span class="badge text-bg-warning"><i class="bi bi-lightning-charge-fill"></i> Flash sale</span></div></td>
                             <td><input type="number" class="form-control form-control-sm" min="0" max="999" form="cartForm"
                                        th:name="'qty_' + ${#strings.replace(l.key, ':', '_')}" th:value="${l.quantity}"></td>
                             <td class="text-end fw-semibold text-nowrap" th:text="${@fmt.money(l.lineTotal)}"></td>
@@ -97,6 +99,9 @@
             <div class="card">
                 <div class="card-body">
                     <div class="d-flex justify-content-between mb-2"><span>Tạm tính</span><span th:text="${@fmt.money(cart.subtotal)}"></span></div>
+                    <div class="d-flex justify-content-between mb-2 text-success" th:if="${cart.promoDiscount > 0}"><span>Khuyến mãi combo</span><span th:text="'-' + ${@fmt.money(cart.promoDiscount)}"></span></div>
+                    <div class="small mb-2 text-success" th:each="g : ${cart.gifts}"><i class="bi bi-gift"></i> Tặng <span th:text="${g.quantity()} + ' ' + ${g.product().unit} + ' ' + ${g.product().name}"></span></div>
+                    <div class="small mb-2 text-warning-emphasis" th:each="n : ${cart.promoNotes}" th:text="${n}"></div>
                     <div class="d-flex justify-content-between mb-2 text-success" th:if="${cart.discount > 0}"><span>Giảm giá</span><span th:text="'-' + ${@fmt.money(cart.discount)}"></span></div>
                     <div class="d-flex justify-content-between mb-2 text-success" th:if="${cart.pointsDiscount > 0}">
                         <span th:text="'Dùng ' + ${cart.pointsUsed} + ' điểm'"></span><span th:text="'-' + ${@fmt.money(cart.pointsDiscount)}"></span></div>

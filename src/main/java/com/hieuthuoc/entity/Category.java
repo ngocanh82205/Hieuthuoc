@@ -29,4 +29,19 @@ public class Category {
     private String icon = "bi-capsule";
 
     private int sortOrder;
+
+    /** Danh mục cha (danh mục đa cấp, VD: Thuốc > Tim mạch > Huyết áp). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    private Category parent;
+
+    /** SEO */
+    @Column(length = 300)
+    private String metaDescription;
+
+    /** Cấp trong cây (0 = gốc) - được CategoryService điền khi dựng cây. */
+    @Transient
+    private int depth;
+
+    @Transient
+    private boolean hasChildren;
 }

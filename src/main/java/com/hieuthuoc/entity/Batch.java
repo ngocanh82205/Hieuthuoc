@@ -40,6 +40,10 @@ public class Batch {
     @ManyToOne(fetch = FetchType.LAZY)
     private Receipt receipt;
 
+    /** Kho / chi nhánh chứa lô (null = kho chính). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    private Warehouse warehouse;
+
     /** Lô bị khóa (thu hồi / nghi ngờ chất lượng) sẽ không được xuất bán. */
     private boolean locked;
 

@@ -58,6 +58,11 @@
         </dependency>
         <!-- Thư viện giao diện đóng gói sẵn (chạy được không cần Internet) -->
         <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>5.4.1</version>
+        </dependency>
+        <dependency>
             <groupId>org.webjars</groupId>
             <artifactId>bootstrap</artifactId>
             <version>5.3.3</version>

@@ -21,6 +21,8 @@ public class ProductService {
     private final ReviewRepository reviewRepo;
     private final OrderItemRepository orderItemRepo;
     private final StockService stockService;
+    private final CategoryService categoryService;
+    private final PromotionService promotionService;
 
     public record Filter(String q, Category category, DrugType type, Long min, Long max, boolean inStock, String sort, boolean activeOnly,
                          String brand, String country, String dosageForm) {
@@ -41,6 +43,7 @@ public class ProductService {
             p.setAvgRating(avg == null ? null : Math.round(avg * 10) / 10.0);
             p.setSold(sold.getOrDefault(p.getId(), 0L));
         }
+        promotionService.decorate(products);
         return products;
     }
 
@@ -63,7 +66,7 @@ public class ProductService {
                         cb.like(cb.lower(root.get("manufacturer")), like),
                         cb.like(cb.lower(root.get("registrationNo")), like)));
             }
-            if (f.category() != null) ps.add(cb.equal(root.get("category"), f.category()));
+            if (f.category() != null) ps.add(root.get("category").get("id").in(categoryService.descendantIds(f.category())));
             if (f.type() != null) ps.add(cb.equal(root.get("drugType"), f.type()));
             if (!Texts.isBlank(f.brand())) ps.add(cb.equal(root.get("manufacturer"), f.brand()));
             if (!Texts.isBlank(f.country())) ps.add(cb.equal(root.get("country"), f.country()));

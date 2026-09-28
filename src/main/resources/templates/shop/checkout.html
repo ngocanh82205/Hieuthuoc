@@ -41,7 +41,15 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-12" id="addressBlock">
+                        <div class="col-md-4 addr-part">
+                            <label class="form-label" for="province">Tỉnh / thành phố</label>
+                            <select class="form-select" th:field="*{province}" id="province">
+                                <option value="">-- Chọn tỉnh/thành --</option>
+                                <option th:each="e : ${provinceFees}" th:value="${e.key}" th:text="${e.key}"
+                                        th:attr="data-fee=${e.value[0]},data-free=${e.value[1]}"></option>
+                            </select>
+                        </div>
+                        <div class="col-md-8" id="addressBlock">
                             <label class="form-label" for="address">Địa chỉ giao hàng</label>
                             <input class="form-control" th:field="*{address}" placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành">
                             <div class="form-check mt-2">
@@ -72,6 +80,21 @@
                 </div>
             </div>
 
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" th:field="*{requestVat}" id="requestVat">
+                        <label class="form-check-label" for="requestVat"><i class="bi bi-receipt-cutoff"></i> Xuất hóa đơn VAT (hóa đơn điện tử cho công ty)</label>
+                    </div>
+                    <div class="row g-2 mt-1" id="vatBlock">
+                        <div class="col-md-7"><input class="form-control form-control-sm" th:field="*{vatCompany}" placeholder="Tên công ty / đơn vị"></div>
+                        <div class="col-md-5"><input class="form-control form-control-sm" th:field="*{vatTaxCode}" placeholder="Mã số thuế"></div>
+                        <div class="col-md-7"><input class="form-control form-control-sm" th:field="*{vatAddress}" placeholder="Địa chỉ theo đăng ký thuế"></div>
+                        <div class="col-md-5"><input class="form-control form-control-sm" th:field="*{vatEmail}" placeholder="Email nhận hóa đơn"></div>
+                    </div>
+                </div>
+            </div>
+
             <div class="card">
                 <div class="card-header" th:text="${cart.rxRequired} ? '3. Thanh toán' : '2. Thanh toán'">Thanh toán</div>
                 <div class="card-body">
@@ -95,14 +118,24 @@
                         <div>
                             <div class="fw-semibold" th:text="${l.product.name}"></div>
                             <small class="text-muted" th:text="${l.quantity} + ' ' + ${l.unit.name()} + ' x ' + ${@fmt.money(l.unitPrice)}"></small>
+                            <del th:if="${l.flash}" class="small text-muted" th:text="${@fmt.money(l.listPrice)}"></del>
+                            <span th:if="${l.flash}" class="badge text-bg-warning"><i class="bi bi-lightning-charge-fill"></i> Flash sale</span>
                             <span th:if="${l.product.drugType.name() == 'ETC'}" class="badge text-bg-danger ms-1">Kê đơn</span>
                             <div th:if="${l.error != null}" class="small text-danger" th:text="${l.error}"></div>
                         </div>
                         <span class="text-nowrap" th:text="${@fmt.money(l.lineTotal)}"></span>
                     </li>
+                    <li class="list-group-item d-flex justify-content-between gap-2 bg-success-subtle" th:each="g : ${cart.gifts}">
+                        <div><div class="fw-semibold"><i class="bi bi-gift text-success"></i> <span th:text="${g.product().name}"></span></div>
+                            <small class="text-muted" th:text="${g.quantity()} + ' ' + ${g.product().unit} + ' · ' + ${g.promotion()}"></small></div>
+                        <span class="text-success">Quà tặng</span>
+                    </li>
                 </ul>
                 <div class="card-body">
                     <div class="d-flex justify-content-between mb-1"><span>Tạm tính</span><span th:text="${@fmt.money(cart.subtotal)}"></span></div>
+                    <div class="d-flex justify-content-between mb-1 text-success" th:if="${cart.promoDiscount > 0}">
+                        <span>Khuyến mãi combo</span><span th:text="'-' + ${@fmt.money(cart.promoDiscount)}"></span></div>
+                    <div class="small text-warning-emphasis mb-1" th:each="n : ${cart.promoNotes}" th:unless="${#strings.startsWith(n, 'Combo')}" th:text="${n}"></div>
                     <div class="d-flex justify-content-between mb-1 text-success" th:if="${cart.discount > 0}">
                         <span>Giảm giá (<span th:text="${cart.voucher.code}"></span>)</span><span th:text="'-' + ${@fmt.money(cart.discount)}"></span></div>
                     <div class="d-flex justify-content-between mb-1 text-success" th:if="${cart.pointsDiscount > 0}">
@@ -110,9 +143,10 @@
                     <div class="small text-muted mb-1" th:if="${cart.pointsAvailable > 0 && !cart.usePoints}">
                         Bạn có <span th:text="${cart.pointsAvailable}"></span> điểm - <a th:href="@{/cart}">dùng điểm tại giỏ hàng</a></div>
                     <div class="d-flex justify-content-between mb-1"><span>Phí giao hàng</span>
-                        <span th:text="${cart.shippingFee == 0} ? 'Miễn phí' : ${@fmt.money(cart.shippingFee)}"></span></div>
+                        <span id="shipFee" th:text="${cart.shippingFee == 0} ? 'Miễn phí' : ${@fmt.money(cart.shippingFee)}"></span></div>
                     <hr>
-                    <div class="d-flex justify-content-between fw-bold fs-5 mb-3"><span>Tổng cộng</span><span class="price fs-5" th:text="${@fmt.money(cart.total)}"></span></div>
+                    <div class="d-flex justify-content-between fw-bold fs-5 mb-3"><span>Tổng cộng</span><span class="price fs-5" id="grandTotal" th:text="${@fmt.money(cart.total)}"
+                            th:attr="data-base=${cart.total - cart.shippingFee}"></span></div>
                     <button class="btn btn-primary w-100 btn-lg" th:disabled="${!cart.errors.isEmpty()}">Đặt hàng</button>
                     <p class="small text-muted mt-2 mb-0">Phí giao hàng được tính lại theo hình thức nhận hàng khi đặt.</p>
                 </div>
@@ -138,7 +172,28 @@
             document.getElementById('addressBlock').classList.toggle('d-none', pickup);
             document.getElementById('pickupBlock').classList.toggle('d-none', !pickup);
             document.getElementById('address').required = !pickup;
+            document.querySelectorAll('.addr-part').forEach(function (e) { e.classList.toggle('d-none', pickup); });
+            document.getElementById('province').required = !pickup;
+            recalc();
         };
+        var fmt = function (n) { return n.toLocaleString('vi-VN') + ' ₫'; };
+        var recalc = function () {
+            var total = document.getElementById('grandTotal'), base = parseInt(total.dataset.base, 10);
+            var pickup = document.querySelector('input[name=shippingMethod]:checked').value === 'PICKUP';
+            var opt = document.getElementById('province').selectedOptions[0];
+            var fee = 0;
+            if (!pickup && opt && opt.dataset.fee) {
+                var free = parseInt(opt.dataset.free, 10);
+                fee = free >= 0 && base >= free ? 0 : parseInt(opt.dataset.fee, 10);
+            }
+            document.getElementById('shipFee').textContent = fee === 0 ? 'Miễn phí' : fmt(fee);
+            total.textContent = fmt(base + fee);
+        };
+        document.getElementById('province').addEventListener('change', recalc);
+        var vat = document.getElementById('requestVat');
+        var syncVat = function () { document.getElementById('vatBlock').classList.toggle('d-none', !vat.checked); };
+        vat.addEventListener('change', syncVat);
+        syncVat();
         radios.forEach(function (r) { r.addEventListener('change', sync); });
         sync();
     })();

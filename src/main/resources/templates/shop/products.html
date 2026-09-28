@@ -21,7 +21,7 @@
                         <label class="form-label small fw-semibold">Danh mục</label>
                         <select name="category" class="form-select form-select-sm" data-autosubmit>
                             <option value="">Tất cả</option>
-                            <option th:each="c : ${navCategories}" th:value="${c.slug}" th:text="${c.name}"
+                            <option th:each="c : ${navCategories}" th:value="${c.slug}" th:text="${#strings.repeat('— ', c.depth) + c.name}"
                                     th:selected="${category != null && category.id == c.id}"></option>
                         </select>
                     </div>

@@ -17,6 +17,7 @@ public class CartService {
     private final StockService stockService;
     private final VoucherService voucherService;
     private final SettingService settings;
+    private final PromotionService promotionService;
 
     @Getter
     public static class Line {
@@ -25,6 +26,9 @@ public class CartService {
         private final UnitOption unit;
         private final int quantity;
         private String error;
+        /** Giá sau flash sale (null = giá thường) và id chương trình. */
+        private Long promoPrice;
+        private Long flashPromotionId;
 
         Line(String key, Product product, UnitOption unit, int quantity) {
             this.key = key;
@@ -34,11 +38,19 @@ public class CartService {
         }
 
         public long getUnitPrice() {
+            return promoPrice != null ? promoPrice : unit.price();
+        }
+
+        public long getListPrice() {
             return unit.price();
         }
 
+        public boolean isFlash() {
+            return promoPrice != null && promoPrice < unit.price();
+        }
+
         public long getLineTotal() {
-            return unit.price() * quantity;
+            return getUnitPrice() * quantity;
         }
 
         public int getBaseQuantity() {
@@ -53,6 +65,10 @@ public class CartService {
         private long subtotal;
         private long discountable;
         private boolean rxRequired;
+        /** Khuyến mãi: giảm giá combo, ghi chú chương trình, quà tặng kèm. */
+        private long promoDiscount;
+        private final List<String> promoNotes = new ArrayList<>();
+        private final List<PromotionService.Gift> gifts = new ArrayList<>();
         private Voucher voucher;
         private String voucherError;
         private long discount;
@@ -115,9 +131,31 @@ public class CartService {
             Line line = new Line(e.getKey(), p, u, e.getValue());
             v.lines.add(line);
             baseTotals.merge(p.getId(), (long) line.getBaseQuantity(), Long::sum);
+        }
+        // Khuyến mãi: flash sale (giá dòng), combo (giảm tiền), mua X tặng Y (quà)
+        PromotionService.Evaluation ev = promotionService.evaluate(v.lines);
+        Map<Long, Long> byCategory = new HashMap<>();
+        for (Line line : v.lines) {
+            long[] f = ev.flash.get(line.getKey());
+            if (f != null) {
+                line.promoPrice = f[0];
+                line.flashPromotionId = f[1];
+            }
+            Product p = line.getProduct();
             v.subtotal += line.getLineTotal();
             if (p.getDrugType().isPrescription()) v.rxRequired = true;
-            else v.discountable += line.getLineTotal();
+            else {
+                v.discountable += line.getLineTotal();
+                if (p.getCategory() != null) byCategory.merge(p.getCategory().getId(), line.getLineTotal(), Long::sum);
+            }
+        }
+        v.promoDiscount = Math.min(ev.comboDiscount, v.discountable);
+        v.promoNotes.addAll(ev.notes);
+        for (PromotionService.Gift g : ev.gifts) {
+            Product gp = stockService.fill(g.product());
+            long need = g.quantity() + baseTotals.getOrDefault(gp.getId(), 0L);
+            if (gp.getAvailable() >= need) v.gifts.add(g);
+            else v.promoNotes.add("Quà tặng " + gp.getName() + " (" + g.promotion() + ") tạm hết hàng.");
         }
         Set<Long> reported = new HashSet<>();
         for (Line line : v.lines) {
@@ -125,7 +163,7 @@ public class CartService {
             if (line.error != null && reported.add(line.product.getId())) v.errors.add(line.error);
         }
 
-        VoucherService.Result r = voucherService.validate(cart.getVoucherCode(), v.discountable);
+        VoucherService.Result r = voucherService.validate(cart.getVoucherCode(), v.discountable - v.promoDiscount, user, byCategory);
         v.voucher = r.voucher();
         v.voucherError = r.error();
         v.discount = r.discount();
@@ -136,13 +174,13 @@ public class CartService {
         if (user != null) {
             v.pointsAvailable = user.getPoints();
             if (cart.isUsePoints() && v.pointValue > 0) {
-                long maxByAmount = Math.max(0, v.discountable - v.discount) / v.pointValue;
+                long maxByAmount = Math.max(0, v.discountable - v.promoDiscount - v.discount) / v.pointValue;
                 v.pointsUsed = (int) Math.min(user.getPoints(), maxByAmount);
                 v.pointsDiscount = v.pointsUsed * v.pointValue;
             }
         }
-        long afterDiscount = v.subtotal - v.discount - v.pointsDiscount;
-        v.shippingFee = v.lines.isEmpty() ? 0 : settings.shippingFee(shippingMethod, afterDiscount);
+        long afterDiscount = v.subtotal - v.promoDiscount - v.discount - v.pointsDiscount;
+        v.shippingFee = v.lines.isEmpty() ? 0 : settings.shippingFee(shippingMethod, afterDiscount, cart.getProvince());
         v.total = afterDiscount + v.shippingFee;
         return v;
     }

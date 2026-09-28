@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="staff-body">
+<div class="staff-shell">
+    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
+    <div class="staff-main">
+        <header th:replace="~{fragments/staff :: topbar}"></header>
+        <main class="p-3 p-lg-4">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <form th:action="@{/admin/broadcast}" method="post" class="card" style="max-width: 820px">
+                <div class="card-body row g-3">
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Gửi tới</label>
+                        <div class="form-check"><input class="form-check-input" type="radio" name="audience" value="ALL" id="aAll" checked>
+                            <label class="form-check-label" for="aAll">Tất cả khách hàng (<span th:text="${customerCount}"></span>)</label></div>
+                        <div class="form-check d-flex gap-2 align-items-center"><input class="form-check-input" type="radio" name="audience" value="TIER" id="aTier">
+                            <label class="form-check-label" for="aTier">Khách hạng</label>
+                            <select name="tier" class="form-select form-select-sm" style="width: 160px"><option th:each="t : ${tiers}" th:value="${t}" th:text="${t.label} + ' trở lên'"></option></select></div>
+                        <div class="form-check d-flex gap-2 align-items-center mt-1"><input class="form-check-input" type="radio" name="audience" value="INACTIVE" id="aIn">
+                            <label class="form-check-label" for="aIn">Khách không mua hàng trong</label>
+                            <input type="number" name="inactiveDays" value="60" min="1" class="form-control form-control-sm" style="width: 90px"> ngày</div>
+                        <div class="form-check mt-1"><input class="form-check-input" type="radio" name="audience" value="PHONES" id="aPh">
+                            <label class="form-check-label" for="aPh">Danh sách số điện thoại</label>
+                            <textarea name="phones" class="form-control form-control-sm mt-1" rows="2" placeholder="0912345678, 0987654321"></textarea></div>
+                    </div>
+                    <div class="col-12"><label class="form-label fw-semibold">Nội dung</label>
+                        <textarea name="message" class="form-control" rows="3" maxlength="480" required placeholder="VD: Flash sale Vitamin C giảm 30% từ 20h tối nay!"></textarea></div>
+                    <div class="col-12"><label class="form-label">Liên kết khi bấm (tùy chọn)</label><input name="link" class="form-control" placeholder="/products?type=SUPPLEMENT"></div>
+                    <div class="col-12 small text-muted"><i class="bi bi-info-circle"></i> Kênh gửi: thông báo trên web (chuông thông báo + popup cho khách đang online, như push trong web).
+                        Email / SMS / push điện thoại cần kết nối nhà cung cấp dịch vụ gửi thật nên chưa bật.</div>
+                </div>
+                <div class="card-footer bg-white"><button class="btn btn-primary" data-confirm="Gửi thông báo tới nhóm khách đã chọn?"><i class="bi bi-send"></i> Gửi thông báo</button>
+                    <a th:href="@{/admin/logs(action='broadcast')}" class="btn btn-link">Lịch sử gửi</a></div>
+            </form>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

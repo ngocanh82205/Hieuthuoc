@@ -16,7 +16,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /** Kiểm tra các quy tắc nghiệp vụ chính trên dữ liệu mẫu (H2 in-memory). */
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:h2:mem:test;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH",
-        "app.upload-dir=target/test-uploads"
+        "app.upload-dir=target/test-uploads",
+        "app.backup-dir=target/test-backups"
 })
 @Transactional
 class BusinessRulesTest {
@@ -34,6 +35,30 @@ class BusinessRulesTest {
     @Autowired ChatService chatService;
     @Autowired ConversationRepository conversationRepo;
     @Autowired PrescriptionRepository prescriptionRepo;
+    @Autowired StockAdjustmentRepository adjustmentRepo;
+    @Autowired WarehouseRepository warehouseRepo;
+    @Autowired SupplierRepository supplierRepo;
+    @Autowired PromotionRepository promotionRepo;
+    @Autowired ShippingZoneRepository zoneRepo;
+    @Autowired CategoryRepository categoryRepo;
+    @Autowired ProductService productService;
+    @Autowired CatalogService catalogService;
+    @Autowired SettingService settingService;
+    @Autowired ReportService reportService;
+    @Autowired ReportExportService reportExportService;
+    @Autowired BackupService backupService;
+    @Autowired AccountService accountService;
+
+    @Autowired StaffRoleRepository staffRoleRepo;
+
+    private User newCustomer(String phone) {
+        AccountService.RegisterForm f = new AccountService.RegisterForm();
+        f.setFullName("Khách Mới");
+        f.setPhone(phone);
+        f.setPassword("123456");
+        f.setPasswordConfirm("123456");
+        return accountService.register(f);
+    }
 
     private Product product(String name) {
         return productRepo.findAll().stream().filter(p -> p.getName().equals(name)).findFirst().orElseThrow();
@@ -213,15 +238,20 @@ class BusinessRulesTest {
     }
 
     @Test
-    void stocktakeRecordsDifferencesAndIncreaseNeedsPermission() {
+    void stocktakeByStaffNeedsApprovalManagerAppliesDirectly() {
         User manager = userRepo.findByEmailIgnoreCase("duocsi@hieuthuoc.vn").orElseThrow();
-        User staff = userRepo.findByEmailIgnoreCase("duocsi2@hieuthuoc.vn").orElseThrow();
+        User kho = userRepo.findByEmailIgnoreCase("kho@hieuthuoc.vn").orElseThrow();
         Batch b = batchRepo.findByProductOrderByExpDateAsc(product("Berberin 100mg")).get(0);
         int qty = b.getQuantity();
-        assertThatThrownBy(() -> inventoryService.stocktake(java.util.Map.of(b.getId(), qty + 5), staff, null))
-                .isInstanceOf(BusinessException.class);
-        assertThat(inventoryService.stocktake(java.util.Map.of(b.getId(), qty - 2), staff, "test")).isEqualTo(1);
+        // Nhân viên kho: lập phiếu điều chỉnh kiểm kê, chưa đổi tồn
+        assertThat(inventoryService.stocktake(java.util.Map.of(b.getId(), qty - 2), kho, "test")).isEqualTo(1);
+        assertThat(b.getQuantity()).isEqualTo(qty);
+        StockAdjustment pending = adjustmentRepo.findByStatusOrderByIdAsc(ApprovalStatus.PENDING).stream()
+                .filter(a -> a.getBatch().getId().equals(b.getId())).findFirst().orElseThrow();
+        assertThatThrownBy(() -> inventoryService.decideAdjustment(pending.getId(), kho, true, null)).hasMessageContaining("quyền");
+        inventoryService.decideAdjustment(pending.getId(), manager, true, null);
         assertThat(b.getQuantity()).isEqualTo(qty - 2);
+        // Quản lý kiểm kê: áp dụng ngay
         assertThat(inventoryService.stocktake(java.util.Map.of(b.getId(), qty), manager, "test")).isEqualTo(1);
         assertThat(b.getQuantity()).isEqualTo(qty);
     }
@@ -264,5 +294,238 @@ class BusinessRulesTest {
         Order done = orderRepo.findAll().stream().filter(o -> o.getStatus() == OrderStatus.COMPLETED).findFirst().orElseThrow();
         done.setReturnStatus(ReturnStatus.REQUESTED);
         assertThatThrownBy(() -> orderService.handleReturn(done.getId(), noRefund, true, true, "ok")).hasMessageContaining("quyền");
+    }
+
+    /* ======================= Admin ======================= */
+
+    @Test
+    void staffRoleControlsPermissionsAndUrls() {
+        User kho = userRepo.findByEmailIgnoreCase("kho@hieuthuoc.vn").orElseThrow();
+        User cskh = userRepo.findByEmailIgnoreCase("cskh@hieuthuoc.vn").orElseThrow();
+        assertThat(kho.hasPermission(StaffPermission.INVENTORY)).isTrue();
+        assertThat(kho.hasPermission(StaffPermission.RX_REVIEW)).isFalse();
+        assertThat(cskh.hasPermission(StaffPermission.CONSULT)).isTrue();
+        assertThat(cskh.hasPermission(StaffPermission.INVENTORY)).isFalse();
+        assertThat(com.hieuthuoc.config.StaffAccessInterceptor.required("/staff/prescriptions/5")).isEqualTo(StaffPermission.RX_REVIEW);
+        assertThat(com.hieuthuoc.config.StaffAccessInterceptor.required("/staff/stocktake")).isEqualTo(StaffPermission.INVENTORY);
+        assertThat(com.hieuthuoc.config.StaffAccessInterceptor.required("/staff")).isNull();
+        // Nhân viên kho không được duyệt đơn thuốc
+        Prescription rx = prescriptionRepo.findByStatusOrderByCreatedAtAsc(ApprovalStatus.PENDING).get(0);
+        assertThatThrownBy(() -> orderService.rejectPrescription(rx.getId(), kho, "Không hợp lệ")).hasMessageContaining("quyền");
+        // Quyền cấp thêm ngoài vai trò
+        kho.setPermissions("POS");
+        assertThat(kho.hasPermission(StaffPermission.POS)).isTrue();
+    }
+
+    @Test
+    void writeOffByWarehouseStaffWaitsForApproval() {
+        User kho = userRepo.findByEmailIgnoreCase("kho@hieuthuoc.vn").orElseThrow();
+        User admin = userRepo.findByEmailIgnoreCase("admin@hieuthuoc.vn").orElseThrow();
+        Batch b = batchRepo.findByProductOrderByExpDateAsc(product("Omeprazol 20mg")).get(0);
+        int qty = b.getQuantity();
+        StockAdjustment a = inventoryService.adjust(b.getId(), kho, -2, "Vỡ hộp");
+        assertThat(a.getStatus()).isEqualTo(ApprovalStatus.PENDING);
+        assertThat(b.getQuantity()).isEqualTo(qty);
+        assertThatThrownBy(() -> inventoryService.decideAdjustment(a.getId(), admin, false, "")).hasMessageContaining("lý do");
+        inventoryService.decideAdjustment(a.getId(), admin, true, null);
+        assertThat(b.getQuantity()).isEqualTo(qty - 2);
+        assertThat(a.getApprovedBy()).isEqualTo(admin);
+    }
+
+    @Test
+    void transferToReserveWarehouseRemovesSellableStock() {
+        User kho = userRepo.findByEmailIgnoreCase("kho@hieuthuoc.vn").orElseThrow();
+        Warehouse main = warehouseRepo.findFirstByMainTrue().orElseThrow();
+        Warehouse reserve = warehouseRepo.findAllByOrderByMainDescNameAsc().stream().filter(w -> !w.isMain()).findFirst().orElseThrow();
+        Product p = product("Berberin 100mg");
+        long before = stockService.fill(p).getOnHand();
+        Batch b = batchRepo.findByProductOrderByExpDateAsc(p).stream().filter(x -> x.getWarehouse() == null && !x.isExpired() && x.getQuantity() > 5).findFirst().orElseThrow();
+        TransferSlip slip = inventoryService.transfer(main.getId(), reserve.getId(), java.util.Map.of(b.getId(), 5), "test", kho);
+        assertThat(slip.getItems()).hasSize(1);
+        assertThat(slip.getItems().get(0).getTargetBatch().getWarehouse()).isEqualTo(reserve);
+        assertThat(slip.getItems().get(0).getTargetBatch().getBatchNo()).isEqualTo(b.getBatchNo());
+        assertThat(stockService.fill(p).getOnHand()).isEqualTo(before - 5);
+        // Không chuyển quá tồn của lô
+        assertThatThrownBy(() -> inventoryService.transfer(main.getId(), reserve.getId(), java.util.Map.of(b.getId(), 100000), null, kho))
+                .hasMessageContaining("chỉ còn");
+    }
+
+    @Test
+    void supplierDebtAndPayments() {
+        User admin = userRepo.findByEmailIgnoreCase("admin@hieuthuoc.vn").orElseThrow();
+        Supplier s = supplierRepo.findAllByOrderByNameAsc().get(0);
+        InventoryService.Debt d = inventoryService.debt(s);
+        assertThat(d.balance()).isEqualTo(d.purchased() - d.paid());
+        assertThatThrownBy(() -> inventoryService.pay(s.getId(), d.balance() + 1, null, "Tiền mặt", null, admin)).hasMessageContaining("vượt");
+        inventoryService.pay(s.getId(), 1000, null, "Tiền mặt", "test", admin);
+        assertThat(inventoryService.debt(s).balance()).isEqualTo(d.balance() - 1000);
+    }
+
+    @Test
+    void voucherTargetingByTierAndNewCustomer() {
+        User an = userRepo.findByEmailIgnoreCase("khachhang@gmail.com").orElseThrow();
+        User fresh = newCustomer("0977000111");
+        assertThat(voucherService.validate("VIPVANG", 500000, fresh, java.util.Map.of()).error()).contains("hạng Vàng");
+        assertThat(voucherService.validate("VIPVANG", 500000, null, java.util.Map.of()).error()).contains("đăng nhập");
+        assertThat(voucherService.validate("MOIDEN25K", 200000, an, java.util.Map.of()).error()).contains("lần đầu");
+        assertThat(voucherService.validate("MOIDEN25K", 200000, fresh, java.util.Map.of()).discount()).isEqualTo(25000);
+        // Mã giới hạn danh mục Vitamin
+        Product vitC = product("Viên sủi Vitamin C 1000mg");
+        assertThat(voucherService.validate("VITAMIN15", 300000, fresh, java.util.Map.of(product("Smecta hương cam").getCategory().getId(), 300000L)).error())
+                .contains("danh mục");
+        assertThat(voucherService.validate("VITAMIN15", 300000, fresh, java.util.Map.of(vitC.getCategory().getId(), 300000L)).discount()).isEqualTo(40000);
+    }
+
+    @Test
+    void promotionsFlashComboAndGift() {
+        Product vitC = product("Viên sủi Vitamin C 1000mg");
+        Product canxi = product("Canxi D3 Corbiere");
+        Product omega = product("Omega-3 Fish Oil 1000mg");
+        Promotion flash = promotionRepo.findAll().stream().filter(p -> p.getType().equals(Promotion.FLASH_SALE)).findFirst().orElseThrow();
+        Cart cart = new Cart();
+        cart.add(vitC.getId(), 0L, 1);
+        cart.add(canxi.getId(), 0L, 1);
+        cart.add(omega.getId(), 0L, 2);
+        CartService.View v = cartService.build(cart, ShippingMethod.PICKUP, null);
+        CartService.Line line = v.getLines().stream().filter(l -> l.getProduct().getId().equals(vitC.getId())).findFirst().orElseThrow();
+        assertThat(line.getUnitPrice()).isEqualTo(flash.getSalePrice());
+        assertThat(v.getPromoDiscount()).isEqualTo(20000);
+        assertThat(v.getGifts()).hasSize(1);
+        assertThat(v.getGifts().get(0).product().getName()).isEqualTo("Khẩu trang y tế 4 lớp");
+        assertThat(v.getTotal()).isEqualTo(v.getSubtotal() - 20000);
+        // Đặt hàng: dòng quà giá 0, suất flash sale được trừ
+        User customer = userRepo.findByEmailIgnoreCase("khachhang@gmail.com").orElseThrow();
+        int sold = flash.getSoldCount();
+        OrderService.CheckoutForm f = new OrderService.CheckoutForm();
+        f.setRecipient("Trần Văn An");
+        f.setPhone("0912345678");
+        f.setShippingMethod(ShippingMethod.PICKUP);
+        Order o = orderService.placeOrder(customer, cart, f, null);
+        assertThat(o.getItems().stream().anyMatch(i -> i.getPrice() == 0 && i.getProductName().contains("quà tặng"))).isTrue();
+        assertThat(o.getPromoDiscountValue()).isEqualTo(20000);
+        assertThat(flash.getSoldCount()).isEqualTo(sold + 1);
+        // Thuốc kê đơn không được khuyến mãi
+        assertThat(PromotionService.eligible(product("Augmentin 625mg"))).isFalse();
+    }
+
+    @Test
+    void shippingFeeByZoneAndProvinceRequired() {
+        assertThat(settingService.shippingFee(ShippingMethod.DELIVERY, 100000, "Hà Nội")).isEqualTo(15000);
+        assertThat(settingService.shippingFee(ShippingMethod.DELIVERY, 350000, "Hà Nội")).isZero();
+        assertThat(settingService.shippingFee(ShippingMethod.DELIVERY, 350000, "Cà Mau")).isEqualTo(30000);
+        User customer = userRepo.findByEmailIgnoreCase("khachhang@gmail.com").orElseThrow();
+        Cart cart = new Cart();
+        cart.add(product("Smecta hương cam").getId(), 0L, 1);
+        OrderService.CheckoutForm f = new OrderService.CheckoutForm();
+        f.setRecipient("Trần Văn An");
+        f.setPhone("0912345678");
+        f.setAddress("45 Lê Văn Lương, Thanh Xuân");
+        assertThatThrownBy(() -> orderService.placeOrder(customer, cart, f, null)).hasMessageContaining("tỉnh/thành");
+        f.setProvince("Hà Nội");
+        Order o = orderService.placeOrder(customer, cart, f, null);
+        assertThat(o.getProvince()).isEqualTo("Hà Nội");
+        assertThat(o.getShippingFee()).isEqualTo(15000);
+    }
+
+    @Test
+    void refundNeedsApprovalByPermittedStaff() {
+        User customer = userRepo.findByEmailIgnoreCase("khachhang@gmail.com").orElseThrow();
+        User noRefund = userRepo.findByEmailIgnoreCase("duocsi2@hieuthuoc.vn").orElseThrow();
+        User admin = userRepo.findByEmailIgnoreCase("admin@hieuthuoc.vn").orElseThrow();
+        Cart cart = new Cart();
+        cart.add(product("Smecta hương cam").getId(), 0L, 1);
+        OrderService.CheckoutForm f = new OrderService.CheckoutForm();
+        f.setRecipient("Trần Văn An");
+        f.setPhone("0912345678");
+        f.setShippingMethod(ShippingMethod.PICKUP);
+        Order o = orderService.placeOrder(customer, cart, f, null);
+        o.setPaymentStatus(PaymentStatus.PAID);
+        orderService.cancelByCustomer(o, customer, "Đổi ý");
+        assertThat(o.getPaymentStatus()).isEqualTo(PaymentStatus.REFUND_PENDING);
+        assertThatThrownBy(() -> orderService.approveRefund(o.getId(), noRefund, o.getTotal(), "CK")).hasMessageContaining("quyền");
+        orderService.approveRefund(o.getId(), admin, o.getTotal(), "CK Vietcombank FT123");
+        assertThat(o.getPaymentStatus()).isEqualTo(PaymentStatus.REFUNDED);
+        assertThat(o.getRefundedBy()).isEqualTo(admin);
+    }
+
+    @Test
+    void assignOrderToStaffWithOrderPermission() {
+        User admin = userRepo.findByEmailIgnoreCase("admin@hieuthuoc.vn").orElseThrow();
+        User cskh = userRepo.findByEmailIgnoreCase("cskh@hieuthuoc.vn").orElseThrow();
+        User editor = new User();
+        editor.setRole(Role.PHARMACIST);
+        editor.setFullName("Biên tập viên");
+        editor.setEmail("bt@x.vn");
+        editor.setPasswordHash("x");
+        editor.setStaffRole(staffRoleRepo.findByNameIgnoreCase("Biên tập viên").orElseThrow());
+        userRepo.save(editor);
+        Order o = orderRepo.findAll().get(0);
+        orderService.assign(o.getId(), admin, cskh.getId());
+        assertThat(o.getAssignedTo()).isEqualTo(cskh);
+        assertThatThrownBy(() -> orderService.assign(o.getId(), admin, editor.getId())).hasMessageContaining("quyền");
+    }
+
+    @Test
+    void multiLevelCategoryFilterIncludesChildren() {
+        Category drugs = categoryRepo.findBySlug("thuoc").orElseThrow();
+        List<Product> list = productService.search(new ProductService.Filter(null, drugs, null, null, null, false, "name", true));
+        assertThat(list).extracting(Product::getName).contains("Amlodipin 5mg Stada", "Panadol Extra");
+        assertThat(list).extracting(Product::getName).doesNotContain("Omega-3 Fish Oil 1000mg");
+        assertThat(product("Amlodipin 5mg Stada").getCategory().getParent().getParent()).isEqualTo(drugs);
+    }
+
+    @Test
+    void manualEquivalentAllowsSubstitution() {
+        Product a = product("Panadol Extra");
+        Product b = product("Decolgen ND");
+        assertThat(catalogService.isSubstitutable(a, b)).isFalse();
+        a.getEquivalents().add(b);
+        assertThat(catalogService.isSubstitutable(a, b)).isTrue();
+        assertThat(catalogService.isSubstitutable(b, a)).isTrue();
+        assertThat(catalogService.equivalents(b, true)).contains(a);
+    }
+
+    @Test
+    void excelExportImportRoundTrip() throws Exception {
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        catalogService.exportProducts(out);
+        long count = productRepo.count();
+        var file = new org.springframework.mock.web.MockMultipartFile("file", "sp.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", out.toByteArray());
+        CatalogService.ImportResult r = catalogService.importProducts(file);
+        assertThat(r.created()).isZero();
+        assertThat(r.updated()).isEqualTo((int) count);
+        assertThat(productRepo.count()).isEqualTo(count);
+    }
+
+    @Test
+    void reportsAndExports() throws Exception {
+        java.time.LocalDate to = java.time.LocalDate.now();
+        ReportService.Report r = reportService.build(to.minusDays(29), to, 90);
+        assertThat(r.getByChannel()).hasSize(2);
+        assertThat(r.getByChannel().stream().mapToLong(ReportService.ChannelRow::revenue).sum()).isEqualTo(r.getRevenue());
+        assertThat(r.getNewCustomers() + r.getReturningCustomers()).isEqualTo(r.getCustomersOrdered());
+        assertThat(r.getByMonth()).isNotEmpty();
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        reportExportService.exportReport(to.minusDays(29), to, out);
+        assertThat(out.size()).isGreaterThan(1000);
+        out.reset();
+        reportExportService.exportNational(to.minusDays(29), to, out);
+        assertThat(out.size()).isGreaterThan(1000);
+    }
+
+    @Test
+    void backupCreatesFile() {
+        String name = backupService.create();
+        assertThat(backupService.list()).extracting(BackupService.BackupFile::name).contains(name);
+        assertThatThrownBy(() -> backupService.file("../data/x.zip")).isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    void loyaltyTiersAreConfigurable() {
+        settingService.save(java.util.Map.of("tier_bac_min", "1000"));
+        assertThat(MemberTier.of(1500)).isEqualTo(MemberTier.BAC);
+        settingService.save(java.util.Map.of("tier_bac_min", "2000000"));
+        assertThat(MemberTier.of(1500)).isEqualTo(MemberTier.DONG);
     }
 }

@@ -16,6 +16,10 @@ import java.util.*;
 public class ShopController {
     private final ProductRepository productRepo;
     private final CategoryRepository categoryRepo;
+    private final CategoryService categoryService;
+    private final CatalogService catalogService;
+    private final BannerRepository bannerRepo;
+    private final StaticPageRepository pageRepo;
     private final PostRepository postRepo;
     private final ReviewRepository reviewRepo;
     private final OrderItemRepository orderItemRepo;
@@ -29,15 +33,32 @@ public class ShopController {
         List<Product> all = productService.search(new ProductService.Filter(null, null, null, null, null, false, "bestseller", true));
         List<Product> sellable = all.stream().filter(p -> p.getDrugType().isSellableOnline()).toList();
         model.addAttribute("bestSellers", sellable.stream().limit(8).toList());
-        model.addAttribute("onSale", sellable.stream().filter(p -> p.isOnSale() && !p.getDrugType().isPrescription())
+        List<Product> flash = sellable.stream().filter(Product::isFlashSale).sorted(Comparator.comparingInt(Product::getFlashPercent).reversed()).limit(8).toList();
+        model.addAttribute("flashEndsAt", flash.stream().map(Product::getFlashEndsAt).min(Comparator.naturalOrder()).orElse(null));
+        model.addAttribute("onSale", !flash.isEmpty() ? flash : sellable.stream().filter(p -> p.isOnSale() && !p.getDrugType().isPrescription())
                 .sorted(Comparator.comparingInt(Product::getDiscountPercent).reversed()).limit(4).toList());
+        model.addAttribute("banners", bannerRepo.findAllByOrderBySortOrderAscIdAsc().stream().filter(Banner::isShowing).toList());
         model.addAttribute("newest", sellable.stream().sorted(Comparator.comparing(Product::getId).reversed()).limit(8).toList());
         Map<Long, Long> counts = new HashMap<>();
-        for (Product p : all) if (p.getCategory() != null) counts.merge(p.getCategory().getId(), 1L, Long::sum);
+        // Đếm cả sản phẩm của danh mục con cháu
+        for (Product p : all) {
+            Set<Long> seen = new HashSet<>();
+            for (Category c = p.getCategory(); c != null && seen.add(c.getId()); c = c.getParent()) counts.merge(c.getId(), 1L, Long::sum);
+        }
         model.addAttribute("categoryCounts", counts);
         model.addAttribute("posts", postRepo.findTop3ByPublishedTrueOrderByCreatedAtDesc());
         model.addAttribute("title", "Trang chủ");
         return "shop/home";
+    }
+
+    /** Trang tĩnh: chính sách, giới thiệu... */
+    @GetMapping("/pages/{slug}")
+    public String page(@PathVariable String slug, Model model) {
+        StaticPage p = pageRepo.findBySlugAndPublishedTrue(slug).orElseThrow(() -> BusinessException.notFound("Trang không tồn tại."));
+        model.addAttribute("page", p);
+        model.addAttribute("title", p.getTitle());
+        if (p.getMetaDescription() != null) model.addAttribute("metaDescription", p.getMetaDescription());
+        return "shop/page";
     }
 
     @GetMapping("/products")
@@ -68,6 +89,7 @@ public class ShopController {
         model.addAttribute("form", form);
         model.addAttribute("page", ProductService.page(list, page, 12));
         model.addAttribute("category", cat);
+        if (cat != null && cat.getMetaDescription() != null) model.addAttribute("metaDescription", cat.getMetaDescription());
         model.addAttribute("q", q);
         model.addAttribute("type", dt);
         model.addAttribute("min", min);
@@ -86,8 +108,8 @@ public class ShopController {
         productService.enrich(p);
         model.addAttribute("product", p);
         model.addAttribute("reviews", reviewRepo.findByProductAndHiddenFalseOrderByCreatedAtDesc(p));
-        List<Product> equivalents = p.getActiveIngredient() == null ? List.of()
-                : productService.enrich(new ArrayList<>(productRepo.findTop4ByActiveTrueAndActiveIngredientIgnoreCaseAndIdNot(p.getActiveIngredient(), p.getId())));
+        List<Product> equivalents = productService.enrich(new ArrayList<>(catalogService.equivalents(p, false).stream()
+                .filter(e -> e.getDrugType().isSellableOnline()).limit(8).toList()));
         model.addAttribute("equivalents", equivalents);
         model.addAttribute("related", p.getCategory() == null ? List.of()
                 : productService.enrich(new ArrayList<>(productRepo.findTop4ByActiveTrueAndCategoryAndIdNotAndDrugTypeNot(p.getCategory(), p.getId(), DrugType.SPECIAL))));
@@ -99,7 +121,11 @@ public class ShopController {
         model.addAttribute("myPendingQuestions", u != null && u.getRole() == Role.CUSTOMER
                 ? questionRepo.findByProductAndUserAndAnswerIsNullOrderByCreatedAtDesc(p, u) : List.of());
         model.addAttribute("subscribed", u != null && u.getRole() == Role.CUSTOMER && subscriptionRepo.existsByUserAndProductAndNotifiedFalse(u, p));
-        model.addAttribute("title", p.getName());
+        model.addAttribute("categoryPath", p.getCategory() == null ? List.of() : categoryService.path(p.getCategory()));
+        model.addAttribute("title", p.getMetaTitle() != null ? p.getMetaTitle() : p.getName());
+        model.addAttribute("metaDescription", p.getMetaDescription() != null ? p.getMetaDescription()
+                : Texts.trim(p.getName() + (p.getActiveIngredient() != null ? " (" + p.getActiveIngredient() + ")" : "") + ". "
+                + Objects.requireNonNullElse(p.getDescription(), ""), 160));
         return "shop/product";
     }
 

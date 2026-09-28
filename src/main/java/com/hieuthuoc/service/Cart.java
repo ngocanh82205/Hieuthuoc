@@ -21,6 +21,8 @@ public class Cart implements Serializable {
     private String voucherCode;
     /** Khách chọn dùng điểm tích lũy để trừ tiền. */
     private boolean usePoints;
+    /** Tỉnh/thành giao hàng đang chọn ở trang thanh toán (tính phí ship theo khu vực). */
+    private String province;
 
     public static String key(Long productId, Long unitId) {
         return productId + ":" + (unitId == null ? 0 : unitId);

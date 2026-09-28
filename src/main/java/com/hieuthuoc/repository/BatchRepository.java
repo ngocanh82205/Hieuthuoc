@@ -22,13 +22,13 @@ public interface BatchRepository extends JpaRepository<Batch, Long> {
 
     /** Lô hợp lệ để xuất kho theo FEFO: còn hàng, còn hạn, không bị khóa, hết hạn sớm nhất trước. */
     @Query("""
-        select b from Batch b where b.product.id = :productId and b.locked = false and b.quantity > 0
-          and b.expDate >= :today order by b.expDate asc, b.id asc""")
+        select b from Batch b left join b.warehouse w where b.product.id = :productId and b.locked = false and b.quantity > 0
+          and b.expDate >= :today and (w is null or w.sellable = true) order by b.expDate asc, b.id asc""")
     List<Batch> findSellableFefo(@Param("productId") Long productId, @Param("today") LocalDate today);
 
     @Query("""
-        select b.product.id, sum(b.quantity) from Batch b
-        where b.locked = false and b.expDate >= :today group by b.product.id""")
+        select b.product.id, sum(b.quantity) from Batch b left join b.warehouse w
+        where b.locked = false and b.expDate >= :today and (w is null or w.sellable = true) group by b.product.id""")
     List<Object[]> sumOnHandByProduct(@Param("today") LocalDate today);
 
     @Query("select b from Batch b join fetch b.product where b.quantity > 0 and b.expDate < :today order by b.expDate")
@@ -45,6 +45,17 @@ public interface BatchRepository extends JpaRepository<Batch, Long> {
     @Query("select coalesce(sum(b.quantity * b.importPrice), 0) from Batch b where b.quantity > 0 and b.expDate >= :from and b.expDate <= :to")
     long stockValueBetween(@Param("from") LocalDate from, @Param("to") LocalDate to);
 
-    @Query("select min(b.expDate) from Batch b where b.product.id = :productId and b.quantity > 0 and b.locked = false and b.expDate >= :today")
+    @Query("select min(b.expDate) from Batch b left join b.warehouse w where b.product.id = :productId and b.quantity > 0 and b.locked = false and b.expDate >= :today and (w is null or w.sellable = true)")
     LocalDate nextExpiry(@Param("productId") Long productId, @Param("today") LocalDate today);
+
+    Optional<Batch> findFirstByProductAndBatchNoIgnoreCaseAndWarehouse(Product product, String batchNo, Warehouse warehouse);
+
+    @Query("select b from Batch b join fetch b.product p left join b.warehouse w where b.quantity > 0 and b.locked = false and b.expDate >= :today and (w = :wh or (w is null and :main = true)) order by p.name, b.expDate")
+    List<Batch> findTransferable(@Param("wh") Warehouse wh, @Param("main") boolean main, @Param("today") LocalDate today);
+
+    @Query("select coalesce(sum(b.quantity), 0) from Batch b left join b.warehouse w where b.quantity > 0 and (w = :wh or (w is null and :main = true))")
+    long totalQuantityIn(@Param("wh") Warehouse wh, @Param("main") boolean main);
+
+    @Query("select coalesce(sum(b.quantity * b.importPrice), 0) from Batch b left join b.warehouse w where b.quantity > 0 and (w = :wh or (w is null and :main = true))")
+    long totalValueIn(@Param("wh") Warehouse wh, @Param("main") boolean main);
 }

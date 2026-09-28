@@ -48,6 +48,28 @@ public class Voucher {
 
     private boolean active = true;
 
+    /* ---- Đối tượng áp dụng ---- */
+
+    /** Hạng thành viên tối thiểu được dùng mã (null = mọi khách). */
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(length = 20)
+    private MemberTier minTier;
+
+    /** Chỉ khách hàng mới (chưa có đơn hàng thành công). */
+    private Boolean newCustomerOnly;
+
+    /** Chỉ áp dụng cho sản phẩm thuộc danh mục (kể cả danh mục con). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    private Category category;
+
+    /** Số lần mỗi khách được dùng (null = không giới hạn). */
+    private Integer perUserLimit;
+
+    public boolean isNewOnly() {
+        return Boolean.TRUE.equals(newCustomerOnly);
+    }
+
     /** Hiển thị trong "Kho voucher" để khách lưu. */
     private Boolean showInWallet;
 

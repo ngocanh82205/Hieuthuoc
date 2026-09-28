@@ -70,6 +70,9 @@ public class StockService {
                 if (!pick.getProduct().getId().equals(item.getProduct().getId())) {
                     throw new BusinessException("Lô " + pick.getBatchNo() + " không phải của sản phẩm \"" + item.getProductName() + "\".");
                 }
+                if (pick.getWarehouse() != null && !pick.getWarehouse().isSellable()) {
+                    throw new BusinessException("Lô " + pick.getBatchNo() + " đang ở " + pick.getWarehouse().getName() + " (kho không xuất bán) - cần chuyển kho trước.");
+                }
                 if (pick.isLocked() || pick.isExpired() || pick.getQuantity() <= 0) {
                     throw new BusinessException("Lô " + pick.getBatchNo() + " đã khóa, hết hạn hoặc hết hàng - không được xuất.");
                 }

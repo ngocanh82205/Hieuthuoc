@@ -10,7 +10,7 @@ thuốc kê đơn phải được dược sĩ duyệt, không bán online thuố
 | Backend | Java 17+, Spring Boot 3.5 (Web MVC, Data JPA, Security, Validation) |
 | Giao diện | Thymeleaf, Bootstrap 5, Bootstrap Icons, Chart.js (đóng gói qua WebJars, chạy offline được) |
 | Cơ sở dữ liệu | H2 dạng file (mặc định, không cần cài) hoặc MySQL 8 |
-| Khác | Lombok, BCrypt, JUnit 5 |
+| Khác | Lombok, BCrypt, Apache POI (Excel), JUnit 5 |
 
 ## Chạy dự án
 
@@ -30,6 +30,8 @@ Mở trình duyệt tại <http://localhost:8080>. Lần chạy đầu tiên, h�
 |---|---|---|
 | Admin | `admin@hieuthuoc.vn` | `admin123` |
 | Dược sĩ | `duocsi@hieuthuoc.vn` | `duocsi123` |
+| Nhân viên kho | `kho@hieuthuoc.vn` | `nhanvien123` |
+| Nhân viên CSKH | `cskh@hieuthuoc.vn` | `nhanvien123` |
 | Khách hàng | `khachhang@gmail.com` | `123456` |
 
 - Muốn làm lại dữ liệu mẫu từ đầu: dừng ứng dụng, xóa thư mục `data/` và `uploads/`, rồi chạy lại.
@@ -96,24 +98,58 @@ Bảng được tự tạo khi chạy (`spring.jpa.hibernate.ddl-auto=update`).
 - **Kho:** tồn theo lô (thực tế / giữ chỗ / khả dụng), cảnh báo cận hạn, hết hạn, dưới định mức; **kiểm kê** nhập số đếm thực tế (hệ thống ghi chênh lệch); hủy thuốc; **thu hồi** (khóa lô, truy vết khách, gửi thông báo); tạo phiếu nhập.
 - **Nội dung:** viết bài "Góc sức khỏe", sửa **thông tin chuyên môn sản phẩm**, kiểm duyệt đánh giá và hỏi đáp.
 
-**Phân quyền nhân viên** (admin tick trong trang sửa nhân viên; admin luôn có toàn quyền):
+**Phân quyền theo vai trò** (admin cấu hình tại Quản trị > Vai trò & phân quyền; admin luôn có toàn quyền):
 
 | Quyền | Cho phép |
 |---|---|
-| Hoàn tiền | Hủy đơn đã thanh toán, duyệt trả hàng/hoàn tiền |
-| Duyệt phiếu nhập | Duyệt phiếu nhập kho |
-| Điều chỉnh kho | Điều chỉnh tăng tồn, kiểm kê ghi tăng |
-| Bán tại quầy | Dùng màn hình POS |
+| Duyệt đơn thuốc | Duyệt / từ chối đơn thuốc, sổ thuốc kê đơn (bắt buộc có CCHN) |
+| Đơn hàng | Xử lý đơn online: xác nhận, soạn hàng, giao hàng |
+| Tư vấn / CSKH | Chat, hỏi đáp sản phẩm, yêu cầu gọi lại |
+| Kho | Tồn kho, lô, phiếu nhập, kiểm kê, phiếu hủy, chuyển kho |
+| Duyệt phiếu kho | Duyệt phiếu nhập, phiếu hủy, điều chỉnh kiểm kê |
+| Bán tại quầy | Màn hình POS |
+| Hoàn tiền | Hủy đơn đã thanh toán, đổi trả, duyệt hoàn tiền |
 | Nội dung | Bài viết, thông tin sản phẩm, kiểm duyệt đánh giá |
 
-Tài khoản mẫu `duocsi@hieuthuoc.vn` có đủ các quyền; `duocsi2@hieuthuoc.vn` (mật khẩu `duocsi123`) chỉ có quyền Bán tại quầy và Nội dung.
+Tài khoản mẫu: `duocsi@hieuthuoc.vn` là Dược sĩ quản lý (đủ quyền); `duocsi2@hieuthuoc.vn` (mật khẩu `duocsi123`) là Dược sĩ, được cấp thêm quyền Nội dung; `kho@` là Nhân viên kho; `cskh@` là Nhân viên CSKH.
 
 ### Admin (`/admin`, dùng được cả toàn bộ chức năng dược sĩ)
-- Bảng điều khiển: doanh thu hôm nay/tháng, biểu đồ 14 ngày, trạng thái đơn, top bán chạy.
-- **Báo cáo**: doanh thu, lợi nhuận gộp (giá vốn theo lô), theo ngày/danh mục, top sản phẩm, hàng tồn chậm, tỷ lệ hủy, **hiệu suất dược sĩ**, giá trị tồn kho; xuất CSV.
-- Quản lý sản phẩm (phân loại OTC / kê đơn / kiểm soát đặc biệt / TPCN / dụng cụ / mỹ phẩm, ảnh, giới hạn mua), danh mục, nhà cung cấp, mã giảm giá.
-- Quản lý nhân viên và phân quyền, số chứng chỉ hành nghề; khóa/mở khóa khách hàng, điều chỉnh điểm.
-- Duyệt phiếu nhập; cấu hình hệ thống (thông tin pháp lý GPP, phí ship, ngưỡng cận hạn, thời hạn đổi trả, hạn đơn thuốc, ngưỡng gọi xác minh COD...); nhật ký thao tác.
+- **Người dùng & phân quyền (RBAC):**
+  - Nhân viên: thêm/sửa, số CCHN, bằng cấp, ca làm; khóa tài khoản khi nghỉ việc (giữ lịch sử để truy vết).
+  - **Vai trò** (Dược sĩ quản lý, Dược sĩ, Nhân viên kho, Nhân viên CSKH, Biên tập viên... thêm được vai trò mới) với **ma trận quyền theo chức năng**; có thể cấp thêm quyền riêng cho từng người.
+  - Quyền được kiểm tra ở cả menu, đường dẫn và nghiệp vụ. Người có quyền duyệt đơn thuốc bắt buộc có CCHN.
+  - Khách hàng: xem, khóa/mở khóa, lịch sử mua, điều chỉnh điểm.
+  - **Nhật ký hoạt động** lọc theo nhân viên, nhóm hành động, nội dung, khoảng ngày.
+- **Danh mục & sản phẩm:**
+  - **Danh mục đa cấp** (VD: Thuốc > Tim mạch - Huyết áp > Thuốc huyết áp); lọc danh mục cha gồm cả sản phẩm của danh mục con.
+  - Sản phẩm: thông tin dược, loại thuốc, ảnh, đa đơn vị tính, **SEO** (đường dẫn, tiêu đề, mô tả).
+  - Danh mục **hoạt chất**, **thương hiệu / nhà sản xuất** (đổi tên tự cập nhật sản phẩm), nhà cung cấp.
+  - Cấu hình **thuốc tương đương** (được phép thay khi duyệt đơn) và **quy tắc cảnh báo tương tác thuốc**.
+  - **Nhập / xuất sản phẩm bằng Excel** (.xlsx; file có lỗi sẽ không nhập dòng nào).
+- **Kho:**
+  - Duyệt **phiếu nhập, phiếu hủy, phiếu điều chỉnh kiểm kê** (nhân viên kho lập phiếu, admin / quản lý duyệt mới đổi tồn).
+  - **Nhiều kho / chi nhánh** và **phiếu chuyển kho** (kho dự trữ không tính vào hàng bán).
+  - **Định mức tồn** hàng loạt, ngưỡng cảnh báo cận hạn.
+  - **Công nợ nhà cung cấp**: hạn thanh toán, nợ quá hạn, phiếu chi.
+- **Đơn hàng:** xem và can thiệp mọi đơn, **phân công** nhân viên xử lý, **duyệt hoàn tiền** (đơn đã thanh toán bị hủy / trả chuyển sang "Chờ hoàn tiền"), cấu hình chính sách đổi trả (mặc định không đổi trả thuốc kê đơn).
+- **Marketing:**
+  - Mã giảm giá theo **đối tượng**: hạng thành viên, khách mới, danh mục, số lần / khách.
+  - **Flash sale** (giá sốc, số suất, đếm ngược), **combo**, **mua X tặng Y**. Chỉ áp dụng OTC / TPCN / dụng cụ / mỹ phẩm, **không khuyến mãi thuốc kê đơn**.
+  - Cấu hình **tích điểm và ngưỡng / hệ số hạng thành viên**.
+  - **Banner** trang chủ, **trang tĩnh** (chính sách đổi trả, giao hàng, bảo mật...), **gửi thông báo hàng loạt** theo nhóm khách.
+- **Cấu hình hệ thống:**
+  - Thông tin pháp lý nhà thuốc (hiện ở chân trang).
+  - Bật/tắt phương thức thanh toán, danh sách đơn vị vận chuyển.
+  - **Khu vực giao hàng & biểu phí theo tỉnh/thành** (34 tỉnh, thành).
+  - Mẫu nội dung thông báo gửi khách.
+  - **VAT & hóa đơn điện tử**: khách yêu cầu xuất HĐ VAT khi đặt hàng, nhân viên ghi số HĐĐT; hóa đơn in có tách thuế.
+  - **Sao lưu dữ liệu** (tải về; tự sao lưu 2h30 hằng ngày, giữ 7 bản).
+- **Báo cáo:**
+  - Doanh thu theo ngày, tháng, **kênh (online / quầy)**, danh mục, **nhân viên**.
+  - Bán chạy, tồn chậm, giá trị tồn, **hàng cận hạn / hết hạn**, lợi nhuận gộp theo giá vốn từng lô.
+  - Hiệu suất dược sĩ (số đơn duyệt, thời gian duyệt TB, tỷ lệ từ chối, số cuộc tư vấn).
+  - Tỷ lệ hủy / trả, **khách mới / quay lại**.
+  - **Xuất Excel** (nhiều sheet), **bản in / PDF**, **file dữ liệu liên thông Dược Quốc gia** (bán ra theo lô kèm thông tin đơn thuốc, nhập vào).
 
 ## Quy tắc nghiệp vụ đã cài đặt
 
@@ -145,4 +181,5 @@ src/main/resources
 ## Giới hạn và hướng phát triển
 - Thanh toán online đang là cổng giả lập. Khi triển khai thật cần tích hợp API VNPay/MoMo (IPN).
 - Chưa có OTP và chưa gửi email/SMS vì cần dịch vụ gửi thật; hiện dùng thông báo ngay trong web. Chat tự cập nhật mỗi 4 giây (polling); có thể nâng cấp lên WebSocket.
-- Mã vận đơn nhập tay, chưa kết nối API đơn vị vận chuyển; chưa liên thông Dược Quốc gia. Trạng thái online của dược sĩ tính theo hoạt động trong 5 phút gần nhất.
+- Mã vận đơn nhập tay, chưa kết nối API đơn vị vận chuyển. Liên thông Dược Quốc gia: có file xuất dữ liệu, chưa gọi API (cần tài khoản do Sở Y tế cấp).
+- Hóa đơn điện tử: ghi nhận yêu cầu và số HĐĐT, chưa kết nối API nhà cung cấp HĐĐT. Xuất PDF dùng chức năng "In > Lưu thành PDF" của trình duyệt. Trạng thái online của dược sĩ tính theo hoạt động trong 5 phút gần nhất.

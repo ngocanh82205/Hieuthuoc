@@ -8,6 +8,13 @@
         <header th:replace="~{fragments/staff :: topbar}"></header>
         <main class="p-3 p-lg-4">
             <div th:replace="~{fragments/layout :: flash}"></div>
+            <form method="get" class="d-flex gap-2 mb-3 no-print">
+                <select name="warehouse" class="form-select form-select-sm" style="max-width: 280px" onchange="this.form.submit()">
+                    <option value="">Tất cả kho</option>
+                    <option th:each="w : ${warehouses}" th:value="${w.id}" th:text="${w.name}" th:selected="${warehouse == w.id}"></option>
+                </select>
+                <a th:href="@{/staff/adjustments}" class="btn btn-sm btn-outline-secondary">Phiếu điều chỉnh đã lập</a>
+            </form>
             <form th:action="@{/staff/stocktake}" method="post" class="card">
                 <div class="card-header d-flex flex-wrap justify-content-between gap-2 align-items-center">
                     <span><i class="bi bi-clipboard-check text-primary me-1"></i>Phiếu kiểm kê - nhập số lượng đếm thực tế (bỏ trống = khớp sổ sách)</span>
@@ -15,10 +22,11 @@
                 </div>
                 <div class="table-responsive">
                     <table class="table table-sm mb-0">
-                        <thead><tr><th>Sản phẩm</th><th>Số lô</th><th>HSD</th><th class="text-end">Sổ sách</th><th style="width: 130px">Thực đếm</th><th>Trạng thái</th></tr></thead>
+                        <thead><tr><th>Sản phẩm</th><th>Kho</th><th>Số lô</th><th>HSD</th><th class="text-end">Sổ sách</th><th style="width: 130px">Thực đếm</th><th>Trạng thái</th></tr></thead>
                         <tbody>
                         <tr th:each="b : ${batches}" th:classappend="${b.expired} ? 'table-danger'">
                             <td th:text="${b.product.name}"></td>
+                            <td class="small" th:text="${b.warehouse != null ? b.warehouse.name : 'Kho chính'}"></td>
                             <td class="fw-semibold" th:text="${b.batchNo}"></td>
                             <td class="small" th:text="${@fmt.date(b.expDate)}"></td>
                             <td class="text-end" th:text="${b.quantity} + ' ' + ${b.product.unit}"></td>
@@ -31,8 +39,9 @@
                 </div>
                 <div class="card-footer bg-white d-flex flex-wrap gap-2 justify-content-between align-items-center">
                     <input name="note" class="form-control form-control-sm" style="max-width: 360px" placeholder="Ghi chú đợt kiểm kê (VD: kiểm kê cuối tháng)">
-                    <span class="small text-muted">Chênh lệch thiếu được ghi giảm; chênh lệch thừa cần quyền "Điều chỉnh tăng tồn kho".</span>
-                    <button class="btn btn-primary" data-confirm="Áp dụng kết quả kiểm kê vào tồn kho?">Áp dụng kiểm kê</button>
+                    <span class="small text-muted" th:if="${currentUser.can('APPROVE_STOCK')}">Bạn có quyền duyệt phiếu kho: chênh lệch được điều chỉnh ngay.</span>
+                    <span class="small text-muted" th:unless="${currentUser.can('APPROVE_STOCK')}">Chênh lệch sẽ lập thành phiếu điều chỉnh kiểm kê, chờ admin / quản lý duyệt.</span>
+                    <button class="btn btn-primary" data-confirm="Ghi nhận kết quả kiểm kê?">Ghi nhận kiểm kê</button>
                 </div>
             </form>
         </main>

@@ -43,4 +43,21 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
 
     @Query("select coalesce(sum(o.total), 0) from Order o where o.user = :user and o.status = com.hieuthuoc.entity.OrderStatus.COMPLETED")
     long totalSpent(@Param("user") User user);
+
+    long countByAssignedToIdAndStatusIn(Long userId, Collection<OrderStatus> statuses);
+
+    List<Order> findByPaymentStatusOrderByUpdatedAtAsc(PaymentStatus status);
+
+    List<Order> findTop50ByPaymentStatusOrderByRefundedAtDesc(PaymentStatus status);
+
+    @Query("select count(o) from Order o where o.user = :user and o.status not in :excluded")
+    long countValidByUser(@Param("user") User user, @Param("excluded") Collection<OrderStatus> excluded);
+
+    @Query("select count(o) from Order o where o.user = :user and upper(o.voucherCode) = upper(:code) and o.status not in :excluded")
+    long countVoucherUse(@Param("user") User user, @Param("code") String code, @Param("excluded") Collection<OrderStatus> excluded);
+
+    long countByUserAndStatusAndCompletedAtBefore(User user, OrderStatus status, LocalDateTime before);
+
+    @Query("select distinct o from Order o join fetch o.items where o.status = com.hieuthuoc.entity.OrderStatus.COMPLETED and o.completedAt >= :from and o.completedAt < :to order by o.completedAt")
+    List<Order> findCompletedWithItems(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 }

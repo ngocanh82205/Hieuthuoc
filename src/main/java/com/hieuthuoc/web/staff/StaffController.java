@@ -35,6 +35,9 @@ public class StaffController {
     private final SettingService settings;
     private final CurrentUser currentUser;
     private final SafetyService safety;
+    private final CatalogService catalogService;
+    private final UserRepository userRepo;
+    private final NotificationService notifications;
     private final ProductQuestionRepository questionRepo;
     private final CallbackRequestRepository callbackRepo;
 
@@ -80,12 +83,8 @@ public class StaffController {
         if (o != null) {
             for (OrderItem it : o.getItems()) {
                 available.put(it.getId(), stockService.fill(it.getProduct()).getAvailable());
-                String ing = it.getProduct().getActiveIngredient();
-                String strength = it.getProduct().getStrength();
-                // Thuốc thay thế: cùng hoạt chất và cùng hàm lượng
-                equivalents.put(it.getId(), ing == null ? List.of()
-                        : stockService.fill(new ArrayList<>(productRepo.findTop4ByActiveTrueAndActiveIngredientIgnoreCaseAndIdNot(ing, it.getProduct().getId())))
-                        .stream().filter(e -> strength == null || e.getStrength() == null || strength.equalsIgnoreCase(e.getStrength())).toList());
+                // Thuốc thay thế: cùng hoạt chất + cùng hàm lượng, hoặc được admin cấu hình tương đương
+                equivalents.put(it.getId(), stockService.fill(new ArrayList<>(catalogService.equivalents(it.getProduct(), true))));
             }
         } else {
             model.addAttribute("products", stockService.fill(new ArrayList<>(productRepo.findSellable())));
@@ -146,13 +145,16 @@ public class StaffController {
                          @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
                          @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
                          @RequestParam(defaultValue = "false") boolean returns,
+                         @RequestParam(defaultValue = "false") boolean mine,
                          @RequestParam(defaultValue = "1") int page,
                          Model model) {
+        Long meId = currentUser.get().getId();
         Specification<Order> spec = (root, query, cb) -> {
             List<Predicate> ps = new ArrayList<>();
             if (status != null) ps.add(cb.equal(root.get("status"), status));
             if (payment != null) ps.add(cb.equal(root.get("paymentMethod"), payment));
             if (returns) ps.add(cb.equal(root.get("returnStatus"), ReturnStatus.REQUESTED));
+            if (mine) ps.add(cb.equal(root.get("assignedTo").get("id"), meId));
             if (from != null) ps.add(cb.greaterThanOrEqualTo(root.get("createdAt"), from.atStartOfDay()));
             if (to != null) ps.add(cb.lessThan(root.get("createdAt"), to.plusDays(1).atStartOfDay()));
             if ("POS".equals(channel)) ps.add(cb.equal(root.get("channel"), "POS"));
@@ -173,6 +175,9 @@ public class StaffController {
         model.addAttribute("q", q);
         model.addAttribute("payment", payment);
         model.addAttribute("returns", returns);
+        model.addAttribute("mine", mine);
+        model.addAttribute("mineCount", orderRepo.countByAssignedToIdAndStatusIn(meId, EnumSet.of(OrderStatus.PENDING_RX, OrderStatus.AWAITING_CUSTOMER,
+                OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.SHIPPING)));
         model.addAttribute("channel", channel);
         model.addAttribute("from", from);
         model.addAttribute("to", to);
@@ -195,12 +200,45 @@ public class StaffController {
         model.addAttribute("warnings", o.isPos() ? List.of() : safety.check(o.getUser(), o.getItems().stream().map(OrderItem::getProduct).toList(),
                 safety.recentProducts(o.getUser())));
         model.addAttribute("needsVerify", orderService.needsVerifyCall(o));
-        model.addAttribute("carriers", CARRIERS);
+        model.addAttribute("carriers", settings.lines("carriers"));
+        model.addAttribute("assignable", userRepo.findByRoleInOrderByRoleAscFullNameAsc(List.of(Role.PHARMACIST, Role.ADMIN)).stream()
+                .filter(u -> !u.isLocked() && u.hasPermission(StaffPermission.ORDER)).toList());
+        model.addAttribute("returnBlockedByRx", orderService.returnBlockedByRx(o));
         model.addAttribute("title", "Đơn hàng " + o.getCode());
         return "staff/order";
     }
 
-    public static final List<String> CARRIERS = List.of("Giao Hàng Nhanh (GHN)", "Giao Hàng Tiết Kiệm (GHTK)", "Viettel Post", "J&T Express", "Nhân viên nhà thuốc tự giao");
+    @PostMapping("/orders/{id}/assign")
+    @Transactional
+    public String assign(@PathVariable Long id, @RequestParam(required = false) Long staffId, RedirectAttributes ra) {
+        User me = currentUser.get();
+        if (me.getRole() != Role.ADMIN) throw new BusinessException("Chỉ quản trị viên được phân công xử lý đơn.", 403);
+        Order o = orderService.assign(id, me, staffId);
+        Flash.success(ra, o.getAssignedTo() == null ? "Đã bỏ phân công." : "Đã phân công " + o.getAssignedTo().getFullName() + " xử lý đơn.");
+        return "redirect:/staff/orders/" + id;
+    }
+
+    @PostMapping("/orders/{id}/refund")
+    @Transactional
+    public String refund(@PathVariable Long id, @RequestParam long amount, @RequestParam String note,
+                         @RequestParam(defaultValue = "") String back, RedirectAttributes ra) {
+        orderService.approveRefund(id, currentUser.get(), amount, note);
+        Flash.success(ra, "Đã ghi nhận hoàn tiền.");
+        return "redirect:" + ("/admin/refunds".equals(back) ? back : "/staff/orders/" + id);
+    }
+
+    @PostMapping("/orders/{id}/einvoice")
+    @Transactional
+    public String einvoice(@PathVariable Long id, @RequestParam String einvoiceNo, RedirectAttributes ra) {
+        Order o = order(id);
+        String no = Texts.trim(einvoiceNo, 50);
+        if (no.isEmpty()) throw new BusinessException("Nhập số hóa đơn điện tử.");
+        o.setEinvoiceNo(no);
+        orderService.addHistory(o, o.getStatus(), "Đã xuất hóa đơn điện tử số " + no, currentUser.get());
+        notifications.log(currentUser.get(), "order.einvoice", o.getCode() + ": " + no);
+        Flash.success(ra, "Đã lưu số hóa đơn điện tử.");
+        return "redirect:/staff/orders/" + id;
+    }
 
     @PostMapping("/orders/{id}/verify")
     @Transactional
@@ -296,6 +334,11 @@ public class StaffController {
     public String invoice(@PathVariable Long id, Model model) {
         Order o = order(id);
         model.addAttribute("order", o);
+        long rate = settings.getLong("vat_rate");
+        long vat = Math.round(o.getTotal() * rate / (100.0 + rate));
+        model.addAttribute("vatRate", rate);
+        model.addAttribute("vatAmount", vat);
+        model.addAttribute("preVat", o.getTotal() - vat);
         model.addAttribute("title", "Hóa đơn " + o.getCode());
         return "staff/invoice";
     }

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="staff-body">
+<div class="staff-shell">
+    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
+    <div class="staff-main">
+        <header th:replace="~{fragments/staff :: topbar}"></header>
+        <main class="p-3 p-lg-4">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <form method="get" class="d-flex gap-2 mb-3">
+                <select name="category" class="form-select form-select-sm" style="max-width: 300px" onchange="this.form.submit()">
+                    <option value="">Tất cả danh mục</option>
+                    <option th:each="c : ${categories}" th:value="${c.id}" th:text="${#strings.repeat('— ', c.depth) + c.name}" th:selected="${category == c.id}"></option>
+                </select>
+            </form>
+            <form th:action="@{/admin/min-stock}" method="post">
+                <input type="hidden" name="category" th:value="${category}">
+                <div class="card mb-3">
+                    <div class="card-body d-flex flex-wrap gap-3 align-items-center">
+                        <label class="fw-semibold">Cảnh báo cận hạn trước</label>
+                        <input type="number" name="near_expiry_days" min="1" class="form-control" style="width: 110px" th:value="${nearDays}"> <span>ngày</span>
+                        <span class="small text-muted">Lô có hạn dùng trong khoảng này hiện ở mục Cảnh báo kho và báo cáo hàng cận hạn.</span>
+                        <div class="ms-auto d-flex gap-2 align-items-center">
+                            <input type="number" min="0" id="bulkMin" class="form-control form-control-sm" style="width: 100px" placeholder="Áp cho tất cả">
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="document.querySelectorAll('.min-input').forEach(i => i.value = document.getElementById('bulkMin').value)">Áp dụng</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead><tr><th>Sản phẩm</th><th>Danh mục</th><th class="text-end">Tồn bán được</th><th style="width: 140px">Tồn tối thiểu</th><th>Tình trạng</th></tr></thead>
+                            <tbody>
+                            <tr th:each="p : ${products}">
+                                <td th:text="${p.name}"></td>
+                                <td class="small" th:text="${p.category != null ? p.category.name : ''}"></td>
+                                <td class="text-end" th:text="${p.onHand} + ' ' + ${p.unit}"></td>
+                                <td><input type="number" min="0" class="form-control form-control-sm min-input" th:name="'min_' + ${p.id}" th:value="${p.minStock}"></td>
+                                <td><span th:if="${p.lowStock}" class="badge text-bg-warning">Dưới định mức</span></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="card-footer bg-white"><button class="btn btn-primary">Lưu định mức</button></div>
+                </div>
+            </form>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

@@ -25,6 +25,7 @@ public class CartController {
     private final ProductRepository productRepo;
     private final AddressRepository addressRepo;
     private final CurrentUser currentUser;
+    private final SettingService settings;
 
     private void savedVouchers(Model model, User u) {
         model.addAttribute("savedVouchers", u == null || u.isStaff() ? List.of() : care.savedVouchers(u));
@@ -128,13 +129,15 @@ public class CartController {
         model.addAttribute("addresses", addressRepo.findByUserOrderByDefaultAddressDescIdAsc(u));
         model.addAttribute("form", form);
         model.addAttribute("shippingMethods", ShippingMethod.values());
-        model.addAttribute("paymentMethods", PaymentMethod.ONLINE_METHODS);
+        model.addAttribute("paymentMethods", settings.enabledPaymentMethods());
+        model.addAttribute("provinceFees", settings.provinceFees());
         savedVouchers(model, u);
         model.addAttribute("title", "Thanh toán");
     }
 
     @GetMapping("/checkout")
     public String checkout(@RequestParam(required = false) ShippingMethod shipping, Model model, RedirectAttributes ra) {
+        cart.setProvince(null);
         if (cart.getItems().isEmpty()) {
             Flash.warning(ra, "Giỏ hàng đang trống.");
             return "redirect:/cart";
@@ -146,11 +149,14 @@ public class CartController {
             form.setRecipient(addresses.get(0).getRecipient());
             form.setPhone(addresses.get(0).getPhone());
             form.setAddress(addresses.get(0).getAddressLine());
+            form.setProvince(ShippingZone.detect(addresses.get(0).getAddressLine()));
+            if (form.getProvince() != null && settings.deliversTo(form.getProvince())) cart.setProvince(form.getProvince());
         } else {
             form.setRecipient(u.getFullName());
             form.setPhone(u.getPhone());
         }
         if (shipping != null) form.setShippingMethod(shipping);
+        if (!settings.enabledPaymentMethods().contains(form.getPaymentMethod())) form.setPaymentMethod(settings.enabledPaymentMethods().get(0));
         checkoutModel(model, u, form);
         return "shop/checkout";
     }

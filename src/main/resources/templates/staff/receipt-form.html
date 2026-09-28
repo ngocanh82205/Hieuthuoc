@@ -16,7 +16,11 @@
                                 <option value="">-- Chọn --</option>
                                 <option th:each="s : ${suppliers}" th:value="${s.id}" th:text="${s.name}"></option>
                             </select></div>
-                        <div class="col-md-7"><label class="form-label">Ghi chú</label><input name="note" class="form-control" maxlength="500"></div>
+                        <div class="col-md-3"><label class="form-label">Kho nhận</label>
+                            <select name="warehouseId" class="form-select">
+                                <option th:each="w : ${warehouses}" th:value="${w.id}" th:text="${w.name}"></option>
+                            </select></div>
+                        <div class="col-md-4"><label class="form-label">Ghi chú</label><input name="note" class="form-control" maxlength="500"></div>
                     </div>
                     <div class="table-responsive">
                         <table class="table table-sm align-middle">

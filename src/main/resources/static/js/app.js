@@ -245,7 +245,8 @@
         var pad = function (n) { return String(n).padStart(2, '0'); };
         var tick = function () {
             var now = new Date();
-            var end = new Date(now); end.setHours(23, 59, 59, 999);
+            var end = cd.dataset.end ? new Date(cd.dataset.end) : new Date(now);
+            if (!cd.dataset.end) end.setHours(23, 59, 59, 999);
             var s = Math.max(0, Math.floor((end - now) / 1000));
             cd.querySelector('[data-h]').textContent = pad(Math.floor(s / 3600));
             cd.querySelector('[data-m]').textContent = pad(Math.floor(s % 3600 / 60));
@@ -254,6 +255,19 @@
         tick();
         setInterval(tick, 1000);
     }
+
+    // Đếm ngược flash sale trên trang sản phẩm
+    document.querySelectorAll('[data-countdown]').forEach(function (el) {
+        var end = new Date(el.dataset.end);
+        var pad = function (n) { return String(n).padStart(2, '0'); };
+        var tick = function () {
+            var s = Math.max(0, Math.floor((end - new Date()) / 1000));
+            var d = Math.floor(s / 86400);
+            el.textContent = (d > 0 ? d + ' ngày ' : '') + pad(Math.floor(s % 86400 / 3600)) + ':' + pad(Math.floor(s % 3600 / 60)) + ':' + pad(s % 60);
+        };
+        tick();
+        setInterval(tick, 1000);
+    });
 
     // Hiệu ứng "nảy" biểu tượng giỏ hàng khi thêm sản phẩm
     document.addEventListener('submit', function (e) {

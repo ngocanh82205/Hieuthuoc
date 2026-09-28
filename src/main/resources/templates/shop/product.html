@@ -7,8 +7,8 @@
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb small">
             <li class="breadcrumb-item"><a th:href="@{/}">Trang chủ</a></li>
-            <li class="breadcrumb-item" th:if="${p.category != null}">
-                <a th:href="@{/products(category=${p.category.slug})}" th:text="${p.category.name}">Danh mục</a></li>
+            <li class="breadcrumb-item" th:each="c : ${categoryPath}">
+                <a th:href="@{/products(category=${c.slug})}" th:text="${c.name}">Danh mục</a></li>
             <li class="breadcrumb-item active" th:text="${p.name}">Sản phẩm</li>
         </ol>
     </nav>
@@ -32,12 +32,20 @@
                         <span th:text="'Đã bán ' + ${p.sold}"></span>
                         <span th:if="${p.registrationNo != null}"> · SĐK: <span th:text="${p.registrationNo}"></span></span>
                     </div>
+                    <div th:if="${p.flashSale}" class="flash-box mb-2">
+                        <span><i class="bi bi-lightning-charge-fill"></i> FLASH SALE -<span th:text="${p.flashPercent}"></span>%</span>
+                        <span class="small">Kết thúc sau <strong data-countdown th:attr="data-end=${p.flashEndsAt}"></strong>
+                            <span th:if="${p.flashRemaining != null}" th:text="' · còn ' + ${p.flashRemaining} + ' suất'"></span></span>
+                    </div>
+                    <div class="alert alert-success py-2 small mb-2" th:each="lb : ${p.promoLabels}"><i class="bi bi-gift"></i> <span th:text="${lb}"></span></div>
                     <div class="d-flex align-items-baseline gap-2 mb-3">
-                        <span class="price fs-3" th:text="${@fmt.money(p.price)}">0 ₫</span>
+                        <span th:if="${p.flashSale}" class="price fs-3" th:text="${@fmt.money(p.flashPrice)}">0 ₫</span>
+                        <del th:if="${p.flashSale}" class="text-muted" th:text="${@fmt.money(p.price)}"></del>
+                        <span th:unless="${p.flashSale}" class="price fs-3" th:text="${@fmt.money(p.price)}">0 ₫</span>
                         <span class="text-muted">/ <span th:text="${p.unit}"></span></span>
                         <span th:each="u : ${p.units}" class="badge text-bg-light border ms-1" th:text="${u.name} + ' ' + ${@fmt.money(u.price)}"></span>
-                        <del th:if="${p.onSale}" class="text-muted" th:text="${@fmt.money(p.oldPrice)}"></del>
-                        <span th:if="${p.onSale}" class="badge bg-danger" th:text="'-' + ${p.discountPercent} + '%'"></span>
+                        <del th:if="${p.onSale && !p.flashSale}" class="text-muted" th:text="${@fmt.money(p.oldPrice)}"></del>
+                        <span th:if="${p.onSale && !p.flashSale}" class="badge bg-danger" th:text="'-' + ${p.discountPercent} + '%'"></span>
                     </div>
                     <table class="table table-sm spec-table mb-3">
                         <tr th:if="${p.activeIngredient != null}"><th>Hoạt chất</th><td th:text="${p.activeIngredient}"></td></tr>

@@ -95,7 +95,7 @@ public class ChatService {
         User best = null;
         long bestLoad = Long.MAX_VALUE;
         for (User u : userRepo.findByRoleAndLockedFalse(Role.PHARMACIST)) {
-            if (!u.isOnline()) continue;
+            if (!u.isOnline() || !u.hasPermission(StaffPermission.CONSULT)) continue;
             long load = conversationRepo.countByPharmacistAndClosedFalse(u);
             if (load < bestLoad) {
                 best = u;
@@ -107,7 +107,7 @@ public class ChatService {
 
     public List<User> onlineStaff() {
         List<User> list = new java.util.ArrayList<>();
-        for (User u : userRepo.findByRoleAndLockedFalse(Role.PHARMACIST)) if (u.isOnline()) list.add(u);
+        for (User u : userRepo.findByRoleAndLockedFalse(Role.PHARMACIST)) if (u.isOnline() && u.hasPermission(StaffPermission.CONSULT)) list.add(u);
         return list;
     }
 

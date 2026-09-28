@@ -29,4 +29,14 @@ public class Supplier {
 
     @Column(length = 300)
     private String address;
+
+    @Column(length = 20)
+    private String taxCode;
+
+    /** Hạn thanh toán công nợ (ngày kể từ khi phiếu nhập được duyệt). */
+    private Integer paymentTermDays;
+
+    public int getTermDays() {
+        return paymentTermDays == null ? 30 : paymentTermDays;
+    }
 }

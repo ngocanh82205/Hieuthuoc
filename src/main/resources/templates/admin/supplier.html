@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="staff-body">
+<div class="staff-shell">
+    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
+    <div class="staff-main">
+        <header th:replace="~{fragments/staff :: topbar}"></header>
+        <main class="p-3 p-lg-4">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="row g-3 mb-4">
+                <div class="col-md-3"><div class="stat-card"><div><div class="value fs-5" th:text="${@fmt.money(debt.purchased())}"></div><div class="label">Tổng nhập (đã duyệt)</div></div></div></div>
+                <div class="col-md-3"><div class="stat-card"><div><div class="value fs-5 text-success" th:text="${@fmt.money(debt.paid())}"></div><div class="label">Đã thanh toán</div></div></div></div>
+                <div class="col-md-3"><div class="stat-card"><div><div class="value fs-5 text-primary" th:text="${@fmt.money(debt.balance())}"></div><div class="label">Còn nợ</div></div></div></div>
+                <div class="col-md-3"><div class="stat-card"><div><div class="value fs-5" th:classappend="${debt.overdue() > 0} ? 'text-danger'" th:text="${@fmt.money(debt.overdue())}"></div><div class="label">Nợ quá hạn</div></div></div></div>
+            </div>
+            <div class="row g-4">
+                <div class="col-lg-7">
+                    <div class="card mb-4">
+                        <div class="card-header">Phiếu nhập (hạn thanh toán <span th:text="${supplier.termDays}"></span> ngày)</div>
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead><tr><th>Mã phiếu</th><th>Ngày duyệt</th><th>Hạn thanh toán</th><th class="text-end">Giá trị</th></tr></thead>
+                                <tbody>
+                                <tr th:if="${rows.isEmpty()}"><td colspan="4" class="text-center text-muted py-3">Chưa có phiếu nhập.</td></tr>
+                                <tr th:each="d : ${rows}">
+                                    <td><a th:href="@{/staff/receipts/{id}(id=${d.receipt().id})}" th:text="${d.receipt().code}"></a></td>
+                                    <td class="small" th:text="${@fmt.dateTime(d.receipt().approvedAt)}"></td>
+                                    <td class="small" th:classappend="${d.overdue()} ? 'text-danger fw-semibold'" th:text="${@fmt.date(d.dueDate())}"></td>
+                                    <td class="text-end" th:text="${@fmt.money(d.receipt().total)}"></td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-5">
+                    <form th:action="@{/admin/suppliers/{id}/payments(id=${supplier.id})}" method="post" class="card mb-4">
+                        <div class="card-header">Ghi nhận thanh toán</div>
+                        <div class="card-body row g-2">
+                            <div class="col-6"><label class="form-label small">Số tiền (đ)</label><input type="number" name="amount" min="1" th:max="${debt.balance()}" class="form-control" required></div>
+                            <div class="col-6"><label class="form-label small">Ngày trả</label><input type="date" name="paidDate" class="form-control" th:value="${today}"></div>
+                            <div class="col-6"><label class="form-label small">Hình thức</label>
+                                <select name="method" class="form-select"><option>Chuyển khoản</option><option>Tiền mặt</option></select></div>
+                            <div class="col-6"><label class="form-label small">Ghi chú</label><input name="note" class="form-control" placeholder="Số UNC, hóa đơn..."></div>
+                            <div class="col-12"><button class="btn btn-primary" th:disabled="${debt.balance() <= 0}">Lưu phiếu chi</button></div>
+                        </div>
+                    </form>
+                    <div class="card">
+                        <div class="card-header">Lịch sử thanh toán</div>
+                        <ul class="list-group list-group-flush small">
+                            <li class="list-group-item text-muted" th:if="${payments.isEmpty()}">Chưa có thanh toán.</li>
+                            <li class="list-group-item d-flex justify-content-between" th:each="p : ${payments}">
+                                <span><span th:text="${@fmt.date(p.paidDate)}"></span> · <span th:text="${p.method}"></span>
+                                    <span class="text-muted" th:if="${p.note != null}" th:text="' · ' + ${p.note}"></span></span>
+                                <strong th:text="${@fmt.money(p.amount)}"></strong></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

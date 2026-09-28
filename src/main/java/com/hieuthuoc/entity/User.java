@@ -60,9 +60,21 @@ public class User {
 
     private boolean locked;
 
-    /** Quyền nghiệp vụ được cấp cho nhân viên, cách nhau dấu phẩy (xem {@link StaffPermission}). */
+    /** Vai trò nhân viên (RBAC) - quyết định nhóm quyền chính. */
+    @ManyToOne(fetch = FetchType.EAGER)
+    private StaffRole staffRole;
+
+    /** Quyền cấp thêm ngoài vai trò, cách nhau dấu phẩy (xem {@link StaffPermission}). */
     @Column(length = 200)
     private String permissions;
+
+    /** Bằng cấp chuyên môn (VD: Dược sĩ đại học - ĐH Dược Hà Nội). */
+    @Column(length = 200)
+    private String degree;
+
+    /** Ca làm việc (VD: Ca sáng 7h-15h). */
+    @Column(length = 100)
+    private String shift;
 
     /** Lần hoạt động gần nhất (để biết dược sĩ đang online). */
     private LocalDateTime lastSeenAt;
@@ -77,8 +89,9 @@ public class User {
 
     public boolean hasPermission(StaffPermission p) {
         if (role == Role.ADMIN) return true;
-        if (role != Role.PHARMACIST || permissions == null) return false;
-        return java.util.Arrays.asList(permissions.split(",")).contains(p.name());
+        if (role != Role.PHARMACIST) return false;
+        if (staffRole != null && staffRole.has(p)) return true;
+        return permissions != null && java.util.Arrays.asList(permissions.split(",")).contains(p.name());
     }
 
     /** Dùng trong template: ${currentUser.can('CONTENT')} */
@@ -90,6 +103,16 @@ public class User {
         java.util.Set<StaffPermission> set = java.util.EnumSet.noneOf(StaffPermission.class);
         for (StaffPermission p : StaffPermission.values()) if (hasPermission(p)) set.add(p);
         return set;
+    }
+
+    /** Quyền cấp thêm riêng cho người này (ngoài vai trò). */
+    public boolean hasExtra(StaffPermission p) {
+        return permissions != null && java.util.Arrays.asList(permissions.split(",")).contains(p.name());
+    }
+
+    public String getPositionLabel() {
+        if (role == Role.ADMIN) return "Quản trị viên";
+        return staffRole != null ? staffRole.getName() : role.getLabel();
     }
 
     /** Online nếu có hoạt động trong 5 phút gần nhất. */

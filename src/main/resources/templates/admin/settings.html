@@ -8,15 +8,32 @@
         <header th:replace="~{fragments/staff :: topbar}"></header>
         <main class="p-3 p-lg-4">
             <div th:replace="~{fragments/layout :: flash}"></div>
-            <form th:action="@{/admin/settings}" method="post" class="card" style="max-width: 820px">
-                <div class="card-body row g-3">
-                    <div class="col-md-6" th:each="e : ${labels}">
-                        <label class="form-label small fw-semibold" th:for="${e.key}" th:text="${e.value}"></label>
-                        <input class="form-control" th:id="${e.key}" th:name="${e.key}" th:value="${values[e.key]}"
-                               th:type="${numeric.contains(e.key)} ? 'number' : 'text'" th:min="${numeric.contains(e.key)} ? 0 : null">
+            <form th:action="@{/admin/settings}" method="post" style="max-width: 980px">
+                <div class="card mb-4" th:each="g : ${groups}">
+                    <div class="card-header fw-semibold" th:text="${g.key}"></div>
+                    <div class="card-body row g-3">
+                        <div th:each="k : ${g.value}" th:class="${textareas.contains(k)} ? 'col-12' : 'col-md-6'">
+                            <label class="form-label small fw-semibold" th:for="${k}" th:text="${labels[k]}"></label>
+                            <select th:if="${booleans.contains(k)}" class="form-select" th:id="${k}" th:name="${k}">
+                                <option value="1" th:selected="${values[k] == '1'}">Bật</option>
+                                <option value="0" th:selected="${values[k] == '0'}">Tắt</option>
+                            </select>
+                            <textarea th:if="${textareas.contains(k)}" class="form-control" th:id="${k}" th:name="${k}" th:rows="${k == 'carriers' ? 5 : 2}" th:text="${values[k]}"></textarea>
+                            <input th:unless="${booleans.contains(k) || textareas.contains(k)}" class="form-control" th:id="${k}" th:name="${k}" th:value="${values[k]}"
+                                   th:type="${numeric.contains(k)} ? 'number' : 'text'" th:min="${numeric.contains(k)} ? 0 : null">
+                        </div>
                     </div>
                 </div>
-                <div class="card-footer bg-white"><button class="btn btn-primary">Lưu cấu hình</button></div>
+                <div class="card mb-4">
+                    <div class="card-body small d-flex flex-wrap gap-3">
+                        <a th:href="@{/admin/shipping-zones}"><i class="bi bi-geo-alt"></i> Khu vực giao hàng & biểu phí</a>
+                        <a th:href="@{/admin/loyalty}"><i class="bi bi-gem"></i> Tích điểm & hạng thành viên</a>
+                        <a th:href="@{/admin/min-stock}"><i class="bi bi-sliders"></i> Định mức tồn & cận hạn</a>
+                        <a th:href="@{/admin/pages}"><i class="bi bi-file-earmark-text"></i> Trang chính sách</a>
+                        <a th:href="@{/admin/backup}"><i class="bi bi-database-down"></i> Sao lưu dữ liệu</a>
+                    </div>
+                </div>
+                <div class="position-sticky bottom-0 bg-white py-2"><button class="btn btn-primary">Lưu cấu hình</button></div>
             </form>
         </main>
     </div>

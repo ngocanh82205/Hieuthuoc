@@ -18,7 +18,7 @@ import java.util.UUID;
  */
 @Service
 public class FileStorageService {
-    public enum Kind { PRESCRIPTIONS, CHAT, PRODUCTS }
+    public enum Kind { PRESCRIPTIONS, CHAT, PRODUCTS, BANNERS }
 
     private static final Map<String, String> ALLOWED = Map.of(
             "image/jpeg", ".jpg", "image/png", ".png", "image/webp", ".webp", "image/gif", ".gif");
