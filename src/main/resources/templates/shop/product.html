@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body>
+<header th:replace="~{fragments/layout :: navbar}"></header>
+<main class="container py-4" th:with="p=${product}">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a th:href="@{/}">Trang chủ</a></li>
+            <li class="breadcrumb-item" th:if="${p.category != null}">
+                <a th:href="@{/products(category=${p.category.slug})}" th:text="${p.category.name}">Danh mục</a></li>
+            <li class="breadcrumb-item active" th:text="${p.name}">Sản phẩm</li>
+        </ol>
+    </nav>
+    <div th:replace="~{fragments/layout :: flash}"></div>
+
+    <div class="card mb-4">
+        <div class="card-body p-md-4">
+            <div class="row g-4">
+                <div class="col-md-5">
+                    <div class="product-hero-img">
+                        <img th:if="${p.image != null}" th:src="@{${p.image}}" th:alt="${p.name}">
+                        <i th:unless="${p.image != null}" class="bi" th:classappend="${p.category != null ? p.category.icon : 'bi-capsule'}"></i>
+                    </div>
+                </div>
+                <div class="col-md-7">
+                    <span class="badge mb-2" th:classappend="'text-bg-' + ${p.drugType.color}" th:text="${p.drugType.label}">OTC</span>
+                    <h1 class="h3 fw-bold" th:text="${p.name}">Tên sản phẩm</h1>
+                    <div class="small text-muted mb-3">
+                        <span th:if="${p.avgRating != null}"><span class="text-warning" th:text="${@fmt.stars(p.avgRating)}"></span>
+                            <span th:text="${p.avgRating} + '/5 (' + ${reviews.size()} + ' đánh giá)'"></span> · </span>
+                        <span th:text="'Đã bán ' + ${p.sold}"></span>
+                        <span th:if="${p.registrationNo != null}"> · SĐK: <span th:text="${p.registrationNo}"></span></span>
+                    </div>
+                    <div class="d-flex align-items-baseline gap-2 mb-3">
+                        <span class="price fs-3" th:text="${@fmt.money(p.price)}">0 ₫</span>
+                        <span class="text-muted">/ <span th:text="${p.unit}"></span></span>
+                        <del th:if="${p.onSale}" class="text-muted" th:text="${@fmt.money(p.oldPrice)}"></del>
+                        <span th:if="${p.onSale}" class="badge bg-danger" th:text="'-' + ${p.discountPercent} + '%'"></span>
+                    </div>
+                    <table class="table table-sm spec-table mb-3">
+                        <tr th:if="${p.activeIngredient != null}"><th>Hoạt chất</th><td th:text="${p.activeIngredient}"></td></tr>
+                        <tr th:if="${p.strength != null}"><th>Hàm lượng</th><td th:text="${p.strength}"></td></tr>
+                        <tr th:if="${p.dosageForm != null}"><th>Dạng bào chế</th><td th:text="${p.dosageForm}"></td></tr>
+                        <tr th:if="${p.packaging != null}"><th>Quy cách</th><td th:text="${p.packaging}"></td></tr>
+                        <tr th:if="${p.manufacturer != null}"><th>Nhà sản xuất</th><td th:text="${p.manufacturer} + (${p.country != null} ? ' (' + ${p.country} + ')' : '')"></td></tr>
+                        <tr><th>Tình trạng</th>
+                            <td>
+                                <span th:if="${p.drugType.name() == 'SPECIAL'}" class="text-danger">Không bán online</span>
+                                <span th:if="${p.drugType.name() != 'SPECIAL' && p.available > 0}" class="text-success">
+                                    <i class="bi bi-check-circle"></i> Còn hàng</span>
+                                <span th:if="${p.drugType.name() != 'SPECIAL' && p.available <= 0}" class="text-muted">Tạm hết hàng</span>
+                                <span th:if="${p.maxPerOrder != null && p.drugType.name() != 'SPECIAL'}" class="text-muted small">
+                                    · Tối đa <span th:text="${p.maxPerOrder}"></span> <span th:text="${p.unit}"></span>/đơn</span>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <div th:if="${p.drugType.name() == 'ETC'}" class="rx-notice p-3 mb-3 small">
+                        <i class="bi bi-file-earmark-medical text-danger me-1"></i>
+                        <strong>Thuốc kê đơn:</strong> bạn cần tải lên ảnh đơn thuốc của bác sĩ khi đặt hàng.
+                        Dược sĩ sẽ kiểm tra đơn trước khi xác nhận. Thuốc kê đơn không áp dụng mã giảm giá.
+                    </div>
+                    <div th:if="${p.drugType.name() == 'SPECIAL'}" class="alert alert-dark small">
+                        <i class="bi bi-slash-circle me-1"></i>Thuốc thuộc danh mục kiểm soát đặc biệt, theo quy định không bán qua mạng.
+                        Vui lòng mang đơn thuốc đến trực tiếp nhà thuốc.
+                    </div>
+
+                    <form th:if="${p.drugType.name() != 'SPECIAL' && p.available > 0}" th:action="@{/cart/add}" method="post" class="js-add-cart d-flex flex-wrap gap-2">
+                        <input type="hidden" name="productId" th:value="${p.id}">
+                        <div class="input-group" style="width: 140px">
+                            <span class="input-group-text">SL</span>
+                            <input type="number" name="qty" value="1" min="1" th:max="${p.maxPerOrder != null ? p.maxPerOrder : p.available}" class="form-control">
+                        </div>
+                        <button class="btn btn-outline-primary"><i class="bi bi-bag-plus"></i> Thêm vào giỏ</button>
+                        <button class="btn btn-primary" name="buyNow" value="1"><i class="bi bi-lightning"></i> Mua ngay</button>
+                    </form>
+                    <a th:href="@{/consult}" class="btn btn-link px-0 mt-2"><i class="bi bi-chat-dots"></i> Cần tư vấn? Hỏi dược sĩ</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">Thông tin sản phẩm</div>
+                <div class="card-body">
+                    <h2 class="h6 fw-semibold">Công dụng</h2>
+                    <p th:text="${p.description ?: 'Đang cập nhật.'}"></p>
+                    <th:block th:if="${p.usageInstruction != null}">
+                        <h2 class="h6 fw-semibold">Liều dùng - cách dùng</h2>
+                        <p th:text="${p.usageInstruction}"></p>
+                    </th:block>
+                    <th:block th:if="${p.contraindications != null}">
+                        <h2 class="h6 fw-semibold">Chống chỉ định</h2>
+                        <p th:text="${p.contraindications}"></p>
+                    </th:block>
+                    <th:block th:if="${p.sideEffects != null}">
+                        <h2 class="h6 fw-semibold">Tác dụng phụ</h2>
+                        <p th:text="${p.sideEffects}"></p>
+                    </th:block>
+                    <p class="small text-muted mb-0"><i class="bi bi-info-circle"></i> Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+                        Thông tin chỉ mang tính tham khảo, không thay thế tư vấn của bác sĩ/dược sĩ.</p>
+                </div>
+            </div>
+
+            <div class="card" id="reviews">
+                <div class="card-header">Đánh giá từ khách hàng</div>
+                <div class="card-body">
+                    <form th:if="${canReview}" th:action="@{/products/{s}/reviews(s=${p.slug})}" method="post" class="border rounded p-3 mb-4">
+                        <div class="mb-2">
+                            <label class="form-label small fw-semibold">Chấm điểm</label>
+                            <select name="rating" class="form-select form-select-sm w-auto" required>
+                                <option value="5">★★★★★ Rất tốt</option>
+                                <option value="4">★★★★☆ Tốt</option>
+                                <option value="3">★★★☆☆ Bình thường</option>
+                                <option value="2">★★☆☆☆ Chưa tốt</option>
+                                <option value="1">★☆☆☆☆ Tệ</option>
+                            </select>
+                        </div>
+                        <textarea name="comment" class="form-control mb-2" rows="2" maxlength="1000" placeholder="Chia sẻ trải nghiệm của bạn"></textarea>
+                        <button class="btn btn-primary btn-sm">Gửi đánh giá</button>
+                    </form>
+                    <p th:if="${reviews.isEmpty()}" class="text-muted mb-0">Chưa có đánh giá nào.</p>
+                    <div th:each="r : ${reviews}" class="border-bottom py-2">
+                        <div class="d-flex justify-content-between">
+                            <strong th:text="${r.user.fullName}">Khách</strong>
+                            <small class="text-muted" th:text="${@fmt.date(r.createdAt)}"></small>
+                        </div>
+                        <div class="text-warning small" th:text="${@fmt.stars(r.rating)}"></div>
+                        <p class="mb-0" th:text="${r.comment}"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card mb-4" th:if="${!equivalents.isEmpty()}">
+                <div class="card-header">Sản phẩm cùng hoạt chất</div>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item" th:each="e : ${equivalents}">
+                        <a th:href="@{/products/{s}(s=${e.slug})}" class="fw-semibold" th:text="${e.name}"></a>
+                        <div class="small d-flex justify-content-between">
+                            <span class="text-muted" th:text="${e.manufacturer}"></span>
+                            <span class="price small" th:text="${@fmt.money(e.price)}"></span>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+            <div class="card" th:if="${!related.isEmpty()}">
+                <div class="card-header">Sản phẩm liên quan</div>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item" th:each="e : ${related}">
+                        <a th:href="@{/products/{s}(s=${e.slug})}" class="fw-semibold" th:text="${e.name}"></a>
+                        <div class="small d-flex justify-content-between">
+                            <span class="badge" th:classappend="'text-bg-' + ${e.drugType.color}" th:text="${e.drugType.shortLabel}"></span>
+                            <span class="price small" th:text="${@fmt.money(e.price)}"></span>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

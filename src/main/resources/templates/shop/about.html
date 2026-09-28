@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body>
+<header th:replace="~{fragments/layout :: navbar}"></header>
+<main class="container py-4">
+    <h1 class="h4 fw-bold mb-3">Giới thiệu & chính sách</h1>
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">Về chúng tôi</div>
+                <div class="card-body">
+                    <p><strong th:text="${settings['store_name']}"></strong> là nhà thuốc đạt chuẩn GPP, cung cấp thuốc, thực phẩm chức năng,
+                        dụng cụ y tế và dược mỹ phẩm chính hãng, có nguồn gốc rõ ràng.</p>
+                    <ul class="mb-0">
+                        <li th:text="${settings['business_license']}"></li>
+                        <li th:text="${settings['gpp_cert']}"></li>
+                        <li>Dược sĩ phụ trách chuyên môn: <span th:text="${settings['pharmacist_in_charge']}"></span></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="card mb-4">
+                <div class="card-header">Quy định mua thuốc</div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        <li><strong>Thuốc không kê đơn, TPCN, dụng cụ y tế, mỹ phẩm:</strong> đặt mua và thanh toán trực tiếp.</li>
+                        <li><strong>Thuốc kê đơn:</strong> bắt buộc tải lên ảnh đơn thuốc hợp lệ. Dược sĩ kiểm tra đơn, có thể điều chỉnh số lượng
+                            theo đơn hoặc từ chối nếu đơn không hợp lệ. Thanh toán online chỉ thực hiện sau khi đơn thuốc được duyệt.</li>
+                        <li><strong>Thuốc gây nghiện, hướng thần, tiền chất:</strong> không bán online theo quy định.</li>
+                        <li>Một số thuốc có giới hạn số lượng tối đa trên mỗi đơn hàng.</li>
+                        <li>Không áp dụng khuyến mại, mã giảm giá cho thuốc kê đơn.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="card" id="returns">
+                <div class="card-header">Chính sách đổi trả</div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        <li>Yêu cầu đổi/trả trong vòng <strong th:text="${settings['return_days']}"></strong> ngày kể từ khi nhận hàng.</li>
+                        <li>Áp dụng khi sản phẩm bị giao sai, hư hỏng, cận hạn sử dụng hoặc lỗi từ nhà thuốc.</li>
+                        <li>Vì lý do an toàn, thuốc đã mở niêm phong hoặc bảo quản không đúng điều kiện sẽ không được nhập lại kho.</li>
+                        <li>Tiền được hoàn theo phương thức thanh toán ban đầu sau khi yêu cầu được chấp nhận.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">Giao hàng</div>
+                <div class="card-body small">
+                    <p>Phí giao hàng: <strong th:text="${@fmt.money(settings['shipping_fee'])}"></strong>.</p>
+                    <p>Miễn phí giao hàng cho đơn từ <strong th:text="${@fmt.money(settings['free_ship_threshold'])}"></strong>.</p>
+                    <p class="mb-0">Nhận tại nhà thuốc: <span th:text="${settings['store_address']}"></span>.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

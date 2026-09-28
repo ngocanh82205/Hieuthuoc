@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="staff-body">
+<div class="staff-shell">
+    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
+    <div class="staff-main">
+        <header th:replace="~{fragments/staff :: topbar}"></header>
+        <main class="p-3 p-lg-4">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="card mb-4" th:with="r=${receipt}">
+                <div class="card-header d-flex justify-content-between">
+                    <span>Phiếu <strong th:text="${r.code}"></strong></span>
+                    <span class="badge" th:classappend="'text-bg-' + ${r.status.color}" th:text="${r.status.label}"></span>
+                </div>
+                <div class="card-body small">
+                    <div class="row">
+                        <div class="col-md-4"><strong>Nhà cung cấp:</strong> <span th:text="${r.supplier != null ? r.supplier.name : '-'}"></span></div>
+                        <div class="col-md-4"><strong>Người tạo:</strong> <span th:text="${r.createdBy != null ? r.createdBy.fullName : ''}"></span> · <span th:text="${@fmt.dateTime(r.createdAt)}"></span></div>
+                        <div class="col-md-4" th:if="${r.approvedBy != null}"><strong>Người duyệt:</strong> <span th:text="${r.approvedBy.fullName}"></span> · <span th:text="${@fmt.dateTime(r.approvedAt)}"></span></div>
+                    </div>
+                    <div th:if="${r.note != null}" class="mt-2"><strong>Ghi chú:</strong> <span th:text="${r.note}"></span></div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table mb-0">
+                        <thead><tr><th>Sản phẩm</th><th>Số lô</th><th>NSX</th><th>HSD</th><th class="text-end">SL</th><th class="text-end">Giá nhập</th><th class="text-end">Thành tiền</th></tr></thead>
+                        <tbody>
+                        <tr th:each="it : ${r.items}">
+                            <td th:text="${it.product.name}"></td>
+                            <td th:text="${it.batchNo}"></td>
+                            <td class="small" th:text="${@fmt.date(it.mfgDate)}"></td>
+                            <td class="small" th:text="${@fmt.date(it.expDate)}"></td>
+                            <td class="text-end" th:text="${it.quantity} + ' ' + ${it.product.unit}"></td>
+                            <td class="text-end" th:text="${@fmt.money(it.importPrice)}"></td>
+                            <td class="text-end" th:text="${@fmt.money(it.quantity * it.importPrice)}"></td>
+                        </tr>
+                        </tbody>
+                        <tfoot><tr class="fw-bold"><td colspan="6" class="text-end">Tổng giá trị</td><td class="text-end" th:text="${@fmt.money(r.total)}"></td></tr></tfoot>
+                    </table>
+                </div>
+                <div class="card-footer bg-white" th:if="${r.status.name() == 'PENDING'}">
+                    <form th:if="${currentUser.role.name() == 'ADMIN'}" th:action="@{/staff/receipts/{id}/decide(id=${r.id})}" method="post" class="d-flex gap-2">
+                        <button class="btn btn-success" name="decision" value="approve" data-confirm="Duyệt phiếu nhập và đưa hàng vào kho?"><i class="bi bi-check2"></i> Duyệt nhập kho</button>
+                        <button class="btn btn-outline-danger" name="decision" value="reject">Từ chối</button>
+                    </form>
+                    <span th:unless="${currentUser.role.name() == 'ADMIN'}" class="small text-muted">Đang chờ admin duyệt.</span>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

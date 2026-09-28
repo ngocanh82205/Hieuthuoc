@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="staff-body">
+<div class="staff-shell">
+    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
+    <div class="staff-main">
+        <header th:replace="~{fragments/staff :: topbar}"></header>
+        <main class="p-3 p-lg-4">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="row g-4">
+                <div class="col-xl-8">
+                    <div class="card" id="chat" th:attr="data-me=${currentUser.id},data-last-id=${messages.isEmpty() ? 0 : messages[messages.size() - 1].id()},data-fetch-url=@{/staff/consultations/{id}/messages(id=${conv.id})}">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span th:text="${customer.fullName}"></span>
+                            <form th:action="@{/staff/consultations/{id}/close(id=${conv.id})}" method="post">
+                                <button class="btn btn-sm btn-outline-secondary" th:text="${conv.closed} ? 'Mở lại' : 'Đóng cuộc tư vấn'"></button>
+                            </form>
+                        </div>
+                        <div class="card-body">
+                            <div class="chat-box mb-3">
+                                <div th:if="${messages.isEmpty()}" class="chat-empty text-center text-muted py-5">Chưa có tin nhắn.</div>
+                                <div th:each="m : ${messages}" class="chat-msg" th:classappend="${m.senderId() == currentUser.id} ? 'mine'">
+                                    <div class="bubble"><th:block th:text="${m.body()}"></th:block><a th:if="${m.imageUrl() != null}" th:href="${m.imageUrl()}" target="_blank"><img th:src="${m.imageUrl()}" alt="Ảnh đính kèm"></a></div>
+                                    <div class="meta" th:text="${m.senderId() == currentUser.id} ? ${m.time()} : ${m.senderName()} + (${m.fromStaff()} ? ' (Dược sĩ)' : '') + ' · ' + ${m.time()}"></div>
+                                </div>
+                            </div>
+                            <form th:action="@{/staff/consultations/{id}/messages(id=${conv.id})}" method="post" enctype="multipart/form-data">
+                                <textarea name="body" class="form-control mb-2" rows="3" maxlength="2000" placeholder="Nhập câu trả lời..."></textarea>
+                                <div class="d-flex flex-wrap gap-2 align-items-center">
+                                    <select class="form-select form-select-sm" style="max-width: 320px" data-insert aria-label="Gợi ý sản phẩm">
+                                        <option value="">+ Gợi ý sản phẩm...</option>
+                                        <option th:each="p : ${products}" th:value="|${p.name} - ${@fmt.money(p.price)}/${p.unit}: /products/${p.slug}|"
+                                                th:text="${p.name}"></option>
+                                    </select>
+                                    <input type="file" name="image" class="form-control form-control-sm" style="max-width: 260px" accept="image/jpeg,image/png,image/webp,image/gif">
+                                    <button type="submit" class="btn btn-primary ms-auto"><i class="bi bi-send"></i> Gửi</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-4">
+                    <div class="health-box p-3 mb-3 small">
+                        <div class="fw-semibold mb-2"><i class="bi bi-heart-pulse text-danger"></i> Hồ sơ sức khỏe</div>
+                        <div th:text="${customer.phone} + ' · ' + ${customer.email}"></div>
+                        <div th:if="${customer.gender != null || customer.birthday != null}" th:text="${customer.gender ?: ''} + ' ' + (${customer.birthday != null} ? 'sinh ' + ${@fmt.date(customer.birthday)} : '')"></div>
+                        <div><strong>Dị ứng:</strong> <span th:text="${customer.allergies ?: 'Không ghi nhận'}"></span></div>
+                        <div><strong>Bệnh nền:</strong> <span th:text="${customer.chronicConditions ?: 'Không ghi nhận'}"></span></div>
+                        <div th:if="${customer.pregnancy}" class="text-danger fw-semibold">Đang mang thai / cho con bú</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">Đơn hàng gần đây</div>
+                        <ul class="list-group list-group-flush small">
+                            <li th:if="${orders.isEmpty()}" class="list-group-item text-muted">Chưa có đơn hàng.</li>
+                            <li class="list-group-item" th:each="o : ${orders}">
+                                <a th:href="@{/staff/orders/{id}(id=${o.id})}" th:text="${o.code}"></a>
+                                <span th:replace="~{fragments/staff :: orderStatus(${o.status})}"></span>
+                                <div class="text-muted" th:text="${@fmt.date(o.createdAt)} + ' · ' + ${@fmt.money(o.total)}"></div>
+                                <div th:text="${#strings.listJoin(o.items.![productName], ', ')}"></div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

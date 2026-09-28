@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="staff-body">
+<div class="staff-shell">
+    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
+    <div class="staff-main">
+        <header th:replace="~{fragments/staff :: topbar}"></header>
+        <main class="p-3 p-lg-4">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="card">
+                <ul class="list-group list-group-flush">
+                    <li th:if="${notifications.isEmpty()}" class="list-group-item text-muted">Chưa có thông báo.</li>
+                    <li class="list-group-item" th:each="n : ${notifications}" th:classappend="${!n.seen} ? 'bg-light fw-semibold'">
+                        <a th:if="${n.link != null}" th:href="@{${n.link}}" th:text="${n.message}"></a>
+                        <span th:unless="${n.link != null}" th:text="${n.message}"></span>
+                        <div class="small text-muted fw-normal" th:text="${@fmt.dateTime(n.createdAt)}"></div>
+                    </li>
+                </ul>
+            </div>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body>
+<header th:replace="~{fragments/layout :: navbar}"></header>
+<main class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a th:href="@{/}">Trang chủ</a></li>
+            <li class="breadcrumb-item active" th:text="${title}">Sản phẩm</li>
+        </ol>
+    </nav>
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <div class="row g-4">
+        <aside class="col-lg-3">
+            <form th:action="@{/products}" method="get" class="card">
+                <div class="card-header">Bộ lọc</div>
+                <div class="card-body">
+                    <input type="hidden" name="q" th:value="${q}">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Danh mục</label>
+                        <select name="category" class="form-select form-select-sm" data-autosubmit>
+                            <option value="">Tất cả</option>
+                            <option th:each="c : ${navCategories}" th:value="${c.slug}" th:text="${c.name}"
+                                    th:selected="${category != null && category.id == c.id}"></option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Loại sản phẩm</label>
+                        <select name="type" class="form-select form-select-sm" data-autosubmit>
+                            <option value="">Tất cả</option>
+                            <option th:each="t : ${drugTypes}" th:value="${t.name()}" th:text="${t.label}" th:selected="${type == t}"></option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Khoảng giá (đ)</label>
+                        <div class="d-flex gap-2">
+                            <input type="number" name="min" min="0" step="1000" class="form-control form-control-sm" placeholder="Từ" th:value="${min}">
+                            <input type="number" name="max" min="0" step="1000" class="form-control form-control-sm" placeholder="Đến" th:value="${max}">
+                        </div>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="instock" value="1" id="instock" th:checked="${instock}">
+                        <label class="form-check-label small" for="instock">Chỉ hiện sản phẩm còn hàng</label>
+                    </div>
+                    <input type="hidden" name="sort" th:value="${sort}">
+                    <button class="btn btn-primary btn-sm w-100">Áp dụng</button>
+                    <a th:href="@{/products}" class="btn btn-link btn-sm w-100">Xóa bộ lọc</a>
+                </div>
+            </form>
+        </aside>
+        <section class="col-lg-9">
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+                <div>
+                    <h1 class="h4 fw-bold mb-0" th:text="${title}">Sản phẩm</h1>
+                    <div class="small text-muted" th:text="${page.totalElements} + ' sản phẩm'"></div>
+                </div>
+                <form th:action="@{/products}" method="get" class="d-flex align-items-center gap-2">
+                    <input type="hidden" name="q" th:value="${q}">
+                    <input type="hidden" name="category" th:value="${category != null ? category.slug : ''}">
+                    <input type="hidden" name="type" th:value="${type != null ? type.name() : ''}">
+                    <input type="hidden" name="min" th:value="${min}">
+                    <input type="hidden" name="max" th:value="${max}">
+                    <input th:if="${instock}" type="hidden" name="instock" value="1">
+                    <label class="small text-muted text-nowrap" for="sort">Sắp xếp</label>
+                    <select id="sort" name="sort" class="form-select form-select-sm" data-autosubmit>
+                        <option value="bestseller" th:selected="${sort == 'bestseller'}">Bán chạy</option>
+                        <option value="newest" th:selected="${sort == 'newest'}">Mới nhất</option>
+                        <option value="price_asc" th:selected="${sort == 'price_asc'}">Giá tăng dần</option>
+                        <option value="price_desc" th:selected="${sort == 'price_desc'}">Giá giảm dần</option>
+                        <option value="name" th:selected="${sort == 'name'}">Tên A-Z</option>
+                    </select>
+                </form>
+            </div>
+            <div th:if="${page.empty}" class="card card-body text-center text-muted py-5">
+                <i class="bi bi-search fs-1"></i>
+                <p class="mb-0 mt-2">Không tìm thấy sản phẩm phù hợp. Bạn có thể <a th:href="@{/consult}">hỏi dược sĩ</a> để được tư vấn.</p>
+            </div>
+            <div class="row row-cols-2 row-cols-md-3 g-3">
+                <div class="col" th:each="p : ${page.content}"><div th:replace="~{fragments/layout :: productCard(${p})}"></div></div>
+            </div>
+            <nav th:replace="~{fragments/layout :: pagination(${page})}"></nav>
+        </section>
+    </div>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- ============ SIDEBAR (dược sĩ / admin) ============ -->
+<aside th:fragment="sidebar" class="staff-sidebar offcanvas-lg offcanvas-start" tabindex="-1" id="staffSidebar">
+    <div class="offcanvas-header d-lg-none">
+        <span class="fw-bold">Menu</span>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" data-bs-target="#staffSidebar" aria-label="Đóng"></button>
+    </div>
+    <div class="sidebar-inner">
+        <a th:href="@{/staff}" class="sidebar-brand">
+            <span class="brand-mark"><i class="bi bi-plus-lg"></i></span>
+            <span th:text="${settings['store_name']}">Nhà thuốc</span>
+        </a>
+        <div class="sidebar-label">Dược sĩ / Nhân viên</div>
+        <nav class="nav flex-column">
+            <a class="nav-link" th:href="@{/staff}" th:classappend="${requestPath == '/staff'} ? 'active'"><i class="bi bi-speedometer2"></i>Tổng quan</a>
+            <a class="nav-link" th:href="@{/staff/prescriptions}" th:classappend="${#strings.startsWith(requestPath, '/staff/prescriptions')} ? 'active'"><i class="bi bi-file-earmark-medical"></i>Duyệt đơn thuốc</a>
+            <a class="nav-link" th:href="@{/staff/orders}" th:classappend="${#strings.startsWith(requestPath, '/staff/orders')} ? 'active'"><i class="bi bi-receipt"></i>Đơn hàng</a>
+            <a class="nav-link" th:href="@{/staff/consultations}" th:classappend="${#strings.startsWith(requestPath, '/staff/consultations')} ? 'active'"><i class="bi bi-chat-dots"></i>Tư vấn khách hàng</a>
+            <a class="nav-link" th:href="@{/staff/inventory}" th:classappend="${requestPath == '/staff/inventory' || (#strings.startsWith(requestPath, '/staff/inventory/') && requestPath != '/staff/inventory/alerts') || #strings.startsWith(requestPath, '/staff/batches')} ? 'active'"><i class="bi bi-box-seam"></i>Tồn kho theo lô</a>
+            <a class="nav-link" th:href="@{/staff/inventory/alerts}" th:classappend="${requestPath == '/staff/inventory/alerts'} ? 'active'"><i class="bi bi-exclamation-triangle"></i>Cảnh báo kho</a>
+            <a class="nav-link" th:href="@{/staff/receipts}" th:classappend="${#strings.startsWith(requestPath, '/staff/receipts')} ? 'active'"><i class="bi bi-truck"></i>Phiếu nhập kho</a>
+            <a class="nav-link" th:href="@{/staff/rx-log}" th:classappend="${requestPath == '/staff/rx-log'} ? 'active'"><i class="bi bi-journal-medical"></i>Sổ thuốc kê đơn</a>
+            <a class="nav-link" th:href="@{/staff/reviews}" th:classappend="${requestPath == '/staff/reviews'} ? 'active'"><i class="bi bi-star"></i>Đánh giá</a>
+            <a class="nav-link" th:href="@{/staff/posts}" th:classappend="${#strings.startsWith(requestPath, '/staff/posts')} ? 'active'"><i class="bi bi-newspaper"></i>Bài viết sức khỏe</a>
+        </nav>
+        <th:block th:if="${currentUser.role.name() == 'ADMIN'}">
+            <div class="sidebar-label">Quản trị</div>
+            <nav class="nav flex-column">
+                <a class="nav-link" th:href="@{/admin}" th:classappend="${requestPath == '/admin'} ? 'active'"><i class="bi bi-graph-up"></i>Bảng điều khiển</a>
+                <a class="nav-link" th:href="@{/admin/reports}" th:classappend="${requestPath == '/admin/reports'} ? 'active'"><i class="bi bi-bar-chart"></i>Báo cáo thống kê</a>
+                <a class="nav-link" th:href="@{/admin/products}" th:classappend="${#strings.startsWith(requestPath, '/admin/products')} ? 'active'"><i class="bi bi-capsule"></i>Sản phẩm</a>
+                <a class="nav-link" th:href="@{/admin/categories}" th:classappend="${requestPath == '/admin/categories'} ? 'active'"><i class="bi bi-grid"></i>Danh mục</a>
+                <a class="nav-link" th:href="@{/admin/suppliers}" th:classappend="${requestPath == '/admin/suppliers'} ? 'active'"><i class="bi bi-building"></i>Nhà cung cấp</a>
+                <a class="nav-link" th:href="@{/admin/vouchers}" th:classappend="${requestPath == '/admin/vouchers'} ? 'active'"><i class="bi bi-ticket-perforated"></i>Mã giảm giá</a>
+                <a class="nav-link" th:href="@{/admin/users}" th:classappend="${#strings.startsWith(requestPath, '/admin/users')} ? 'active'"><i class="bi bi-person-badge"></i>Nhân viên</a>
+                <a class="nav-link" th:href="@{/admin/customers}" th:classappend="${#strings.startsWith(requestPath, '/admin/customers')} ? 'active'"><i class="bi bi-people"></i>Khách hàng</a>
+                <a class="nav-link" th:href="@{/admin/settings}" th:classappend="${requestPath == '/admin/settings'} ? 'active'"><i class="bi bi-gear"></i>Cấu hình</a>
+                <a class="nav-link" th:href="@{/admin/logs}" th:classappend="${requestPath == '/admin/logs'} ? 'active'"><i class="bi bi-clock-history"></i>Nhật ký hệ thống</a>
+            </nav>
+        </th:block>
+    </div>
+</aside>
+
+<!-- ============ TOPBAR ============ -->
+<header th:fragment="topbar" class="staff-topbar">
+    <button class="btn btn-light d-lg-none" data-bs-toggle="offcanvas" data-bs-target="#staffSidebar" aria-label="Mở menu">
+        <i class="bi bi-list"></i>
+    </button>
+    <h1 class="h5 mb-0 text-truncate" th:text="${title}">Trang</h1>
+    <div class="ms-auto d-flex align-items-center gap-2">
+        <a th:href="@{/}" class="btn btn-sm btn-light" target="_blank" title="Xem website"><i class="bi bi-shop"></i><span class="d-none d-md-inline ms-1">Website</span></a>
+        <a th:href="@{/notifications}" class="btn btn-sm btn-light position-relative" aria-label="Thông báo">
+            <i class="bi bi-bell"></i>
+            <span th:if="${unreadCount > 0}" class="badge rounded-pill bg-danger position-absolute top-0 start-100 translate-middle" th:text="${unreadCount}">0</span>
+        </a>
+        <div class="dropdown">
+            <button class="btn btn-sm btn-light dropdown-toggle" data-bs-toggle="dropdown">
+                <i class="bi bi-person-circle"></i> <span class="d-none d-md-inline" th:text="${currentUser.fullName}">Tôi</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><span class="dropdown-item-text small text-muted" th:text="${currentUser.role.label}">Vai trò</span></li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <form th:action="@{/logout}" method="post">
+                        <button class="dropdown-item text-danger"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</button>
+                    </form>
+                </li>
+            </ul>
+        </div>
+    </div>
+</header>
+
+<!-- Badge trạng thái đơn hàng -->
+<span th:fragment="orderStatus(s)" class="badge" th:classappend="'text-bg-' + ${s.color}" th:text="${s.label}">Trạng thái</span>
+
+</body>
+</html>

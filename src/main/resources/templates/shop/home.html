@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body>
+<header th:replace="~{fragments/layout :: navbar}"></header>
+<main class="container py-4">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+
+    <section class="hero mb-4">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-7">
+                <h1 class="display-6">Thuốc chính hãng,<br>dược sĩ tư vấn tận tâm</h1>
+                <p class="lead mb-4">Mua thuốc không kê đơn, thực phẩm chức năng, dụng cụ y tế. Thuốc kê đơn được dược sĩ kiểm tra đơn trước khi bán.</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <a th:href="@{/products}" class="btn btn-light btn-lg text-primary fw-semibold"><i class="bi bi-grid"></i> Mua sắm ngay</a>
+                    <a th:href="@{/consult}" class="btn btn-outline-light btn-lg"><i class="bi bi-chat-dots"></i> Hỏi dược sĩ</a>
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <div class="d-grid gap-2">
+                    <div class="feature"><i class="bi bi-file-earmark-medical me-2"></i><strong>Mua thuốc theo đơn:</strong> tải ảnh đơn thuốc, dược sĩ duyệt trong giờ làm việc</div>
+                    <div class="feature"><i class="bi bi-truck me-2"></i><strong>Giao hàng nhanh</strong> - miễn phí cho đơn từ <span th:text="${@fmt.money(settings['free_ship_threshold'])}"></span></div>
+                    <div class="feature"><i class="bi bi-patch-check me-2"></i><strong>Truy xuất lô, hạn dùng</strong> rõ ràng cho từng sản phẩm</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="mb-5">
+        <h2 class="section-title">Danh mục sản phẩm</h2>
+        <div class="row row-cols-3 row-cols-md-5 g-2 g-md-3">
+            <div class="col" th:each="c : ${navCategories}">
+                <a class="category-tile" th:href="@{/products(category=${c.slug})}">
+                    <i class="bi" th:classappend="${c.icon}"></i>
+                    <span th:text="${c.name}">Danh mục</span>
+                    <small class="text-muted" th:text="${categoryCounts[c.id] != null ? categoryCounts[c.id] : 0} + ' sản phẩm'"></small>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section class="mb-5" th:if="${!onSale.isEmpty()}">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2 class="section-title"><i class="bi bi-lightning-charge text-danger"></i> Đang giảm giá</h2>
+        </div>
+        <div class="row row-cols-2 row-cols-md-4 g-3">
+            <div class="col" th:each="p : ${onSale}"><div th:replace="~{fragments/layout :: productCard(${p})}"></div></div>
+        </div>
+    </section>
+
+    <section class="mb-5">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2 class="section-title">Bán chạy nhất</h2>
+            <a th:href="@{/products(sort='bestseller')}">Xem tất cả <i class="bi bi-arrow-right"></i></a>
+        </div>
+        <div class="row row-cols-2 row-cols-md-4 g-3">
+            <div class="col" th:each="p : ${bestSellers}"><div th:replace="~{fragments/layout :: productCard(${p})}"></div></div>
+        </div>
+    </section>
+
+    <section class="mb-5">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2 class="section-title">Sản phẩm mới</h2>
+            <a th:href="@{/products(sort='newest')}">Xem tất cả <i class="bi bi-arrow-right"></i></a>
+        </div>
+        <div class="row row-cols-2 row-cols-md-4 g-3">
+            <div class="col" th:each="p : ${newest}"><div th:replace="~{fragments/layout :: productCard(${p})}"></div></div>
+        </div>
+    </section>
+
+    <section th:if="${!posts.isEmpty()}">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2 class="section-title">Góc sức khỏe</h2>
+            <a th:href="@{/posts}">Tất cả bài viết <i class="bi bi-arrow-right"></i></a>
+        </div>
+        <div class="row g-3">
+            <div class="col-md-4" th:each="post : ${posts}">
+                <a class="card h-100 text-reset" th:href="@{/posts/{s}(s=${post.slug})}">
+                    <div class="card-body">
+                        <div class="small text-muted mb-1" th:text="${@fmt.date(post.createdAt)}"></div>
+                        <h3 class="h6 fw-semibold" th:text="${post.title}">Tiêu đề</h3>
+                        <p class="small text-muted mb-0" th:text="${post.summary}">Tóm tắt</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

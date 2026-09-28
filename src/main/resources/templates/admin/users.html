@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="staff-body">
+<div class="staff-shell">
+    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
+    <div class="staff-main">
+        <header th:replace="~{fragments/staff :: topbar}"></header>
+        <main class="p-3 p-lg-4">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <p class="text-muted small mb-0">Vai trò: <strong>Dược sĩ / Nhân viên</strong> (tư vấn, duyệt đơn thuốc, xử lý đơn, kho) · <strong>Quản trị viên</strong> (toàn quyền).</p>
+                <a th:href="@{/admin/users/new}" class="btn btn-primary"><i class="bi bi-plus"></i> Thêm nhân viên</a>
+            </div>
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="table mb-0">
+                        <thead><tr><th>Họ tên</th><th>Email</th><th>SĐT</th><th>Vai trò</th><th>Chứng chỉ hành nghề</th><th class="text-end">Đơn thuốc đã xử lý</th><th>Trạng thái</th><th></th></tr></thead>
+                        <tbody>
+                        <tr th:each="u : ${staff}">
+                            <td class="fw-semibold" th:text="${u.fullName}"></td>
+                            <td th:text="${u.email}"></td>
+                            <td th:text="${u.phone}"></td>
+                            <td><span class="badge" th:classappend="${u.role.name() == 'ADMIN'} ? 'text-bg-dark' : 'text-bg-primary'" th:text="${u.role.label}"></span></td>
+                            <td class="small" th:text="${u.licenseNo}"></td>
+                            <td class="text-end" th:text="${rxCount[u.id]}"></td>
+                            <td><span class="badge" th:classappend="${u.locked} ? 'text-bg-danger' : 'text-bg-success'" th:text="${u.locked} ? 'Đã khóa' : 'Hoạt động'"></span></td>
+                            <td class="text-nowrap">
+                                <a th:href="@{/admin/users/{id}/edit(id=${u.id})}" class="btn btn-sm btn-outline-primary">Sửa</a>
+                                <form th:if="${u.id != currentUser.id}" th:action="@{/admin/users/{id}/lock(id=${u.id})}" method="post" class="d-inline">
+                                    <button class="btn btn-sm" th:classappend="${u.locked} ? 'btn-outline-success' : 'btn-outline-danger'" th:text="${u.locked} ? 'Mở khóa' : 'Khóa'"></button></form>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

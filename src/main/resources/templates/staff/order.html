@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="staff-body">
+<div class="staff-shell">
+    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
+    <div class="staff-main">
+        <header th:replace="~{fragments/staff :: topbar}"></header>
+        <main class="p-3 p-lg-4">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="row g-4" th:with="o=${order}">
+                <div class="col-xl-8">
+                    <div class="card mb-4">
+                        <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+                            <span>Đơn <strong th:text="${o.code}"></strong> · <span class="small text-muted" th:text="${@fmt.dateTime(o.createdAt)}"></span></span>
+                            <span>
+                                <span th:replace="~{fragments/staff :: orderStatus(${o.status})}"></span>
+                                <span class="badge" th:classappend="'text-bg-' + ${o.paymentStatus.color}" th:text="${o.paymentStatus.label}"></span>
+                            </span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table mb-0">
+                                <thead><tr><th>Sản phẩm</th><th class="text-end">Đơn giá</th><th>SL</th><th class="text-end">Thành tiền</th><th>Lô xuất (FEFO)</th></tr></thead>
+                                <tbody>
+                                <tr th:each="it : ${o.items}">
+                                    <td><div class="fw-semibold" th:text="${it.productName}"></div>
+                                        <span class="badge" th:if="${it.drugType != null}" th:classappend="'text-bg-' + ${it.drugType.color}" th:text="${it.drugType.shortLabel}"></span></td>
+                                    <td class="text-end text-nowrap" th:text="${@fmt.money(it.price)}"></td>
+                                    <td class="text-nowrap" th:text="${it.quantity} + ' ' + ${it.unit}"></td>
+                                    <td class="text-end text-nowrap" th:text="${@fmt.money(it.lineTotal)}"></td>
+                                    <td class="small">
+                                        <span th:if="${it.allocations.isEmpty()}" class="text-muted">Chưa xuất kho</span>
+                                        <div th:each="a : ${it.allocations}"><a th:href="@{/staff/batches/{id}/buyers(id=${a.batch.id})}" th:text="${a.batch.batchNo}"></a>
+                                            · HSD <span th:text="${@fmt.date(a.batch.expDate)}"></span> · SL <span th:text="${a.quantity}"></span></div>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6 offset-md-6">
+                                    <div class="d-flex justify-content-between"><span>Tạm tính</span><span th:text="${@fmt.money(o.subtotal)}"></span></div>
+                                    <div class="d-flex justify-content-between" th:if="${o.discount > 0}"><span th:text="'Giảm giá (' + ${o.voucherCode} + ')'"></span><span th:text="'-' + ${@fmt.money(o.discount)}"></span></div>
+                                    <div class="d-flex justify-content-between"><span>Phí giao hàng</span><span th:text="${@fmt.money(o.shippingFee)}"></span></div>
+                                    <div class="d-flex justify-content-between fw-bold border-top mt-2 pt-2"><span>Tổng cộng</span><span th:text="${@fmt.money(o.total)}"></span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mb-4" th:if="${!transitions.isEmpty()}">
+                        <div class="card-header">Cập nhật trạng thái</div>
+                        <div class="card-body">
+                            <div th:if="${o.status.name() == 'CONFIRMED'}" class="alert alert-info small py-2">
+                                Chuyển sang <strong>Đang chuẩn bị hàng</strong> sẽ trừ kho theo FEFO (lô hết hạn trước xuất trước) và ghi nhận số lô.</div>
+                            <form th:action="@{/staff/orders/{id}/status(id=${o.id})}" method="post" class="row g-2">
+                                <div class="col-md-7"><input name="note" class="form-control" placeholder="Ghi chú (bắt buộc khi hủy đơn)"></div>
+                                <div class="col-md-5 d-flex flex-wrap gap-2">
+                                    <button th:each="t : ${transitions}" name="to" th:value="${t}" class="btn"
+                                            th:classappend="${t.name() == 'CANCELLED'} ? 'btn-outline-danger' : 'btn-primary'"
+                                            th:attr="data-confirm=${t.name() == 'CANCELLED'} ? 'Xác nhận hủy đơn hàng?' : null"
+                                            th:text="${t.name() == 'CANCELLED'} ? 'Hủy đơn' : '→ ' + ${t.label}"></button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="card mb-4 border-warning" th:if="${o.returnStatus != null && o.returnStatus.name() == 'REQUESTED'}">
+                        <div class="card-header">Yêu cầu đổi/trả</div>
+                        <div class="card-body">
+                            <p>Lý do của khách: <strong th:text="${o.returnReason}"></strong></p>
+                            <form th:action="@{/staff/orders/{id}/return(id=${o.id})}" method="post" class="row g-2">
+                                <div class="col-12"><input name="note" class="form-control" placeholder="Ghi chú xử lý (bắt buộc khi từ chối)"></div>
+                                <div class="col-12 form-check ms-2">
+                                    <input class="form-check-input" type="checkbox" name="restock" value="true" id="restock">
+                                    <label class="form-check-label" for="restock">Nhập lại kho (chỉ khi thuốc còn nguyên niêm phong, bảo quản đúng)</label>
+                                </div>
+                                <div class="col-12 d-flex gap-2">
+                                    <button class="btn btn-success" name="decision" value="approve">Chấp nhận & hoàn tiền</button>
+                                    <button class="btn btn-outline-danger" name="decision" value="reject">Từ chối</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="card" th:if="${!o.prescriptions.isEmpty()}">
+                        <div class="card-header">Đơn thuốc</div>
+                        <ul class="list-group list-group-flush small">
+                            <li class="list-group-item d-flex justify-content-between align-items-center" th:each="rx : ${o.prescriptions}">
+                                <span>#<span th:text="${rx.id}"></span> · <span th:text="${@fmt.dateTime(rx.createdAt)}"></span>
+                                    <span class="badge" th:classappend="'text-bg-' + ${rx.status.color}" th:text="${rx.status.label}"></span></span>
+                                <a th:href="@{/staff/prescriptions/{id}(id=${rx.id})}" class="btn btn-sm btn-outline-primary">Xem</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-xl-4">
+                    <div class="card mb-4">
+                        <div class="card-header d-flex justify-content-between">Khách hàng
+                            <a th:href="@{/staff/orders/{id}/invoice(id=${o.id})}" target="_blank" class="small"><i class="bi bi-printer"></i> In hóa đơn</a></div>
+                        <div class="card-body small">
+                            <div class="fw-semibold" th:text="${o.user.fullName} + ' (' + ${o.user.email} + ')'"></div>
+                            <hr>
+                            <div><strong>Người nhận:</strong> <span th:text="${o.recipient} + ' · ' + ${o.phone}"></span></div>
+                            <div><strong>Nhận hàng:</strong> <span th:text="${o.shippingMethod.label}"></span></div>
+                            <div th:if="${o.address != null}" th:text="${o.address}"></div>
+                            <div><strong>Thanh toán:</strong> <span th:text="${o.paymentMethod.label}"></span></div>
+                            <div th:if="${o.note != null}"><strong>Ghi chú:</strong> <span th:text="${o.note}"></span></div>
+                            <div th:if="${o.handledBy != null}"><strong>Phụ trách:</strong> <span th:text="${o.handledBy.fullName}"></span></div>
+                            <div th:if="${o.cancelReason != null}" class="text-danger"><strong>Lý do hủy:</strong> <span th:text="${o.cancelReason}"></span></div>
+                            <div class="health-box p-2 mt-2" th:if="${o.user.allergies != null || o.user.chronicConditions != null}">
+                                <div th:if="${o.user.allergies != null}"><strong>Dị ứng:</strong> <span th:text="${o.user.allergies}"></span></div>
+                                <div th:if="${o.user.chronicConditions != null}"><strong>Bệnh nền:</strong> <span th:text="${o.user.chronicConditions}"></span></div>
+                            </div>
+                            <form th:if="${o.paymentStatus.name() == 'UNPAID' && o.status.name() != 'CANCELLED'}" th:action="@{/staff/orders/{id}/paid(id=${o.id})}" method="post" class="mt-3">
+                                <button class="btn btn-sm btn-outline-success"><i class="bi bi-cash-coin"></i> Xác nhận đã nhận tiền</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">Lịch sử xử lý</div>
+                        <div class="card-body">
+                            <ul class="timeline small">
+                                <li th:each="h : ${o.history}">
+                                    <div class="fw-semibold" th:text="${h.status.label}"></div>
+                                    <div class="text-muted" th:text="${@fmt.dateTime(h.createdAt)} + (${h.user != null} ? ' · ' + ${h.user.fullName} : '')"></div>
+                                    <div th:if="${h.note != null}" th:text="${h.note}"></div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

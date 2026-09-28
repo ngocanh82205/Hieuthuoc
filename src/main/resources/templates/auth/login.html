@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body>
+<header th:replace="~{fragments/layout :: navbar}"></header>
+<main class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-sm">
+                <div class="card-body p-4 p-md-5">
+                    <h1 class="h4 fw-bold mb-1">Đăng nhập</h1>
+                    <p class="text-muted mb-4">Dành cho khách hàng, dược sĩ và quản trị viên.</p>
+                    <div th:replace="~{fragments/layout :: flash}"></div>
+                    <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+                    <div th:if="${param.logout}" class="alert alert-info">Bạn đã đăng xuất.</div>
+                    <form th:action="@{/login}" method="post">
+                        <div class="mb-3">
+                            <label class="form-label" for="email">Email</label>
+                            <input class="form-control" type="email" id="email" name="email" required autofocus autocomplete="username">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="password">Mật khẩu</label>
+                            <input class="form-control" type="password" id="password" name="password" required autocomplete="current-password">
+                        </div>
+                        <button class="btn btn-primary w-100">Đăng nhập</button>
+                    </form>
+                    <p class="text-center mt-3 mb-0">Chưa có tài khoản? <a th:href="@{/register}">Đăng ký ngay</a></p>
+                    <hr>
+                    <div class="small text-muted">
+                        <div class="fw-semibold mb-1">Tài khoản demo:</div>
+                        <div>Admin: <code>admin@hieuthuoc.vn</code> / <code>admin123</code></div>
+                        <div>Dược sĩ: <code>duocsi@hieuthuoc.vn</code> / <code>duocsi123</code></div>
+                        <div>Khách hàng: <code>khachhang@gmail.com</code> / <code>123456</code></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

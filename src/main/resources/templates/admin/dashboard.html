@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="staff-body">
+<div class="staff-shell">
+    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
+    <div class="staff-main">
+        <header th:replace="~{fragments/staff :: topbar}"></header>
+        <main class="p-3 p-lg-4">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-xl-3"><div class="stat-card"><div class="icon icon-green"><i class="bi bi-cash-stack"></i></div>
+                    <div><div class="value fs-5" th:text="${@fmt.money(revenueToday)}">0</div><div class="label">Doanh thu hôm nay</div></div></div></div>
+                <div class="col-6 col-xl-3"><div class="stat-card"><div class="icon icon-blue"><i class="bi bi-calendar-month"></i></div>
+                    <div><div class="value fs-5" th:text="${@fmt.money(revenueMonth)}">0</div><div class="label">Doanh thu tháng này</div></div></div></div>
+                <div class="col-6 col-xl-3"><a th:href="@{/staff/orders}" class="stat-card"><div class="icon icon-violet"><i class="bi bi-receipt"></i></div>
+                    <div><div class="value" th:text="${ordersToday}">0</div><div class="label">Đơn mới hôm nay · <span th:text="${processing}"></span> đang xử lý</div></div></a></div>
+                <div class="col-6 col-xl-3"><a th:href="@{/admin/customers}" class="stat-card"><div class="icon icon-amber"><i class="bi bi-people"></i></div>
+                    <div><div class="value" th:text="${customers}">0</div><div class="label">Khách hàng (+<span th:text="${newCustomers}"></span> trong 30 ngày)</div></div></a></div>
+                <div class="col-6 col-xl-3"><div class="stat-card"><div class="icon icon-green"><i class="bi bi-box-seam"></i></div>
+                    <div><div class="value fs-5" th:text="${@fmt.money(inventoryValue)}">0</div><div class="label">Giá trị tồn kho (giá nhập)</div></div></div></div>
+                <div class="col-6 col-xl-3"><a th:href="@{/staff/receipts}" class="stat-card"><div class="icon icon-red"><i class="bi bi-truck"></i></div>
+                    <div><div class="value" th:text="${pendingReceipts}">0</div><div class="label">Phiếu nhập chờ duyệt</div></div></a></div>
+                <div class="col-6 col-xl-3"><a th:href="@{/staff/prescriptions}" class="stat-card"><div class="icon icon-red"><i class="bi bi-file-earmark-medical"></i></div>
+                    <div><div class="value" th:text="${pendingRx}">0</div><div class="label">Đơn thuốc chờ duyệt</div></div></a></div>
+                <div class="col-6 col-xl-3"><a th:href="@{/admin/reports}" class="stat-card"><div class="icon icon-blue"><i class="bi bi-bar-chart"></i></div>
+                    <div><div class="value fs-6">Xem báo cáo</div><div class="label">Doanh thu, lợi nhuận, hiệu suất</div></div></a></div>
+            </div>
+            <div class="row g-4">
+                <div class="col-xl-8">
+                    <div class="card h-100">
+                        <div class="card-header">Doanh thu 14 ngày gần nhất (đơn hoàn thành)</div>
+                        <div class="card-body"><canvas id="revChart" height="120"></canvas></div>
+                    </div>
+                </div>
+                <div class="col-xl-4">
+                    <div class="card h-100">
+                        <div class="card-header">Đơn hàng theo trạng thái</div>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between" th:each="e : ${statusCounts}">
+                                <span th:replace="~{fragments/staff :: orderStatus(${e.key})}"></span><strong th:text="${e.value}"></strong>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-xl-6">
+                    <div class="card h-100">
+                        <div class="card-header">Top sản phẩm bán chạy (30 ngày)</div>
+                        <table class="table mb-0">
+                            <thead><tr><th>Sản phẩm</th><th class="text-end">SL</th><th class="text-end">Doanh thu</th></tr></thead>
+                            <tbody>
+                            <tr th:each="t : ${top}"><td th:text="${t.name()}"></td><td class="text-end" th:text="${t.quantity()}"></td>
+                                <td class="text-end" th:text="${@fmt.money(t.revenue())}"></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="col-xl-6">
+                    <div class="card h-100">
+                        <div class="card-header d-flex justify-content-between">Sắp hết hàng <a th:href="@{/staff/inventory/alerts}" class="small">Cảnh báo kho</a></div>
+                        <ul class="list-group list-group-flush">
+                            <li th:if="${lowStock.isEmpty()}" class="list-group-item text-muted">Không có sản phẩm dưới định mức.</li>
+                            <li class="list-group-item d-flex justify-content-between" th:each="p : ${lowStock}">
+                                <span th:text="${p.name}"></span><span class="text-danger fw-semibold" th:text="${p.onHand} + '/' + ${p.minStock} + ' ' + ${p.unit}"></span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <script th:src="@{/webjars/chart.js/4.4.1/dist/chart.umd.js}"></script>
+            <script th:inline="javascript">
+                (function () {
+                    var labels = /*[[${chartLabels}]]*/ [];
+                    var revenue = /*[[${chartRevenue}]]*/ [];
+                    var orders = /*[[${chartOrders}]]*/ [];
+                    new Chart(document.getElementById('revChart'), {
+                        data: {
+                            labels: labels,
+                            datasets: [
+                                {type: 'bar', label: 'Doanh thu (đ)', data: revenue, backgroundColor: 'rgba(15,122,92,.75)', borderRadius: 4, yAxisID: 'y'},
+                                {type: 'line', label: 'Số đơn', data: orders, borderColor: '#d98e04', backgroundColor: '#d98e04', tension: .3, yAxisID: 'y1'}
+                            ]
+                        },
+                        options: {
+                            interaction: {mode: 'index', intersect: false},
+                            scales: {
+                                y: {beginAtZero: true, ticks: {callback: function (v) { return (v / 1000).toLocaleString('vi-VN') + 'k'; }}},
+                                y1: {beginAtZero: true, position: 'right', grid: {drawOnChartArea: false}, ticks: {precision: 0}}
+                            },
+                            plugins: {tooltip: {callbacks: {label: function (c) {
+                                return c.dataset.label + ': ' + c.parsed.y.toLocaleString('vi-VN');
+                            }}}}
+                        }
+                    });
+                })();
+            </script>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

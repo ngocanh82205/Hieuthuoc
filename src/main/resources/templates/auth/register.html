@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body>
+<header th:replace="~{fragments/layout :: navbar}"></header>
+<main class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-7 col-lg-5">
+            <div class="card shadow-sm">
+                <div class="card-body p-4 p-md-5">
+                    <h1 class="h4 fw-bold mb-1">Tạo tài khoản</h1>
+                    <p class="text-muted mb-4">Theo dõi đơn hàng, lưu hồ sơ sức khỏe và được dược sĩ tư vấn.</p>
+                    <div th:if="${errors}" class="alert alert-danger">
+                        <ul class="mb-0 ps-3"><li th:each="e : ${errors}" th:text="${e}"></li></ul>
+                    </div>
+                    <form th:action="@{/register}" th:object="${form}" method="post">
+                        <div class="mb-3">
+                            <label class="form-label" for="fullName">Họ và tên</label>
+                            <input class="form-control" id="fullName" th:field="*{fullName}" required>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-sm-6">
+                                <label class="form-label" for="email">Email</label>
+                                <input class="form-control" type="email" id="email" th:field="*{email}" required>
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label" for="phone">Số điện thoại</label>
+                                <input class="form-control" id="phone" th:field="*{phone}" required pattern="0[0-9]{9,10}">
+                            </div>
+                        </div>
+                        <div class="row g-3 mb-4">
+                            <div class="col-sm-6">
+                                <label class="form-label" for="password">Mật khẩu</label>
+                                <input class="form-control" type="password" id="password" name="password" required minlength="6" autocomplete="new-password">
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label" for="passwordConfirm">Nhập lại mật khẩu</label>
+                                <input class="form-control" type="password" id="passwordConfirm" name="passwordConfirm" required minlength="6" autocomplete="new-password">
+                            </div>
+                        </div>
+                        <button class="btn btn-primary w-100">Đăng ký</button>
+                    </form>
+                    <p class="text-center mt-3 mb-0">Đã có tài khoản? <a th:href="@{/login}">Đăng nhập</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

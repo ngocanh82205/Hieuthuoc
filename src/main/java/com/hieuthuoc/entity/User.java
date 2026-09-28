@@ -1,0 +1,70 @@
+package com.hieuthuoc.entity;
+
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "users")
+@Getter
+@Setter
+@NoArgsConstructor
+public class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private Role role;
+
+    @Column(nullable = false, length = 100)
+    private String fullName;
+
+    @Column(nullable = false, unique = true, length = 150)
+    private String email;
+
+    @Column(length = 20)
+    private String phone;
+
+    @Column(nullable = false)
+    private String passwordHash;
+
+    @Column(length = 10)
+    private String gender;
+
+    private LocalDate birthday;
+
+    /** Số chứng chỉ hành nghề dược (với dược sĩ). */
+    @Column(length = 50)
+    private String licenseNo;
+
+    /** Hồ sơ sức khỏe - chỉ dược sĩ được xem khi tư vấn/duyệt đơn. */
+    @Column(length = 500)
+    private String allergies;
+
+    @Column(length = 500)
+    private String chronicConditions;
+
+    private boolean pregnancy;
+
+    private int points;
+
+    private boolean locked;
+
+    @Column(nullable = false)
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    void prePersist() {
+        if (createdAt == null) createdAt = LocalDateTime.now();
+    }
+
+    public boolean isStaff() {
+        return role == Role.PHARMACIST || role == Role.ADMIN;
+    }
+}
