@@ -26,7 +26,7 @@ public class StaticPage {
     @Column(nullable = false, length = 200)
     private String title;
 
-    @Column(length = 20000)
+    @Column(columnDefinition = "LONGTEXT")
     private String content;
 
     @Column(length = 300)
