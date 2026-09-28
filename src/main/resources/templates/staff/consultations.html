@@ -8,10 +8,21 @@
         <header th:replace="~{fragments/staff :: topbar}"></header>
         <main class="p-3 p-lg-4">
             <div th:replace="~{fragments/layout :: flash}"></div>
-            <ul class="nav nav-pills mb-3">
-                <li class="nav-item"><a class="nav-link" th:classappend="${!closed} ? 'active'" th:href="@{/staff/consultations}">Đang mở</a></li>
-                <li class="nav-item"><a class="nav-link" th:classappend="${closed} ? 'active'" th:href="@{/staff/consultations(closed=true)}">Đã đóng</a></li>
-            </ul>
+            <div class="d-flex flex-wrap justify-content-between gap-2 mb-3">
+                <ul class="nav nav-pills">
+                    <li class="nav-item"><a class="nav-link" th:classappend="${view == 'mine'} ? 'active'" th:href="@{/staff/consultations(view='mine',closed=${closed})}">Của tôi</a></li>
+                    <li class="nav-item"><a class="nav-link" th:classappend="${view == 'unassigned'} ? 'active'" th:href="@{/staff/consultations(view='unassigned',closed=${closed})}">Chưa ai nhận</a></li>
+                    <li class="nav-item"><a class="nav-link" th:classappend="${view == 'all'} ? 'active'" th:href="@{/staff/consultations(view='all',closed=${closed})}">Tất cả</a></li>
+                </ul>
+                <ul class="nav nav-pills">
+                    <li class="nav-item"><a class="nav-link" th:classappend="${!closed} ? 'active'" th:href="@{/staff/consultations(view=${view})}">Đang mở</a></li>
+                    <li class="nav-item"><a class="nav-link" th:classappend="${closed} ? 'active'" th:href="@{/staff/consultations(view=${view},closed=true)}">Đã đóng</a></li>
+                </ul>
+            </div>
+            <div class="alert alert-info small py-2"><i class="bi bi-broadcast me-1"></i>Dược sĩ đang online:
+                <span th:if="${online.isEmpty()}">không có</span>
+                <span th:each="u, st : ${online}"><span class="text-success">●</span> <span th:text="${u.fullName}"></span><span th:unless="${st.last}">, </span></span>
+                · Hội thoại mới được tự động giao cho dược sĩ online ít việc nhất.</div>
             <div class="card">
                 <ul class="list-group list-group-flush">
                     <li th:if="${list.isEmpty()}" class="list-group-item text-muted">Không có cuộc tư vấn.</li>

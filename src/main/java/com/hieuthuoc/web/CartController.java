@@ -128,7 +128,7 @@ public class CartController {
         model.addAttribute("addresses", addressRepo.findByUserOrderByDefaultAddressDescIdAsc(u));
         model.addAttribute("form", form);
         model.addAttribute("shippingMethods", ShippingMethod.values());
-        model.addAttribute("paymentMethods", PaymentMethod.values());
+        model.addAttribute("paymentMethods", PaymentMethod.ONLINE_METHODS);
         savedVouchers(model, u);
         model.addAttribute("title", "Thanh toán");
     }

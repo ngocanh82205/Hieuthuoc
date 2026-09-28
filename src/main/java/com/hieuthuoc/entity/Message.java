@@ -30,6 +30,10 @@ public class Message {
     @Column(length = 200)
     private String image;
 
+    /** Giỏ hàng tư vấn dược sĩ gửi kèm tin nhắn. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    private SuggestedCart suggestedCart;
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
 

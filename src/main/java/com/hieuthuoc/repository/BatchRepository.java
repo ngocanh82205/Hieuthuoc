@@ -15,6 +15,11 @@ import java.util.Optional;
 public interface BatchRepository extends JpaRepository<Batch, Long> {
     List<Batch> findByProductOrderByExpDateAsc(Product product);
 
+    Optional<Batch> findFirstByProductAndBatchNoIgnoreCase(Product product, String batchNo);
+
+    @Query("select b from Batch b join fetch b.product p where b.quantity > 0 or b.locked = true order by p.name, b.expDate")
+    List<Batch> findForStocktake();
+
     /** Lô hợp lệ để xuất kho theo FEFO: còn hàng, còn hạn, không bị khóa, hết hạn sớm nhất trước. */
     @Query("""
         select b from Batch b where b.product.id = :productId and b.locked = false and b.quantity > 0

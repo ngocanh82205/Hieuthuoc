@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="staff-body">
+<div class="staff-shell">
+    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
+    <div class="staff-main">
+        <header th:replace="~{fragments/staff :: topbar}"></header>
+        <main class="p-3 p-lg-4">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <form th:action="@{/staff/orders/{id}/pick(id=${order.id})}" method="post" class="card">
+                <div class="card-header d-flex justify-content-between">
+                    <span>Soạn hàng đơn <strong th:text="${order.code}"></strong></span>
+                    <a th:href="@{/staff/orders/{id}(id=${order.id})}" class="small">Quay lại đơn</a>
+                </div>
+                <div class="card-body small text-muted">
+                    <i class="bi bi-info-circle"></i> Lô được gợi ý theo <strong>FEFO</strong> (hết hạn trước - xuất trước). Có thể chọn lô khác hoặc
+                    <strong>quét mã vạch / nhập số lô</strong> trên hộp thuốc vào ô "Quét số lô". Nếu lô chọn không đủ, hệ thống lấy tiếp lô kế tiếp theo FEFO.
+                </div>
+                <div class="table-responsive">
+                    <table class="table mb-0">
+                        <thead><tr><th>Sản phẩm</th><th>Cần xuất</th><th style="min-width: 260px">Chọn lô</th><th style="min-width: 180px">Quét số lô</th></tr></thead>
+                        <tbody>
+                        <tr th:each="it : ${order.items}">
+                            <td><div class="fw-semibold" th:text="${it.productName}"></div>
+                                <small class="text-muted" th:text="${it.quantity} + ' ' + ${it.unit}"></small></td>
+                            <td class="fw-semibold" th:text="${it.baseQuantity} + ' ' + ${it.product.unit}"></td>
+                            <td>
+                                <select class="form-select form-select-sm" th:name="'lot_' + ${it.id}">
+                                    <option th:each="b, st : ${lots[it.id]}" th:value="${b.id}" th:selected="${st.first}"
+                                            th:text="|${b.batchNo} · HSD ${@fmt.date(b.expDate)} · còn ${b.quantity}${st.first ? ' (gợi ý FEFO)' : ''}|"></option>
+                                </select>
+                                <div th:if="${lots[it.id].isEmpty()}" class="text-danger small">Không còn lô hợp lệ!</div>
+                            </td>
+                            <td><input class="form-control form-control-sm" th:name="'scan_' + ${it.id}" placeholder="Quét / nhập số lô" autocomplete="off"></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-footer bg-white d-flex justify-content-end">
+                    <button class="btn btn-primary"><i class="bi bi-box-seam"></i> Xác nhận soạn hàng & trừ kho</button>
+                </div>
+            </form>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

@@ -99,6 +99,30 @@ public class Order {
 
     private LocalDateTime completedAt;
 
+    /** Kênh bán: ONLINE (mặc định) hoặc POS (bán tại quầy). */
+    @Column(length = 10)
+    private String channel;
+
+    /** Đơn vị vận chuyển và mã vận đơn khi giao cho bên vận chuyển. */
+    @Column(length = 50)
+    private String carrier;
+
+    @Column(length = 60)
+    private String trackingCode;
+
+    /** Gọi điện xác minh đơn COD giá trị lớn. */
+    private LocalDateTime verifiedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    private User verifiedBy;
+
+    @Column(length = 300)
+    private String verifyNote;
+
+    public boolean isPos() {
+        return "POS".equals(channel);
+    }
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
 

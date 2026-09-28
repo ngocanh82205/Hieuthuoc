@@ -28,6 +28,8 @@ public class OrderService {
     private final FileStorageService files;
     private final NotificationService notifications;
     private final SettingService settings;
+    private final com.hieuthuoc.repository.BatchRepository batchRepo;
+    private final com.hieuthuoc.repository.StockAdjustmentRepository adjustmentRepo;
 
     /* ============================ Đặt hàng ============================ */
 
@@ -78,7 +80,7 @@ public class OrderService {
 
     public Order placeOrder(User user, Cart cart, CheckoutForm f, MultipartFile rxFile) {
         if (f.getShippingMethod() == null) f.setShippingMethod(ShippingMethod.DELIVERY);
-        if (f.getPaymentMethod() == null) f.setPaymentMethod(PaymentMethod.COD);
+        if (f.getPaymentMethod() == null || !PaymentMethod.ONLINE_METHODS.contains(f.getPaymentMethod())) f.setPaymentMethod(PaymentMethod.COD);
         CartService.View cv = cartService.build(cart, f.getShippingMethod(), user);
 
         List<String> errors = new ArrayList<>(cv.getErrors());
@@ -167,10 +169,22 @@ public class OrderService {
                 if (o.getPaymentMethod().isPrepaid() && o.getPaymentStatus() != PaymentStatus.PAID) {
                     throw new BusinessException("Đơn " + o.getPaymentMethod().getLabel().toLowerCase() + " chưa nhận được tiền của khách.");
                 }
+                if (needsVerifyCall(o) && o.getVerifiedAt() == null) {
+                    throw new BusinessException("Đơn COD giá trị lớn (từ " + String.format("%,d", settings.getLong("cod_verify_threshold")).replace(',', '.')
+                            + " đ) - vui lòng gọi điện xác minh với khách trước khi xác nhận.");
+                }
             }
             case PREPARING -> stockService.allocateFefo(o);
+            case SHIPPING -> {
+                if (o.getShippingMethod() == ShippingMethod.DELIVERY && Texts.isBlank(o.getCarrier())) {
+                    throw new BusinessException("Vui lòng chọn đơn vị vận chuyển trước khi giao hàng.");
+                }
+            }
             case CANCELLED -> {
                 if (note == null) throw new BusinessException("Vui lòng nhập lý do hủy đơn.");
+                if (o.getPaymentStatus() == PaymentStatus.PAID && !staff.hasPermission(StaffPermission.REFUND)) {
+                    throw new BusinessException("Đơn đã thanh toán - bạn chưa được cấp quyền hủy đơn & hoàn tiền.");
+                }
                 releaseResources(o);
                 o.setCancelReason(note);
             }
@@ -202,6 +216,57 @@ public class OrderService {
         if (o.getPaymentStatus() == PaymentStatus.PAID) o.setPaymentStatus(PaymentStatus.REFUNDED);
         if (o.getPointsUsedValue() > 0) o.getUser().setPoints(o.getUser().getPoints() + o.getPointsUsedValue());
         releaseVoucher(o);
+    }
+
+    /** Đơn COD có giá trị từ ngưỡng cấu hình trở lên phải gọi điện xác minh trước khi xác nhận. */
+    public boolean needsVerifyCall(Order o) {
+        return !o.isPos() && o.getPaymentMethod() == PaymentMethod.COD && o.getTotal() >= settings.getLong("cod_verify_threshold");
+    }
+
+    public void verifyCall(Long orderId, User staff, String note) {
+        Order o = orderRepo.findById(orderId).orElseThrow(() -> BusinessException.notFound("Không tìm thấy đơn hàng."));
+        note = Texts.trim(note, 300);
+        if (note.isEmpty()) throw new BusinessException("Vui lòng ghi kết quả cuộc gọi xác minh.");
+        o.setVerifiedAt(LocalDateTime.now());
+        o.setVerifiedBy(staff);
+        o.setVerifyNote(note);
+        addHistory(o, o.getStatus(), "Đã gọi xác minh: " + note, staff);
+        notifications.log(staff, "order.verify_call", o.getCode() + ": " + note);
+    }
+
+    /** Soạn hàng: nhân viên chọn hoặc quét số lô cho từng dòng (bỏ trống = theo gợi ý FEFO). */
+    public Order prepare(Long orderId, User staff, Map<Long, String> batchInputs) {
+        Order o = orderRepo.findById(orderId).orElseThrow(() -> BusinessException.notFound("Không tìm thấy đơn hàng."));
+        if (o.getStatus() != OrderStatus.CONFIRMED) throw new BusinessException("Chỉ soạn hàng cho đơn đã xác nhận.");
+        Map<Long, Batch> preferred = new HashMap<>();
+        for (OrderItem it : o.getItems()) {
+            String in = Texts.trim(batchInputs.get(it.getId()));
+            if (in.isEmpty()) continue;
+            Batch b = in.matches("\\d+") ? batchRepo.findById(Long.parseLong(in)).orElse(null) : null;
+            if (b == null || !b.getProduct().getId().equals(it.getProduct().getId())) {
+                b = batchRepo.findFirstByProductAndBatchNoIgnoreCase(it.getProduct(), in).orElse(null);
+            }
+            if (b == null) throw new BusinessException("Không tìm thấy lô \"" + in + "\" của sản phẩm " + it.getProductName() + ".");
+            preferred.put(it.getId(), b);
+        }
+        stockService.allocate(o, preferred);
+        o.setStatus(OrderStatus.PREPARING);
+        if (o.getHandledBy() == null) o.setHandledBy(staff);
+        List<String> lots = new ArrayList<>();
+        for (OrderItem it : o.getItems()) {
+            for (OrderItemBatch a : it.getAllocations()) lots.add(it.getProductName() + ": lô " + a.getBatch().getBatchNo() + " x" + a.getQuantity());
+        }
+        addHistory(o, OrderStatus.PREPARING, "Soạn hàng - " + String.join("; ", lots), staff);
+        notifications.notify(o.getUser(), "Đơn hàng " + o.getCode() + ": " + OrderStatus.PREPARING.getLabel(), "/account/orders/" + o.getCode());
+        notifications.log(staff, "order.status", o.getCode() + ": CONFIRMED → PREPARING");
+        return o;
+    }
+
+    /** Ghi đơn vị vận chuyển + mã vận đơn (VD GHN/GHTK) trước khi chuyển sang Đang giao. */
+    public void setShipping(Long orderId, String carrier, String trackingCode) {
+        Order o = orderRepo.findById(orderId).orElseThrow(() -> BusinessException.notFound("Không tìm thấy đơn hàng."));
+        o.setCarrier(Texts.emptyToNull(Texts.trim(carrier, 50)));
+        o.setTrackingCode(Texts.emptyToNull(Texts.trim(trackingCode, 60)));
     }
 
     public void markPaid(Long orderId, User staff) {
@@ -279,7 +344,7 @@ public class OrderService {
     public void confirmByCustomer(Order o, User user, ConfirmForm f) {
         if (o.getStatus() != OrderStatus.AWAITING_CUSTOMER) throw new BusinessException("Đơn hàng không ở trạng thái chờ xác nhận.");
         if (f.getShippingMethod() == null) f.setShippingMethod(ShippingMethod.DELIVERY);
-        if (f.getPaymentMethod() == null) f.setPaymentMethod(PaymentMethod.COD);
+        if (f.getPaymentMethod() == null || !PaymentMethod.ONLINE_METHODS.contains(f.getPaymentMethod())) f.setPaymentMethod(PaymentMethod.COD);
         List<String> errors = validateDelivery(f.getRecipient(), f.getPhone(), f.getShippingMethod(), f.getAddress());
         if (!errors.isEmpty()) throw new BusinessException(String.join(" ", errors));
         o.setRecipient(Texts.trim(f.getRecipient(), 100));
@@ -313,9 +378,24 @@ public class OrderService {
     public void handleReturn(Long orderId, User staff, boolean approve, boolean restock, String note) {
         Order o = orderRepo.findById(orderId).orElseThrow(() -> BusinessException.notFound("Không tìm thấy đơn hàng."));
         if (o.getReturnStatus() != ReturnStatus.REQUESTED) throw new BusinessException("Không có yêu cầu đổi/trả cần xử lý.");
+        if (!staff.hasPermission(StaffPermission.REFUND)) throw new BusinessException("Bạn chưa được cấp quyền xử lý đổi trả & hoàn tiền.");
         note = Texts.trim(note, 500);
         if (approve) {
-            if (restock) stockService.restore(o);
+            if (restock) {
+                stockService.restore(o);
+            } else {
+                // Hàng trả lại không đạt chất lượng: ghi nhận nhập về rồi chuyển sang kho hủy để truy vết
+                for (OrderItem it : o.getItems()) {
+                    for (OrderItemBatch a : it.getAllocations()) {
+                        StockAdjustment adj = new StockAdjustment();
+                        adj.setBatch(a.getBatch());
+                        adj.setQuantity(0);
+                        adj.setReason("Hàng trả lại đơn " + o.getCode() + " - chuyển kho hủy " + a.getQuantity() + " " + it.getProduct().getUnit());
+                        adj.setUser(staff);
+                        adjustmentRepo.save(adj);
+                    }
+                }
+            }
             User c = o.getUser();
             c.setPoints(Math.max(0, c.getPoints() - o.getPointsEarnedValue() + o.getPointsUsedValue()));
             o.setStatus(OrderStatus.RETURNED);
@@ -357,6 +437,8 @@ public class OrderService {
         private String clinic;
         private LocalDate rxDate;
         private String pharmacistNote;
+        /** Các mục kiểm tra đơn thuốc dược sĩ đã đánh dấu (xem RX_CHECKS). */
+        private List<String> checks = new ArrayList<>();
         /** orderItemId -> số lượng sau điều chỉnh (chỉ được giảm, trừ khi thay thuốc). */
         private Map<Long, Integer> qty = new HashMap<>();
         /** orderItemId -> id sản phẩm thay thế (cùng hoạt chất). */
@@ -373,10 +455,29 @@ public class OrderService {
         return rx;
     }
 
-    private static void recordRx(Prescription rx, User pharmacist, RxApproval form) {
+    public static final Map<String, String> RX_CHECKS = new LinkedHashMap<>();
+
+    static {
+        RX_CHECKS.put("valid", "Đơn thuốc hợp lệ (đủ thông tin bệnh nhân, cơ sở khám bệnh)");
+        RX_CHECKS.put("date", "Còn hiệu lực (trong thời hạn kể từ ngày kê)");
+        RX_CHECKS.put("sign", "Có chữ ký bác sĩ và dấu cơ sở khám bệnh");
+        RX_CHECKS.put("match", "Thuốc và liều dùng khớp với đơn");
+    }
+
+    void recordRx(Prescription rx, User pharmacist, RxApproval form) {
         if (Texts.isBlank(form.getPatientName()) || Texts.isBlank(form.getDoctorName())) {
             throw new BusinessException("Vui lòng ghi nhận tên bệnh nhân và bác sĩ kê đơn (sổ bán thuốc kê đơn).");
         }
+        if (form.getChecks() == null || !form.getChecks().containsAll(RX_CHECKS.keySet())) {
+            throw new BusinessException("Vui lòng kiểm tra và đánh dấu đủ các mục: hợp lệ, hiệu lực, chữ ký, khớp thuốc/liều.");
+        }
+        if (form.getRxDate() == null) throw new BusinessException("Vui lòng nhập ngày kê đơn.");
+        long validDays = settings.getLong("rx_valid_days");
+        if (form.getRxDate().isAfter(LocalDate.now())) throw new BusinessException("Ngày kê đơn không hợp lệ.");
+        if (form.getRxDate().plusDays(validDays).isBefore(LocalDate.now())) {
+            throw new BusinessException("Đơn thuốc đã hết hiệu lực (quá " + validDays + " ngày kể từ ngày kê) - hãy từ chối đơn.");
+        }
+        rx.setChecklist(String.join(",", form.getChecks()));
         rx.setStatus(ApprovalStatus.APPROVED);
         rx.setPharmacist(pharmacist);
         rx.setPatientName(Texts.trim(form.getPatientName(), 100));
@@ -413,6 +514,10 @@ public class OrderService {
                 String ingredient = it.getProduct().getActiveIngredient();
                 if (ingredient == null || !ingredient.equalsIgnoreCase(np.getActiveIngredient())) {
                     throw new BusinessException("Chỉ được thay bằng thuốc cùng hoạt chất.");
+                }
+                String strength = it.getProduct().getStrength();
+                if (strength != null && np.getStrength() != null && !strength.equalsIgnoreCase(np.getStrength())) {
+                    throw new BusinessException("Thuốc thay thế phải cùng hàm lượng (" + strength + ").");
                 }
                 if (newQty <= 0) throw new BusinessException("Nhập số lượng cho thuốc thay thế \"" + np.getName() + "\".");
                 checkStock(np, newQty, 0);
@@ -558,7 +663,7 @@ public class OrderService {
     }
 
     /** Sinh mã đơn hàng không trùng. */
-    private String newCode() {
+    public String newCode() {
         String code;
         do {
             code = Texts.code("DH");

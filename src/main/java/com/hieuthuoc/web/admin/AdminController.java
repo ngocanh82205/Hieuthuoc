@@ -88,6 +88,7 @@ public class AdminController {
         User u = new User();
         u.setRole(Role.PHARMACIST);
         model.addAttribute("user", u);
+        model.addAttribute("allPerms", StaffPermission.values());
         model.addAttribute("title", "Thêm nhân viên");
         return "admin/user-form";
     }
@@ -96,6 +97,7 @@ public class AdminController {
     public String editUser(@PathVariable Long id, Model model) {
         User u = userRepo.findById(id).filter(User::isStaff).orElseThrow(() -> BusinessException.notFound("Không tìm thấy nhân viên."));
         model.addAttribute("user", u);
+        model.addAttribute("allPerms", StaffPermission.values());
         model.addAttribute("title", "Sửa nhân viên");
         return "admin/user-form";
     }
@@ -105,6 +107,7 @@ public class AdminController {
     public String saveUser(@PathVariable(required = false) Long id, @RequestParam String fullName, @RequestParam String email,
                            @RequestParam(required = false) String phone, @RequestParam Role role,
                            @RequestParam(required = false) String licenseNo, @RequestParam(required = false) String password,
+                           @RequestParam(value = "perms", required = false) List<StaffPermission> perms,
                            RedirectAttributes ra) {
         User me = currentUser.get();
         if (role == Role.CUSTOMER) throw new BusinessException("Vai trò không hợp lệ.");
@@ -123,6 +126,7 @@ public class AdminController {
         u.setPhone(Texts.emptyToNull(phone));
         u.setRole(role);
         u.setLicenseNo(Texts.emptyToNull(licenseNo));
+        u.setPermissions(perms == null || perms.isEmpty() ? null : String.join(",", perms.stream().map(Enum::name).toList()));
         if (!Texts.isBlank(password)) u.setPasswordHash(accountService.encode(password));
         userRepo.save(u);
         notifications.log(me, id == null ? "user.create" : "user.update", u.getEmail() + " (" + role + ")");

@@ -15,7 +15,7 @@
             <div class="card">
                 <div class="table-responsive">
                     <table class="table mb-0">
-                        <thead><tr><th>Họ tên</th><th>Email</th><th>SĐT</th><th>Vai trò</th><th>Chứng chỉ hành nghề</th><th class="text-end">Đơn thuốc đã xử lý</th><th>Trạng thái</th><th></th></tr></thead>
+                        <thead><tr><th>Họ tên</th><th>Email</th><th>SĐT</th><th>Vai trò</th><th>Chứng chỉ hành nghề</th><th>Quyền</th><th class="text-end">Đơn thuốc đã xử lý</th><th>Trạng thái</th><th></th></tr></thead>
                         <tbody>
                         <tr th:each="u : ${staff}">
                             <td class="fw-semibold" th:text="${u.fullName}"></td>
@@ -23,6 +23,8 @@
                             <td th:text="${u.phone}"></td>
                             <td><span class="badge" th:classappend="${u.role.name() == 'ADMIN'} ? 'text-bg-dark' : 'text-bg-primary'" th:text="${u.role.label}"></span></td>
                             <td class="small" th:text="${u.licenseNo}"></td>
+                            <td class="small"><span th:if="${u.role.name() == 'ADMIN'}" class="text-muted">Tất cả</span>
+                                <span th:each="p : ${u.permissionSet}" th:unless="${u.role.name() == 'ADMIN'}" class="badge text-bg-light border me-1" th:text="${p.label}"></span></td>
                             <td class="text-end" th:text="${rxCount[u.id]}"></td>
                             <td><span class="badge" th:classappend="${u.locked} ? 'text-bg-danger' : 'text-bg-success'" th:text="${u.locked} ? 'Đã khóa' : 'Hoạt động'"></span></td>
                             <td class="text-nowrap">

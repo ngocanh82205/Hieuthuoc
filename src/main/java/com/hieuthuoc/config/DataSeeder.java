@@ -181,6 +181,9 @@ public class DataSeeder implements CommandLineRunner {
         User admin = user(Role.ADMIN, "Quản trị viên", "admin@hieuthuoc.vn", "0901000001", "admin123", null);
         User ds1 = user(Role.PHARMACIST, "DS. Nguyễn Thị Lan", "duocsi@hieuthuoc.vn", "0901000002", "duocsi123", "012345/HNO-CCHND");
         User ds2 = user(Role.PHARMACIST, "DS. Phạm Quốc Huy", "duocsi2@hieuthuoc.vn", "0901000003", "duocsi123", "023456/HNO-CCHND");
+        // DS. Lan là dược sĩ quản lý: đủ quyền; DS. Huy: bán quầy + nội dung
+        ds1.setPermissions("REFUND,APPROVE_RECEIPT,INVENTORY_ADJUST,POS,CONTENT");
+        ds2.setPermissions("POS,CONTENT");
         User kh1 = user(Role.CUSTOMER, "Trần Văn An", "khachhang@gmail.com", "0912345678", "123456", null);
         kh1.setAllergies("Dị ứng Aspirin");
         kh1.setChronicConditions("Viêm dạ dày");

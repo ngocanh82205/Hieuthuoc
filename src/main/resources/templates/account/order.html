@@ -167,6 +167,8 @@
                         <div class="card-body small">
                             <div class="fw-semibold" th:text="${o.recipient} + ' · ' + ${o.phone}"></div>
                             <div th:text="${o.shippingMethod.label}"></div>
+                            <div th:if="${o.carrier != null}" class="text-primary"><i class="bi bi-truck"></i> <span th:text="${o.carrier}"></span>
+                                <span th:if="${o.trackingCode != null}" th:text="'- mã vận đơn ' + ${o.trackingCode}"></span></div>
                             <div class="text-muted" th:if="${o.address != null}" th:text="${o.address}"></div>
                             <div class="text-muted" th:if="${o.address == null}" th:text="${settings['store_address']}"></div>
                             <hr>

@@ -28,6 +28,12 @@ class BusinessRulesTest {
     @Autowired VoucherService voucherService;
     @Autowired OrderService orderService;
     @Autowired StockService stockService;
+    @Autowired SafetyService safetyService;
+    @Autowired PosService posService;
+    @Autowired InventoryService inventoryService;
+    @Autowired ChatService chatService;
+    @Autowired ConversationRepository conversationRepo;
+    @Autowired PrescriptionRepository prescriptionRepo;
 
     private Product product(String name) {
         return productRepo.findAll().stream().filter(p -> p.getName().equals(name)).findFirst().orElseThrow();
@@ -168,5 +174,95 @@ class BusinessRulesTest {
         orderService.cancelByCustomer(o, customer, "không cần nữa");
         assertThat(stockService.fill(smecta).getOnHand()).isEqualTo(before);
         assertThat(o.getStatus()).isEqualTo(OrderStatus.CANCELLED);
+    }
+
+    @Test
+    void allergyAndInteractionWarnings() {
+        User an = userRepo.findByEmailIgnoreCase("khachhang@gmail.com").orElseThrow(); // dị ứng Aspirin, viêm dạ dày
+        List<SafetyService.Warning> w = safetyService.check(an, List.of(product("Ibuprofen 400mg")), List.of());
+        assertThat(w).anyMatch(x -> x.level().equals("danger") && x.message().contains("DỊ ỨNG"));
+        assertThat(w).anyMatch(x -> x.message().contains("dạ dày"));
+        List<SafetyService.Warning> w2 = safetyService.check(null, List.of(product("Decolgen ND")), List.of(product("Concor 5mg")));
+        assertThat(w2).anyMatch(x -> x.message().contains("TƯƠNG TÁC"));
+    }
+
+    @Test
+    void posSaleUsesSharedStockAndAddsPoints() {
+        User staff = userRepo.findByEmailIgnoreCase("duocsi2@hieuthuoc.vn").orElseThrow();
+        User chau = userRepo.findByEmailIgnoreCase("chau@gmail.com").orElseThrow();
+        Product smecta = product("Smecta hương cam");
+        long before = stockService.fill(smecta).getOnHand();
+        int points = chau.getPoints();
+        PosCart cart = new PosCart();
+        posService.add(cart, smecta.getId(), 0L, 3);
+        cart.setCustomerId(chau.getId());
+        Order o = posService.checkout(cart, staff, new PosService.CheckoutForm());
+        assertThat(o.getStatus()).isEqualTo(OrderStatus.COMPLETED);
+        assertThat(o.isPos()).isTrue();
+        assertThat(stockService.fill(smecta).getOnHand()).isEqualTo(before - 3);
+        assertThat(chau.getPoints()).isGreaterThan(points);
+    }
+
+    @Test
+    void posPrescriptionDrugRequiresRxInfo() {
+        User staff = userRepo.findByEmailIgnoreCase("duocsi@hieuthuoc.vn").orElseThrow();
+        PosCart cart = new PosCart();
+        posService.add(cart, product("Seduxen 5mg").getId(), 0L, 1);
+        assertThatThrownBy(() -> posService.checkout(cart, staff, new PosService.CheckoutForm()))
+                .isInstanceOf(BusinessException.class).hasMessageContaining("kê đơn");
+    }
+
+    @Test
+    void stocktakeRecordsDifferencesAndIncreaseNeedsPermission() {
+        User manager = userRepo.findByEmailIgnoreCase("duocsi@hieuthuoc.vn").orElseThrow();
+        User staff = userRepo.findByEmailIgnoreCase("duocsi2@hieuthuoc.vn").orElseThrow();
+        Batch b = batchRepo.findByProductOrderByExpDateAsc(product("Berberin 100mg")).get(0);
+        int qty = b.getQuantity();
+        assertThatThrownBy(() -> inventoryService.stocktake(java.util.Map.of(b.getId(), qty + 5), staff, null))
+                .isInstanceOf(BusinessException.class);
+        assertThat(inventoryService.stocktake(java.util.Map.of(b.getId(), qty - 2), staff, "test")).isEqualTo(1);
+        assertThat(b.getQuantity()).isEqualTo(qty - 2);
+        assertThat(inventoryService.stocktake(java.util.Map.of(b.getId(), qty), manager, "test")).isEqualTo(1);
+        assertThat(b.getQuantity()).isEqualTo(qty);
+    }
+
+    @Test
+    void prescriptionApprovalRequiresChecklistAndValidDate() {
+        User pharmacist = userRepo.findByEmailIgnoreCase("duocsi@hieuthuoc.vn").orElseThrow();
+        Prescription rx = prescriptionRepo.findByStatusOrderByCreatedAtAsc(ApprovalStatus.PENDING).get(0);
+        OrderService.RxApproval f = new OrderService.RxApproval();
+        f.setPatientName("Trần Văn An");
+        f.setDoctorName("BS. Tuấn");
+        f.setRxDate(java.time.LocalDate.now());
+        assertThatThrownBy(() -> orderService.approvePrescription(rx.getId(), pharmacist, f)).hasMessageContaining("kiểm tra");
+        f.setChecks(List.of("valid", "date", "sign", "match"));
+        f.setRxDate(java.time.LocalDate.now().minusDays(30));
+        assertThatThrownBy(() -> orderService.approvePrescription(rx.getId(), pharmacist, f)).hasMessageContaining("hết hiệu lực");
+        f.setRxDate(java.time.LocalDate.now());
+        Order o = orderService.approvePrescription(rx.getId(), pharmacist, f);
+        assertThat(rx.getPharmacist()).isEqualTo(pharmacist);
+        assertThat(rx.getReviewedAt()).isNotNull();
+        assertThat(o.getStatus()).isEqualTo(OrderStatus.PENDING);
+    }
+
+    @Test
+    void suggestedCartCanBeAddedToCustomerCart() {
+        User pharmacist = userRepo.findByEmailIgnoreCase("duocsi@hieuthuoc.vn").orElseThrow();
+        Conversation c = conversationRepo.findAll().get(0);
+        Product vitc = product("Viên sủi Vitamin C 1000mg");
+        SuggestedCart sc = chatService.sendSuggestedCart(c.getId(), pharmacist, List.of(vitc.getId() + ":0"), List.of(2), "uống sau ăn");
+        Cart cart = new Cart();
+        List<String> skipped = chatService.addSuggestedToCart(sc.getId(), c.getCustomer(), cart, cartService);
+        assertThat(skipped).isEmpty();
+        assertThat(cart.quantityOf(Cart.key(vitc.getId(), 0L))).isEqualTo(2);
+    }
+
+    @Test
+    void refundRequiresPermission() {
+        User noRefund = userRepo.findByEmailIgnoreCase("duocsi2@hieuthuoc.vn").orElseThrow();
+        assertThat(noRefund.hasPermission(StaffPermission.REFUND)).isFalse();
+        Order done = orderRepo.findAll().stream().filter(o -> o.getStatus() == OrderStatus.COMPLETED).findFirst().orElseThrow();
+        done.setReturnStatus(ReturnStatus.REQUESTED);
+        assertThatThrownBy(() -> orderService.handleReturn(done.getId(), noRefund, true, true, "ok")).hasMessageContaining("quyền");
     }
 }

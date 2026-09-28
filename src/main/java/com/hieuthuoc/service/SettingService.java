@@ -28,6 +28,8 @@ public class SettingService {
         def("near_expiry_days", "90", "Cảnh báo cận hạn trước (ngày)");
         def("return_days", "7", "Thời hạn đổi/trả (ngày)");
         def("points_per_amount", "10000", "Số tiền cho 1 điểm tích lũy (đ)");
+        def("rx_valid_days", "5", "Hiệu lực đơn thuốc (ngày kể từ ngày kê)");
+        def("cod_verify_threshold", "1000000", "Đơn COD từ giá trị này phải gọi xác minh (đ)");
         def("point_value", "1000", "Giá trị quy đổi 1 điểm khi thanh toán (đ)");
         def("bank_code", "VCB", "Mã ngân hàng (VietQR, VD: VCB, TCB, MB)");
         def("bank_account", "0123456789", "Số tài khoản nhận chuyển khoản");
@@ -35,7 +37,7 @@ public class SettingService {
     }
 
     public static final java.util.Set<String> NUMERIC = java.util.Set.of(
-            "shipping_fee", "free_ship_threshold", "near_expiry_days", "return_days", "points_per_amount", "point_value");
+            "shipping_fee", "free_ship_threshold", "near_expiry_days", "return_days", "points_per_amount", "point_value", "rx_valid_days", "cod_verify_threshold");
 
     private static void def(String key, String value, String label) {
         DEFAULTS.put(key, value);

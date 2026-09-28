@@ -427,3 +427,7 @@ a.stat-card:hover, .stat-card:hover { transform: translateY(-3px); box-shadow: v
 .schedule-item .time { font-weight: 800; color: var(--brand-dark); font-variant-numeric: tabular-nums; }
 .qr-box { background: #fff; border: 1px solid var(--line); border-radius: 1rem; padding: 1rem; text-align: center; }
 .qr-box img { max-width: 220px; width: 100%; }
+.chat-cart { margin-top: .5rem; padding: .6rem .75rem; border-radius: .7rem; background: rgba(255, 255, 255, .18); border: 1px dashed rgba(255, 255, 255, .5); font-size: .85rem; white-space: normal; }
+.chat-msg:not(.mine) .chat-cart { background: var(--brand-soft); border-color: #9cc0f7; }
+.pos-result { cursor: default; }
+.print-page { max-width: 820px; }

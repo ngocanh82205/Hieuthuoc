@@ -10,6 +10,12 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @RequiredArgsConstructor
 public class WebConfig implements WebMvcConfigurer {
     private final FileStorageService files;
+    private final PresenceInterceptor presence;
+
+    @Override
+    public void addInterceptors(org.springframework.web.servlet.config.annotation.InterceptorRegistry registry) {
+        registry.addInterceptor(presence).addPathPatterns("/staff/**", "/admin/**", "/notifications/**");
+    }
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {

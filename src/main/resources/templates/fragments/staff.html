@@ -14,15 +14,18 @@
         <nav class="nav flex-column">
             <a class="nav-link" th:href="@{/staff}" th:classappend="${requestPath == '/staff'} ? 'active'"><i class="bi bi-speedometer2"></i>Tổng quan</a>
             <a class="nav-link" th:href="@{/staff/prescriptions}" th:classappend="${#strings.startsWith(requestPath, '/staff/prescriptions')} ? 'active'"><i class="bi bi-file-earmark-medical"></i>Duyệt đơn thuốc</a>
+            <a th:if="${currentUser.can('POS')}" class="nav-link" th:href="@{/staff/pos}" th:classappend="${requestPath == '/staff/pos'} ? 'active'"><i class="bi bi-shop-window"></i>Bán tại quầy (POS)</a>
             <a class="nav-link" th:href="@{/staff/orders}" th:classappend="${#strings.startsWith(requestPath, '/staff/orders')} ? 'active'"><i class="bi bi-receipt"></i>Đơn hàng</a>
             <a class="nav-link" th:href="@{/staff/consultations}" th:classappend="${#strings.startsWith(requestPath, '/staff/consultations')} ? 'active'"><i class="bi bi-chat-dots"></i>Tư vấn khách hàng</a>
             <a class="nav-link" th:href="@{/staff/inventory}" th:classappend="${requestPath == '/staff/inventory' || (#strings.startsWith(requestPath, '/staff/inventory/') && requestPath != '/staff/inventory/alerts') || #strings.startsWith(requestPath, '/staff/batches')} ? 'active'"><i class="bi bi-box-seam"></i>Tồn kho theo lô</a>
             <a class="nav-link" th:href="@{/staff/inventory/alerts}" th:classappend="${requestPath == '/staff/inventory/alerts'} ? 'active'"><i class="bi bi-exclamation-triangle"></i>Cảnh báo kho</a>
+            <a class="nav-link" th:href="@{/staff/stocktake}" th:classappend="${requestPath == '/staff/stocktake'} ? 'active'"><i class="bi bi-clipboard-check"></i>Kiểm kê</a>
             <a class="nav-link" th:href="@{/staff/receipts}" th:classappend="${#strings.startsWith(requestPath, '/staff/receipts')} ? 'active'"><i class="bi bi-truck"></i>Phiếu nhập kho</a>
             <a class="nav-link" th:href="@{/staff/rx-log}" th:classappend="${requestPath == '/staff/rx-log'} ? 'active'"><i class="bi bi-journal-medical"></i>Sổ thuốc kê đơn</a>
             <a class="nav-link" th:href="@{/staff/questions}" th:classappend="${requestPath == '/staff/questions'} ? 'active'"><i class="bi bi-question-circle"></i>Hỏi đáp sản phẩm</a>
             <a class="nav-link" th:href="@{/staff/callbacks}" th:classappend="${requestPath == '/staff/callbacks'} ? 'active'"><i class="bi bi-telephone-inbound"></i>Yêu cầu gọi lại</a>
             <a class="nav-link" th:href="@{/staff/reviews}" th:classappend="${requestPath == '/staff/reviews'} ? 'active'"><i class="bi bi-star"></i>Đánh giá</a>
+            <a class="nav-link" th:href="@{/staff/products}" th:classappend="${#strings.startsWith(requestPath, '/staff/products')} ? 'active'"><i class="bi bi-capsule"></i>Thông tin sản phẩm</a>
             <a class="nav-link" th:href="@{/staff/posts}" th:classappend="${#strings.startsWith(requestPath, '/staff/posts')} ? 'active'"><i class="bi bi-newspaper"></i>Bài viết sức khỏe</a>
         </nav>
         <th:block th:if="${currentUser.role.name() == 'ADMIN'}">
@@ -72,6 +75,19 @@
         </div>
     </div>
 </header>
+
+<!-- Cảnh báo an toàn thuốc -->
+<div th:fragment="warnings(list)" th:remove="tag">
+    <div th:if="${!list.isEmpty()}" class="card border-danger mb-3">
+        <div class="card-header text-danger"><i class="bi bi-shield-exclamation me-1"></i>Cảnh báo an toàn thuốc (<span th:text="${list.size()}"></span>)</div>
+        <ul class="list-group list-group-flush small">
+            <li class="list-group-item" th:each="w : ${list}"
+                th:classappend="${w.level() == 'danger'} ? 'list-group-item-danger' : (${w.level() == 'warning'} ? 'list-group-item-warning' : 'list-group-item-info')">
+                <i class="bi me-1" th:classappend="${w.icon}"></i><span th:text="${w.message()}"></span></li>
+        </ul>
+    </div>
+    <div th:if="${list.isEmpty()}" class="alert alert-success small py-2"><i class="bi bi-shield-check me-1"></i>Không phát hiện cảnh báo dị ứng / tương tác với dữ liệu hiện có.</div>
+</div>
 
 <!-- Badge trạng thái đơn hàng -->
 <span th:fragment="orderStatus(s)" class="badge" th:classappend="'text-bg-' + ${s.color}" th:text="${s.label}">Trạng thái</span>

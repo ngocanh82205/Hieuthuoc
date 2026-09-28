@@ -247,6 +247,15 @@
     <script th:src="@{/js/app.js}"></script>
 </th:block>
 
+<!-- ============ GIỎ HÀNG TƯ VẤN TRONG CHAT ============ -->
+<div th:fragment="chatCart(m, canAdd)" th:if="${m.cartId() != null}" class="chat-cart">
+    <div th:each="line : ${m.cartLines()}" th:text="'• ' + ${line}"></div>
+    <div class="fw-semibold mt-1" th:text="'Tạm tính: ' + ${@fmt.money(m.cartTotal())}"></div>
+    <form th:if="${canAdd}" th:action="@{/consult/carts/{id}/add(id=${m.cartId()})}" method="post" class="mt-2">
+        <button class="btn btn-sm btn-light"><i class="bi bi-cart-plus"></i> Thêm tất cả vào giỏ</button>
+    </form>
+</div>
+
 <!-- ============ ACCOUNT MENU ============ -->
 <div th:fragment="accountMenu" class="list-group account-menu mb-4">
     <a th:href="@{/account}" class="list-group-item list-group-item-action" th:classappend="${requestPath == '/account'} ? 'active'">

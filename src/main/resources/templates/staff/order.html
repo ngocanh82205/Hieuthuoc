@@ -53,12 +53,38 @@
                     <div class="card mb-4" th:if="${!transitions.isEmpty()}">
                         <div class="card-header">Cập nhật trạng thái</div>
                         <div class="card-body">
-                            <div th:if="${o.status.name() == 'CONFIRMED'}" class="alert alert-info small py-2">
-                                Chuyển sang <strong>Đang chuẩn bị hàng</strong> sẽ trừ kho theo FEFO (lô hết hạn trước xuất trước) và ghi nhận số lô.</div>
+                            <!-- Xác minh đơn COD giá trị lớn -->
+                            <div th:if="${needsVerify && o.status.name() == 'PENDING'}" class="border rounded p-3 mb-3"
+                                 th:classappend="${o.verifiedAt == null} ? 'border-warning bg-warning-subtle' : 'border-success'">
+                                <div th:if="${o.verifiedAt == null}">
+                                    <div class="small fw-semibold mb-2"><i class="bi bi-telephone-outbound me-1"></i>Đơn COD giá trị lớn - gọi
+                                        <a th:href="'tel:' + ${o.phone}" th:text="${o.phone}"></a> để xác minh trước khi xác nhận</div>
+                                    <form th:action="@{/staff/orders/{id}/verify(id=${o.id})}" method="post" class="d-flex gap-2">
+                                        <input name="note" class="form-control form-control-sm" required placeholder="Kết quả: khách xác nhận đặt, hẹn giờ giao...">
+                                        <button class="btn btn-sm btn-warning text-nowrap">Đã gọi xác minh</button></form>
+                                </div>
+                                <div th:if="${o.verifiedAt != null}" class="small text-success"><i class="bi bi-telephone-check me-1"></i>Đã xác minh
+                                    <span th:text="${@fmt.dateTime(o.verifiedAt)} + ' - ' + ${o.verifyNote}"></span></div>
+                            </div>
+                            <!-- Soạn hàng theo lô -->
+                            <div th:if="${o.status.name() == 'CONFIRMED'}" class="alert alert-info small d-flex flex-wrap justify-content-between align-items-center gap-2">
+                                <span><i class="bi bi-upc-scan me-1"></i>Soạn hàng: hệ thống gợi ý lô theo FEFO, bạn có thể chọn hoặc quét mã lô khác.</span>
+                                <a th:href="@{/staff/orders/{id}/pick(id=${o.id})}" class="btn btn-sm btn-primary">Soạn hàng</a></div>
+                            <!-- Giao cho vận chuyển -->
+                            <form th:if="${o.status.name() == 'PREPARING'}" th:action="@{/staff/orders/{id}/ship(id=${o.id})}" method="post" class="row g-2 mb-3">
+                                <th:block th:if="${o.shippingMethod.name() == 'DELIVERY'}">
+                                    <div class="col-md-5"><select name="carrier" class="form-select" required>
+                                        <option value="">-- Đơn vị vận chuyển --</option>
+                                        <option th:each="c : ${carriers}" th:value="${c}" th:text="${c}"></option></select></div>
+                                    <div class="col-md-4"><input name="trackingCode" class="form-control" placeholder="Mã vận đơn (nếu có)"></div>
+                                </th:block>
+                                <div class="col-md-3"><button class="btn btn-primary w-100"><i class="bi bi-truck"></i>
+                                    <span th:text="${o.shippingMethod.name() == 'DELIVERY'} ? 'Giao vận chuyển' : 'Giao cho khách'"></span></button></div>
+                            </form>
                             <form th:action="@{/staff/orders/{id}/status(id=${o.id})}" method="post" class="row g-2">
                                 <div class="col-md-7"><input name="note" class="form-control" placeholder="Ghi chú (bắt buộc khi hủy đơn)"></div>
                                 <div class="col-md-5 d-flex flex-wrap gap-2">
-                                    <button th:each="t : ${transitions}" name="to" th:value="${t}" class="btn"
+                                    <button th:each="t : ${transitions}" th:unless="${t.name() == 'PREPARING' || t.name() == 'SHIPPING'}" name="to" th:value="${t}" class="btn"
                                             th:classappend="${t.name() == 'CANCELLED'} ? 'btn-outline-danger' : 'btn-primary'"
                                             th:attr="data-confirm=${t.name() == 'CANCELLED'} ? 'Xác nhận hủy đơn hàng?' : null"
                                             th:text="${t.name() == 'CANCELLED'} ? 'Hủy đơn' : '→ ' + ${t.label}"></button>
@@ -97,9 +123,17 @@
                     </div>
                 </div>
                 <div class="col-xl-4">
+                    <div th:replace="~{fragments/staff :: warnings(${warnings})}"></div>
+                    <div class="card mb-4">
+                        <div class="card-body d-flex flex-wrap gap-2">
+                            <a th:href="@{/staff/orders/{id}/invoice(id=${o.id})}" target="_blank" class="btn btn-sm btn-light"><i class="bi bi-printer"></i> Hóa đơn</a>
+                            <a th:href="@{/staff/orders/{id}/shipping-label(id=${o.id})}" target="_blank" class="btn btn-sm btn-light"><i class="bi bi-box-seam"></i> Phiếu giao hàng</a>
+                            <a th:href="@{/staff/orders/{id}/usage(id=${o.id})}" target="_blank" class="btn btn-sm btn-light"><i class="bi bi-journal-medical"></i> Hướng dẫn sử dụng</a>
+                        </div>
+                    </div>
                     <div class="card mb-4">
                         <div class="card-header d-flex justify-content-between">Khách hàng
-                            <a th:href="@{/staff/orders/{id}/invoice(id=${o.id})}" target="_blank" class="small"><i class="bi bi-printer"></i> In hóa đơn</a></div>
+                            <span th:if="${o.pos}" class="badge text-bg-info">Bán tại quầy</span></div>
                         <div class="card-body small">
                             <div class="fw-semibold" th:text="${o.user.fullName} + ' (' + (${o.user.email != null} ? ${o.user.email} : ${o.user.phone}) + ')'"></div>
                             <hr>
@@ -107,6 +141,8 @@
                             <div><strong>Nhận hàng:</strong> <span th:text="${o.shippingMethod.label}"></span></div>
                             <div th:if="${o.address != null}" th:text="${o.address}"></div>
                             <div><strong>Thanh toán:</strong> <span th:text="${o.paymentMethod.label}"></span></div>
+                            <div th:if="${o.carrier != null}"><strong>Vận chuyển:</strong> <span th:text="${o.carrier}"></span>
+                                <span th:if="${o.trackingCode != null}" th:text="' - ' + ${o.trackingCode}"></span></div>
                             <div th:if="${o.note != null}"><strong>Ghi chú:</strong> <span th:text="${o.note}"></span></div>
                             <div th:if="${o.handledBy != null}"><strong>Phụ trách:</strong> <span th:text="${o.handledBy.fullName}"></span></div>
                             <div th:if="${o.cancelReason != null}" class="text-danger"><strong>Lý do hủy:</strong> <span th:text="${o.cancelReason}"></span></div>

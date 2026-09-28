@@ -21,6 +21,14 @@
                     <div class="col-md-6"><label class="form-label">Số chứng chỉ hành nghề dược</label><input name="licenseNo" class="form-control" th:value="${user.licenseNo}"></div>
                     <div class="col-md-6"><label class="form-label" th:text="${user.id == null} ? 'Mật khẩu' : 'Mật khẩu mới (để trống nếu không đổi)'">Mật khẩu</label>
                         <input type="password" name="password" class="form-control" minlength="6" th:required="${user.id == null}" autocomplete="new-password"></div>
+                    <div class="col-12">
+                        <label class="form-label">Quyền nghiệp vụ (với dược sĩ / nhân viên; admin có tất cả quyền)</label>
+                        <div class="form-check" th:each="p, st : ${allPerms}">
+                            <input class="form-check-input" type="checkbox" name="perms" th:value="${p}" th:id="'perm' + ${st.index}"
+                                   th:checked="${user.permissions != null && #strings.contains(',' + user.permissions + ',', ',' + p.name() + ',')}">
+                            <label class="form-check-label" th:for="'perm' + ${st.index}" th:text="${p.label}"></label>
+                        </div>
+                    </div>
                 </div>
                 <div class="card-footer bg-white"><button class="btn btn-primary">Lưu</button> <a th:href="@{/admin/users}" class="btn btn-link">Hủy</a></div>
             </form>

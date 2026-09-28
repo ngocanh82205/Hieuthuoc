@@ -76,21 +76,44 @@ Bảng được tự tạo khi chạy (`spring.jpa.hibernate.ddl-auto=update`).
   - Chat tư vấn với dược sĩ (gửi được ảnh).
 
 ### Dược sĩ / Nhân viên (`/staff`)
-- Trả lời **hỏi đáp sản phẩm**, xử lý **yêu cầu gọi lại**, **lên đơn** từ đơn thuốc khách gửi, **đề xuất thuốc thay thế**.
-- Tổng quan công việc: đơn thuốc chờ duyệt, đơn cần xử lý, cảnh báo kho.
-- **Duyệt đơn thuốc**: xem ảnh đơn cùng hồ sơ sức khỏe khách, chỉ được điều chỉnh giảm số lượng, ghi **sổ bán thuốc kê đơn** (bệnh nhân, bác sĩ, cơ sở khám), hoặc từ chối kèm lý do.
-- **Xử lý đơn hàng**: Chờ xác nhận → Đã xác nhận → Đang chuẩn bị (**trừ kho theo FEFO, lưu số lô**) → Đang giao → Hoàn thành. Hủy đơn thì hoàn kho đúng lô. Xác nhận thanh toán, xử lý đổi/trả, in hóa đơn.
-- **Kho theo lô**: tồn thực tế / giữ chỗ / khả dụng; cảnh báo cận hạn, hết hạn, dưới định mức; hủy thuốc, kiểm kê.
-- **Thu hồi thuốc**: khóa lô, truy vết khách đã mua lô đó, gửi thông báo thu hồi.
-- Tạo **phiếu nhập kho** (admin duyệt thì hàng mới vào kho).
-- Tư vấn khách hàng (chat), kiểm duyệt đánh giá, viết bài "Góc sức khỏe".
+- **Tư vấn (chat):**
+  - Hội thoại mới được **tự phân cho dược sĩ đang online** ít việc nhất; dược sĩ có thể nhận, chuyển cho người khác hoặc đóng.
+  - Hiện **cảnh báo an toàn**: dị ứng (kể cả nhóm chéo như penicillin/beta-lactam), bệnh nền, thai kỳ, trùng hoạt chất, tương tác thuốc; đối chiếu cả thuốc khách mua trong 90 ngày.
+  - **Gửi giỏ hàng tư vấn** kèm lời dặn; khách bấm một nút là thêm cả giỏ.
+  - Trả lời hỏi đáp sản phẩm, xử lý yêu cầu gọi lại.
+- **Duyệt đơn thuốc:**
+  - Hàng chờ xếp theo thời gian; xem ảnh đơn cùng hồ sơ sức khỏe và cảnh báo.
+  - **Checklist bắt buộc**: đơn hợp lệ, còn hạn (mặc định 5 ngày, cấu hình được), có chữ ký/dấu, khớp thuốc.
+  - Duyệt, giảm số lượng, hoặc **thay thuốc cùng hoạt chất và cùng hàm lượng**; từ chối bắt buộc có lý do.
+  - Ghi **sổ bán thuốc kê đơn** kèm người duyệt và thời điểm.
+- **Xử lý đơn hàng:**
+  - Lọc theo trạng thái, ngày, phương thức thanh toán, kênh (online/POS).
+  - Đơn **COD giá trị lớn** (mặc định ≥ 1.000.000 đ) phải **gọi xác minh** trước khi xác nhận.
+  - **Soạn hàng**: hệ thống gợi ý lô theo FEFO, nhân viên có thể chọn lô khác hoặc quét/nhập số lô.
+  - In **phiếu giao hàng**, **hóa đơn**, **hướng dẫn sử dụng**; nhập **đơn vị vận chuyển và mã vận đơn**.
+  - Hủy đơn đã thanh toán / hoàn tiền / duyệt trả hàng cần quyền **Hoàn tiền**. Hàng trả không nhập lại kho được ghi vào **kho hủy**.
+- **Bán tại quầy (POS):** dùng chung tồn kho với web, trừ kho theo FEFO; tìm khách theo SĐT để **cộng điểm**; thuốc kê đơn phải nhập thông tin đơn (ghi sổ); tính tiền thối.
+- **Kho:** tồn theo lô (thực tế / giữ chỗ / khả dụng), cảnh báo cận hạn, hết hạn, dưới định mức; **kiểm kê** nhập số đếm thực tế (hệ thống ghi chênh lệch); hủy thuốc; **thu hồi** (khóa lô, truy vết khách, gửi thông báo); tạo phiếu nhập.
+- **Nội dung:** viết bài "Góc sức khỏe", sửa **thông tin chuyên môn sản phẩm**, kiểm duyệt đánh giá và hỏi đáp.
+
+**Phân quyền nhân viên** (admin tick trong trang sửa nhân viên; admin luôn có toàn quyền):
+
+| Quyền | Cho phép |
+|---|---|
+| Hoàn tiền | Hủy đơn đã thanh toán, duyệt trả hàng/hoàn tiền |
+| Duyệt phiếu nhập | Duyệt phiếu nhập kho |
+| Điều chỉnh kho | Điều chỉnh tăng tồn, kiểm kê ghi tăng |
+| Bán tại quầy | Dùng màn hình POS |
+| Nội dung | Bài viết, thông tin sản phẩm, kiểm duyệt đánh giá |
+
+Tài khoản mẫu `duocsi@hieuthuoc.vn` có đủ các quyền; `duocsi2@hieuthuoc.vn` (mật khẩu `duocsi123`) chỉ có quyền Bán tại quầy và Nội dung.
 
 ### Admin (`/admin`, dùng được cả toàn bộ chức năng dược sĩ)
 - Bảng điều khiển: doanh thu hôm nay/tháng, biểu đồ 14 ngày, trạng thái đơn, top bán chạy.
 - **Báo cáo**: doanh thu, lợi nhuận gộp (giá vốn theo lô), theo ngày/danh mục, top sản phẩm, hàng tồn chậm, tỷ lệ hủy, **hiệu suất dược sĩ**, giá trị tồn kho; xuất CSV.
 - Quản lý sản phẩm (phân loại OTC / kê đơn / kiểm soát đặc biệt / TPCN / dụng cụ / mỹ phẩm, ảnh, giới hạn mua), danh mục, nhà cung cấp, mã giảm giá.
 - Quản lý nhân viên và phân quyền, số chứng chỉ hành nghề; khóa/mở khóa khách hàng, điều chỉnh điểm.
-- Duyệt phiếu nhập; cấu hình hệ thống (thông tin pháp lý GPP, phí ship, ngưỡng cận hạn, thời hạn đổi trả...); nhật ký thao tác.
+- Duyệt phiếu nhập; cấu hình hệ thống (thông tin pháp lý GPP, phí ship, ngưỡng cận hạn, thời hạn đổi trả, hạn đơn thuốc, ngưỡng gọi xác minh COD...); nhật ký thao tác.
 
 ## Quy tắc nghiệp vụ đã cài đặt
 
@@ -122,4 +145,4 @@ src/main/resources
 ## Giới hạn và hướng phát triển
 - Thanh toán online đang là cổng giả lập. Khi triển khai thật cần tích hợp API VNPay/MoMo (IPN).
 - Chưa có OTP và chưa gửi email/SMS vì cần dịch vụ gửi thật; hiện dùng thông báo ngay trong web. Chat tự cập nhật mỗi 4 giây (polling); có thể nâng cấp lên WebSocket.
-- Chưa có bán tại quầy (POS), kết nối đơn vị vận chuyển hay liên thông Dược Quốc gia.
+- Mã vận đơn nhập tay, chưa kết nối API đơn vị vận chuyển; chưa liên thông Dược Quốc gia. Trạng thái online của dược sĩ tính theo hoạt động trong 5 phút gần nhất.

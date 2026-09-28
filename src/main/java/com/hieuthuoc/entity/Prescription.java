@@ -32,8 +32,13 @@ public class Prescription {
     private User user;
 
     /** Tên file ảnh (lưu ngoài thư mục public). */
-    @Column(nullable = false, length = 200)
+    /** Ảnh đơn thuốc (null khi bán tại quầy - dược sĩ xem đơn giấy trực tiếp). */
+    @Column(length = 200)
     private String image;
+
+    /** Các mục dược sĩ đã kiểm tra khi duyệt (hợp lệ, hiệu lực, chữ ký, khớp thuốc/liều). */
+    @Column(length = 300)
+    private String checklist;
 
     @Column(length = 500)
     private String customerNote;

@@ -27,6 +27,9 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
 
     boolean existsByCode(String code);
 
+    @Query("select distinct oi.product from OrderItem oi where oi.order.user = :user and oi.order.createdAt >= :since and oi.order.status not in :excluded")
+    List<Product> productsBoughtSince(@Param("user") User user, @Param("since") LocalDateTime since, @Param("excluded") Collection<OrderStatus> excluded);
+
     List<Order> findTop8ByStatusInOrderByCreatedAtAsc(Collection<OrderStatus> statuses);
 
     List<Order> findByStatusAndCompletedAtBetween(OrderStatus status, LocalDateTime from, LocalDateTime to);

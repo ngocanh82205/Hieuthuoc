@@ -20,6 +20,8 @@ import java.util.Map;
 public class ConsultController {
     private final ChatService chatService;
     private final CurrentUser currentUser;
+    private final com.hieuthuoc.service.Cart cart;
+    private final com.hieuthuoc.service.CartService cartService;
 
     @GetMapping
     public String chat(Model model) {
@@ -43,5 +45,15 @@ public class ConsultController {
         User u = currentUser.get();
         chatService.customerSend(u, body, image);
         return Map.of("ok", true);
+    }
+
+    /** Khách thêm giỏ hàng tư vấn của dược sĩ vào giỏ hàng. */
+    @PostMapping("/carts/{id}/add")
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public String addSuggested(@PathVariable Long id, org.springframework.web.servlet.mvc.support.RedirectAttributes ra) {
+        List<String> skipped = chatService.addSuggestedToCart(id, currentUser.get(), cart, cartService);
+        if (skipped.isEmpty()) Flash.success(ra, "Đã thêm giỏ hàng tư vấn vào giỏ hàng của bạn.");
+        else Flash.warning(ra, "Đã thêm vào giỏ. Không thêm được: " + String.join("; ", skipped));
+        return "redirect:/cart";
     }
 }

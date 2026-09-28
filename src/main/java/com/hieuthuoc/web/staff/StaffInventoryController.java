@@ -115,6 +115,34 @@ public class StaffInventoryController {
         return "redirect:/staff/batches/" + id + "/buyers";
     }
 
+    /* ---------------- Kiểm kê ---------------- */
+
+    @GetMapping("/stocktake")
+    public String stocktake(Model model) {
+        model.addAttribute("batches", batchRepo.findForStocktake());
+        model.addAttribute("today", LocalDate.now());
+        model.addAttribute("title", "Kiểm kê kho");
+        return "staff/stocktake";
+    }
+
+    @PostMapping("/stocktake")
+    @Transactional
+    public String applyStocktake(@RequestParam Map<String, String> params, RedirectAttributes ra) {
+        Map<Long, Integer> counted = new HashMap<>();
+        params.forEach((k, v) -> {
+            if (k.startsWith("count_") && !Texts.isBlank(v)) {
+                try {
+                    counted.put(Long.valueOf(k.substring(6)), Integer.parseInt(v.trim()));
+                } catch (NumberFormatException e) {
+                    throw new BusinessException("Số lượng kiểm kê không hợp lệ: " + v);
+                }
+            }
+        });
+        int n = inventoryService.stocktake(counted, currentUser.get(), params.get("note"));
+        Flash.success(ra, n == 0 ? "Kiểm kê khớp sổ sách, không có chênh lệch." : "Đã ghi nhận chênh lệch kiểm kê cho " + n + " lô.");
+        return "redirect:/staff/stocktake";
+    }
+
     /* ---------------- Phiếu nhập kho ---------------- */
 
     @GetMapping("/receipts")

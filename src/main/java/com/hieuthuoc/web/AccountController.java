@@ -166,7 +166,7 @@ public class AccountController {
         model.addAttribute("showBank", orderService.showBankTransfer(o));
         model.addAttribute("addresses", addressRepo.findByUserOrderByDefaultAddressDescIdAsc(o.getUser()));
         model.addAttribute("shippingMethods", ShippingMethod.values());
-        model.addAttribute("paymentMethods", PaymentMethod.values());
+        model.addAttribute("paymentMethods", PaymentMethod.ONLINE_METHODS);
         model.addAttribute("title", "Đơn hàng " + o.getCode());
         return "account/order";
     }

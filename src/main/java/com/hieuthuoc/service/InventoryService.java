@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Service
@@ -90,6 +91,7 @@ public class InventoryService {
     public Receipt decideReceipt(Long id, User admin, boolean approve) {
         Receipt r = receiptRepo.findById(id).orElseThrow(() -> BusinessException.notFound("Không tìm thấy phiếu nhập."));
         if (r.getStatus() != ApprovalStatus.PENDING) throw new BusinessException("Phiếu nhập không ở trạng thái chờ duyệt.");
+        if (!admin.hasPermission(StaffPermission.APPROVE_RECEIPT)) throw new BusinessException("Bạn chưa được cấp quyền duyệt phiếu nhập.");
         if (approve) {
             for (ReceiptItem it : r.getItems()) {
                 Batch b = new Batch();
@@ -139,7 +141,7 @@ public class InventoryService {
         if (quantity == 0) throw new BusinessException("Số lượng điều chỉnh phải khác 0.");
         if (Texts.isBlank(reason)) throw new BusinessException("Vui lòng nhập lý do.");
         if (b.getQuantity() + quantity < 0) throw new BusinessException("Lô chỉ còn " + b.getQuantity() + " " + b.getProduct().getUnit() + ".");
-        if (quantity > 0 && user.getRole() != Role.ADMIN) throw new BusinessException("Chỉ admin được điều chỉnh tăng tồn kho.");
+        if (quantity > 0 && !user.hasPermission(StaffPermission.INVENTORY_ADJUST)) throw new BusinessException("Bạn chưa được cấp quyền điều chỉnh tăng tồn kho.");
         b.setQuantity(b.getQuantity() + quantity);
         StockAdjustment a = new StockAdjustment();
         a.setBatch(b);
@@ -153,6 +155,40 @@ public class InventoryService {
         }
         notifications.log(user, "batch.adjust", b.getProduct().getName() + " - lô " + b.getBatchNo() + ": " + (quantity > 0 ? "+" : "") + quantity + " (" + reason + ")");
         return b;
+    }
+
+    /**
+     * Kiểm kê: nhập số lượng thực đếm cho từng lô; chênh lệch được ghi thành phiếu điều chỉnh.
+     * Chênh lệch tăng cần quyền INVENTORY_ADJUST. Trả về số lô có chênh lệch.
+     */
+    public int stocktake(Map<Long, Integer> counted, User user, String note) {
+        String reason = "Kiểm kê " + java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                + (Texts.isBlank(note) ? "" : " - " + Texts.trim(note, 150));
+        List<Object[]> diffs = new ArrayList<>();
+        for (Map.Entry<Long, Integer> e : counted.entrySet()) {
+            if (e.getValue() == null) continue;
+            if (e.getValue() < 0) throw new BusinessException("Số lượng kiểm kê không được âm.");
+            Batch b = batch(e.getKey());
+            int diff = e.getValue() - b.getQuantity();
+            if (diff == 0) continue;
+            if (diff > 0 && !user.hasPermission(StaffPermission.INVENTORY_ADJUST)) {
+                throw new BusinessException("Lô " + b.getBatchNo() + " thừa " + diff + " so với sổ sách - cần quyền điều chỉnh tăng tồn kho để áp dụng.");
+            }
+            diffs.add(new Object[]{b, diff});
+        }
+        for (Object[] d : diffs) {
+            Batch b = (Batch) d[0];
+            int diff = (Integer) d[1];
+            b.setQuantity(b.getQuantity() + diff);
+            StockAdjustment a = new StockAdjustment();
+            a.setBatch(b);
+            a.setQuantity(diff);
+            a.setReason(reason);
+            a.setUser(user);
+            adjustmentRepo.save(a);
+        }
+        notifications.log(user, "inventory.stocktake", diffs.size() + " lô chênh lệch");
+        return diffs.size();
     }
 
     /** Gửi thông báo thu hồi tới tất cả khách đã mua lô. */

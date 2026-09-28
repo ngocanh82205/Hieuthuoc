@@ -60,12 +60,41 @@ public class User {
 
     private boolean locked;
 
+    /** Quyền nghiệp vụ được cấp cho nhân viên, cách nhau dấu phẩy (xem {@link StaffPermission}). */
+    @Column(length = 200)
+    private String permissions;
+
+    /** Lần hoạt động gần nhất (để biết dược sĩ đang online). */
+    private LocalDateTime lastSeenAt;
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
     @PrePersist
     void prePersist() {
         if (createdAt == null) createdAt = LocalDateTime.now();
+    }
+
+    public boolean hasPermission(StaffPermission p) {
+        if (role == Role.ADMIN) return true;
+        if (role != Role.PHARMACIST || permissions == null) return false;
+        return java.util.Arrays.asList(permissions.split(",")).contains(p.name());
+    }
+
+    /** Dùng trong template: ${currentUser.can('CONTENT')} */
+    public boolean can(String permission) {
+        return hasPermission(StaffPermission.valueOf(permission));
+    }
+
+    public java.util.Set<StaffPermission> getPermissionSet() {
+        java.util.Set<StaffPermission> set = java.util.EnumSet.noneOf(StaffPermission.class);
+        for (StaffPermission p : StaffPermission.values()) if (hasPermission(p)) set.add(p);
+        return set;
+    }
+
+    /** Online nếu có hoạt động trong 5 phút gần nhất. */
+    public boolean isOnline() {
+        return lastSeenAt != null && lastSeenAt.isAfter(LocalDateTime.now().minusMinutes(5));
     }
 
     public boolean isStaff() {

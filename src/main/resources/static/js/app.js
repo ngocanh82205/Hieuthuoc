@@ -94,6 +94,40 @@
                 a.appendChild(img);
                 bubble.appendChild(a);
             }
+            if (m.cartId) {
+                var cartBox = document.createElement('div');
+                cartBox.className = 'chat-cart';
+                (m.cartLines || []).forEach(function (l) {
+                    var d = document.createElement('div');
+                    d.textContent = '• ' + l;
+                    cartBox.appendChild(d);
+                });
+                var tot = document.createElement('div');
+                tot.className = 'fw-semibold mt-1';
+                tot.textContent = 'Tạm tính: ' + Number(m.cartTotal).toLocaleString('vi-VN') + ' ₫';
+                cartBox.appendChild(tot);
+                var action = chat.getAttribute('data-cart-action');
+                if (action) {
+                    var f = document.createElement('form');
+                    f.method = 'post';
+                    f.action = action + m.cartId + '/add';
+                    f.className = 'mt-2';
+                    var tk = document.querySelector('meta[name="_csrf"]');
+                    if (tk) {
+                        var hid = document.createElement('input');
+                        hid.type = 'hidden';
+                        hid.name = '_csrf';
+                        hid.value = tk.content;
+                        f.appendChild(hid);
+                    }
+                    var b = document.createElement('button');
+                    b.className = 'btn btn-sm btn-light';
+                    b.textContent = 'Thêm tất cả vào giỏ';
+                    f.appendChild(b);
+                    cartBox.appendChild(f);
+                }
+                bubble.appendChild(cartBox);
+            }
             var meta = document.createElement('div');
             meta.className = 'meta';
             meta.textContent = (mine ? '' : m.senderName + (m.fromStaff ? ' (Dược sĩ)' : '') + ' · ') + m.time;
