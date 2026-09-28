@@ -25,6 +25,8 @@ public interface PrescriptionRepository extends JpaRepository<Prescription, Long
 
     Optional<Prescription> findFirstByImage(String image);
 
+    List<Prescription> findByUserAndStandaloneTrueOrderByCreatedAtDesc(User user);
+
     List<Prescription> findByStatusAndReviewedAtBetweenOrderByReviewedAtDesc(ApprovalStatus status, LocalDateTime from, LocalDateTime to);
 
     List<Prescription> findByReviewedAtBetween(LocalDateTime from, LocalDateTime to);

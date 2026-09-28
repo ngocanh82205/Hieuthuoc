@@ -21,35 +21,43 @@ public class CartController {
     private final Cart cart;
     private final CartService cartService;
     private final OrderService orderService;
+    private final CustomerCareService care;
     private final ProductRepository productRepo;
     private final AddressRepository addressRepo;
     private final CurrentUser currentUser;
 
+    private void savedVouchers(Model model, User u) {
+        model.addAttribute("savedVouchers", u == null || u.isStaff() ? List.of() : care.savedVouchers(u));
+    }
+
     @GetMapping("/cart")
     public String view(Model model) {
-        model.addAttribute("cart", cartService.build(cart, ShippingMethod.DELIVERY));
+        User u = currentUser.getOrNull();
+        model.addAttribute("cart", cartService.build(cart, ShippingMethod.DELIVERY, u));
+        savedVouchers(model, u);
         model.addAttribute("title", "Giỏ hàng");
         return "shop/cart";
     }
 
     @PostMapping("/cart/add")
-    public Object add(@RequestParam Long productId, @RequestParam(defaultValue = "1") int qty,
+    public Object add(@RequestParam Long productId, @RequestParam(defaultValue = "0") Long unitId,
+                      @RequestParam(defaultValue = "1") int qty,
                       @RequestParam(required = false) String buyNow,
                       @RequestHeader(value = "Accept", required = false) String accept,
-                      @RequestHeader(value = "Referer", required = false) String referer,
                       RedirectAttributes ra) {
         boolean json = accept != null && accept.contains("application/json");
         User u = currentUser.getOrNull();
         String error;
         String message = null;
         Product p = productRepo.findById(productId).orElse(null);
+        UnitOption unit = p == null ? null : p.findUnit(unitId);
         if (u != null && u.isStaff()) error = "Tài khoản nhân viên không thể đặt hàng online.";
         else {
             qty = Math.max(1, Math.min(qty, 999));
-            error = cartService.checkAdd(p, cart.quantityOf(productId) + qty);
+            error = cartService.checkAdd(cart, p, unit, qty);
             if (error == null) {
-                cart.getItems().merge(productId, qty, Integer::sum);
-                message = "Đã thêm " + qty + " " + p.getUnit() + " \"" + p.getName() + "\" vào giỏ hàng."
+                cart.add(productId, unit.id(), qty);
+                message = "Đã thêm " + qty + " " + unit.name() + " \"" + p.getName() + "\" vào giỏ hàng."
                         + (p.getDrugType().isPrescription() ? " Đây là thuốc kê đơn - bạn cần tải lên đơn thuốc khi đặt hàng." : "");
             }
         }
@@ -67,12 +75,12 @@ public class CartController {
     public String update(@RequestParam Map<String, String> params, RedirectAttributes ra) {
         params.forEach((k, v) -> {
             if (!k.startsWith("qty_")) return;
+            String key = k.substring(4).replace('_', ':');
+            if (!cart.getItems().containsKey(key)) return;
             try {
-                Long id = Long.valueOf(k.substring(4));
                 int q = Integer.parseInt(v.trim());
-                if (!cart.getItems().containsKey(id)) return;
-                if (q <= 0) cart.getItems().remove(id);
-                else cart.getItems().put(id, Math.min(q, 999));
+                if (q <= 0) cart.getItems().remove(key);
+                else cart.getItems().put(key, Math.min(q, 999));
             } catch (NumberFormatException ignored) {
             }
         });
@@ -80,10 +88,16 @@ public class CartController {
         return "redirect:/cart";
     }
 
-    @PostMapping("/cart/remove/{id}")
-    public String remove(@PathVariable Long id) {
-        cart.getItems().remove(id);
+    @PostMapping("/cart/remove")
+    public String remove(@RequestParam String key) {
+        cart.getItems().remove(key);
         return "redirect:/cart";
+    }
+
+    @PostMapping("/cart/points")
+    public String points(@RequestParam(defaultValue = "false") boolean use, @RequestParam(defaultValue = "/cart") String back) {
+        cart.setUsePoints(use);
+        return "redirect:" + (back.startsWith("/checkout") ? "/checkout" : "/cart");
     }
 
     @PostMapping("/cart/voucher")
@@ -97,7 +111,7 @@ public class CartController {
         String c = code.trim().toUpperCase();
         String prev = cart.getVoucherCode();
         cart.setVoucherCode(c);
-        CartService.View v = cartService.build(cart, ShippingMethod.DELIVERY);
+        CartService.View v = cartService.build(cart, ShippingMethod.DELIVERY, currentUser.getOrNull());
         if (v.getVoucherError() != null) {
             cart.setVoucherCode(prev);
             Flash.error(ra, v.getVoucherError());
@@ -110,11 +124,12 @@ public class CartController {
     /* ---------------- Thanh toán ---------------- */
 
     private void checkoutModel(Model model, User u, OrderService.CheckoutForm form) {
-        model.addAttribute("cart", cartService.build(cart, form.getShippingMethod() == null ? ShippingMethod.DELIVERY : form.getShippingMethod()));
+        model.addAttribute("cart", cartService.build(cart, form.getShippingMethod() == null ? ShippingMethod.DELIVERY : form.getShippingMethod(), u));
         model.addAttribute("addresses", addressRepo.findByUserOrderByDefaultAddressDescIdAsc(u));
         model.addAttribute("form", form);
         model.addAttribute("shippingMethods", ShippingMethod.values());
         model.addAttribute("paymentMethods", PaymentMethod.values());
+        savedVouchers(model, u);
         model.addAttribute("title", "Thanh toán");
     }
 
@@ -156,9 +171,11 @@ public class CartController {
         if (!o.isNeedsPrescription() && o.getPaymentMethod() == PaymentMethod.ONLINE) {
             return "redirect:/account/orders/" + o.getCode() + "/pay";
         }
+        String payNote = !o.isNeedsPrescription() && o.getPaymentMethod() == PaymentMethod.BANK_TRANSFER
+                ? " Vui lòng chuyển khoản theo hướng dẫn bên dưới." : "";
         Flash.success(ra, o.isNeedsPrescription()
                 ? "Đặt hàng thành công (mã " + o.getCode() + "). Dược sĩ sẽ kiểm tra đơn thuốc và phản hồi sớm nhất."
-                : "Đặt hàng thành công! Mã đơn hàng: " + o.getCode() + ".");
+                : "Đặt hàng thành công! Mã đơn hàng: " + o.getCode() + "." + payNote);
         return "redirect:/account/orders/" + o.getCode();
     }
 }

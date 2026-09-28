@@ -35,9 +35,18 @@ public class SecurityConfig {
 
     @Bean
     public UserDetailsService userDetailsService(UserRepository userRepo) {
-        return email -> userRepo.findByEmailIgnoreCase(email.trim())
-                .map(AppUserDetails::new)
-                .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy tài khoản"));
+        // Đăng nhập bằng email hoặc số điện thoại
+        return login -> {
+            String s = login.trim();
+            java.util.Optional<com.hieuthuoc.entity.User> u;
+            if (s.contains("@")) {
+                u = userRepo.findByEmailIgnoreCase(s);
+            } else {
+                java.util.List<com.hieuthuoc.entity.User> list = userRepo.findByPhone(s);
+                u = list.size() == 1 ? java.util.Optional.of(list.get(0)) : java.util.Optional.empty();
+            }
+            return u.map(AppUserDetails::new).orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy tài khoản"));
+        };
     }
 
     @Bean
@@ -92,14 +101,15 @@ public class SecurityConfig {
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/staff/receipts/*/decide").hasRole("ADMIN")
                         .requestMatchers("/staff/**").hasAnyRole("PHARMACIST", "ADMIN")
-                        .requestMatchers("/account/**", "/checkout/**", "/consult/**").hasRole("CUSTOMER")
+                        .requestMatchers("/account/**", "/checkout/**", "/consult/**", "/wishlist/**", "/stock-alert/**").hasRole("CUSTOMER")
+                        .requestMatchers(HttpMethod.POST, "/products/*/questions").hasRole("CUSTOMER")
                         .requestMatchers(HttpMethod.POST, "/products/*/reviews").hasRole("CUSTOMER")
                         .requestMatchers("/files/**", "/notifications/**").authenticated()
                         .anyRequest().permitAll())
                 .securityContext(c -> c.securityContextRepository(contextRepo))
                 .formLogin(f -> f
                         .loginPage("/login")
-                        .usernameParameter("email")
+                        .usernameParameter("username")
                         .successHandler(successHandler())
                         .failureUrl("/login?error")
                         .permitAll())

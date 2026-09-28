@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body>
+<header th:replace="~{fragments/layout :: navbar}"></header>
+<main class="container py-4">
+    <div class="row g-4">
+        <aside class="col-lg-3"><div th:replace="~{fragments/layout :: accountMenu}"></div></aside>
+        <section class="col-lg-9">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="row g-4">
+                <div class="col-lg-7">
+                    <div class="card mb-4">
+                        <div class="card-header"><i class="bi bi-alarm text-primary me-1"></i>Tạo lịch nhắc</div>
+                        <div class="card-body">
+                            <ul class="nav nav-pills mb-3" role="tablist">
+                                <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tabMed" type="button">Nhắc uống thuốc</button></li>
+                                <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tabBuy" type="button">Nhắc mua lại</button></li>
+                            </ul>
+                            <div class="tab-content">
+                                <form id="tabMed" class="tab-pane fade show active row g-2" th:action="@{/account/reminders}" method="post">
+                                    <input type="hidden" name="type" value="MEDICATION">
+                                    <div class="col-md-6"><label class="form-label small">Sản phẩm (không bắt buộc)</label>
+                                        <select name="productId" class="form-select form-select-sm"><option value="">-- Chọn --</option>
+                                            <option th:each="p : ${products}" th:value="${p.id}" th:text="${p.name}"></option></select></div>
+                                    <div class="col-md-6"><label class="form-label small">Tên thuốc / nội dung</label>
+                                        <input name="title" class="form-control form-control-sm" placeholder="VD: Amlodipin 5mg - 1 viên"></div>
+                                    <div class="col-md-12"><label class="form-label small">Giờ uống mỗi ngày (cách nhau dấu phẩy)</label>
+                                        <input name="times" class="form-control form-control-sm" placeholder="08:00, 20:00" required></div>
+                                    <div class="col-md-6"><label class="form-label small">Từ ngày</label><input type="date" name="startDate" class="form-control form-control-sm"></div>
+                                    <div class="col-md-6"><label class="form-label small">Đến ngày (không bắt buộc)</label><input type="date" name="endDate" class="form-control form-control-sm"></div>
+                                    <div class="col-12"><input name="note" class="form-control form-control-sm" maxlength="300" placeholder="Ghi chú (VD: uống sau ăn)"></div>
+                                    <div class="col-12"><button class="btn btn-primary btn-sm">Tạo lịch nhắc</button></div>
+                                </form>
+                                <form id="tabBuy" class="tab-pane fade row g-2" th:action="@{/account/reminders}" method="post">
+                                    <input type="hidden" name="type" value="REPURCHASE">
+                                    <div class="col-md-6"><label class="form-label small">Sản phẩm</label>
+                                        <select name="productId" class="form-select form-select-sm"><option value="">-- Chọn --</option>
+                                            <option th:each="p : ${products}" th:value="${p.id}" th:text="${p.name}"></option></select></div>
+                                    <div class="col-md-6"><label class="form-label small">Hoặc nhập tên</label><input name="title" class="form-control form-control-sm"></div>
+                                    <div class="col-md-6"><label class="form-label small">Ngày nhắc</label><input type="date" name="remindDate" class="form-control form-control-sm" required></div>
+                                    <div class="col-12"><button class="btn btn-primary btn-sm">Tạo lịch nhắc</button></div>
+                                </form>
+                            </div>
+                            <p class="small text-muted mt-3 mb-0"><i class="bi bi-info-circle"></i> Thông báo nhắc sẽ hiện trên website (chuông thông báo và cửa sổ nhỏ góc màn hình) đúng giờ đã đặt.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-5">
+                    <div class="card mb-4">
+                        <div class="card-header">Hôm nay</div>
+                        <div class="card-body">
+                            <p th:if="${today.isEmpty()}" class="text-muted small mb-0">Không có lịch uống thuốc hôm nay.</p>
+                            <div th:each="r : ${today}" class="schedule-item"><span class="time" th:text="${r[0]}"></span><span th:text="${r[1]}"></span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">Tất cả lịch nhắc</div>
+                <ul class="list-group list-group-flush">
+                    <li th:if="${reminders.isEmpty()}" class="list-group-item text-muted">Chưa có lịch nhắc.</li>
+                    <li class="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-2" th:each="r : ${reminders}" th:classappend="${!r.active} ? 'opacity-50'">
+                        <div>
+                            <span class="badge" th:classappend="${r.type.name() == 'MEDICATION'} ? 'text-bg-primary' : 'text-bg-info'" th:text="${r.type.label}"></span>
+                            <strong th:text="${r.title}"></strong>
+                            <div class="small text-muted" th:if="${r.type.name() == 'MEDICATION'}"
+                                 th:text="'Lúc ' + ${r.times} + ' · từ ' + ${@fmt.date(r.startDate)} + (${r.endDate != null} ? ' đến ' + ${@fmt.date(r.endDate)} : '')"></div>
+                            <div class="small text-muted" th:if="${r.type.name() == 'REPURCHASE'}" th:text="'Ngày nhắc: ' + ${@fmt.date(r.remindDate)}"></div>
+                            <div class="small" th:if="${r.note != null}" th:text="${r.note}"></div>
+                        </div>
+                        <div class="d-flex gap-1">
+                            <form th:action="@{/account/reminders/{id}/toggle(id=${r.id})}" method="post">
+                                <button class="btn btn-sm btn-outline-secondary" th:text="${r.active} ? 'Tạm dừng' : 'Bật lại'"></button></form>
+                            <form th:action="@{/account/reminders/{id}/delete(id=${r.id})}" method="post" data-confirm="Xóa lịch nhắc này?">
+                                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </section>
+    </div>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

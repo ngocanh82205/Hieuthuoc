@@ -23,6 +23,18 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
 
     long countByCategory(Category category);
 
+    @Query("select distinct p.manufacturer from Product p where p.active = true and p.manufacturer is not null order by p.manufacturer")
+    List<String> distinctManufacturers();
+
+    @Query("select distinct p.country from Product p where p.active = true and p.country is not null order by p.country")
+    List<String> distinctCountries();
+
+    @Query("select distinct p.dosageForm from Product p where p.active = true and p.dosageForm is not null order by p.dosageForm")
+    List<String> distinctDosageForms();
+
+    @Query("select p from Product p where p.active = true and p.drugType <> com.hieuthuoc.entity.DrugType.SPECIAL order by p.name")
+    List<Product> findSellable();
+
     List<Product> findTop4ByActiveTrueAndActiveIngredientIgnoreCaseAndIdNot(String activeIngredient, Long id);
 
     List<Product> findTop4ByActiveTrueAndCategoryAndIdNotAndDrugTypeNot(Category category, Long id, DrugType drugType);

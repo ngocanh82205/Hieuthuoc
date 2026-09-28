@@ -25,7 +25,7 @@
                         <tr th:each="a : ${buyers}" th:with="o=${a.orderItem.order}">
                             <td><a th:href="@{/staff/orders/{id}(id=${o.id})}" th:text="${o.code}"></a></td>
                             <td th:text="${o.user.fullName}"></td>
-                            <td class="small" th:text="${o.phone} + ' · ' + ${o.user.email}"></td>
+                            <td class="small" th:text="${o.phone} + (${o.user.email != null} ? ' · ' + ${o.user.email} : '')"></td>
                             <td class="small" th:text="${@fmt.dateTime(o.createdAt)}"></td>
                             <td class="text-end" th:text="${a.quantity}"></td>
                             <td><span th:replace="~{fragments/staff :: orderStatus(${o.status})}"></span></td>

@@ -21,6 +21,8 @@ public class ShopController {
     private final OrderItemRepository orderItemRepo;
     private final ProductService productService;
     private final CurrentUser currentUser;
+    private final ProductQuestionRepository questionRepo;
+    private final StockSubscriptionRepository subscriptionRepo;
 
     @GetMapping("/")
     public String home(Model model) {
@@ -46,6 +48,9 @@ public class ShopController {
                            @RequestParam(required = false) Long max,
                            @RequestParam(required = false) String instock,
                            @RequestParam(defaultValue = "bestseller") String sort,
+                           @RequestParam(required = false) String brand,
+                           @RequestParam(required = false) String country,
+                           @RequestParam(required = false) String form,
                            @RequestParam(defaultValue = "1") int page,
                            Model model) {
         Category cat = category == null ? null : categoryRepo.findBySlug(category).orElse(null);
@@ -54,7 +59,13 @@ public class ShopController {
             if (type != null && !type.isBlank()) dt = DrugType.valueOf(type);
         } catch (IllegalArgumentException ignored) {
         }
-        List<Product> list = productService.search(new ProductService.Filter(q, cat, dt, min, max, instock != null, sort, true));
+        List<Product> list = productService.search(new ProductService.Filter(q, cat, dt, min, max, instock != null, sort, true, brand, country, form));
+        model.addAttribute("brands", productRepo.distinctManufacturers());
+        model.addAttribute("countries", productRepo.distinctCountries());
+        model.addAttribute("forms", productRepo.distinctDosageForms());
+        model.addAttribute("brand", brand);
+        model.addAttribute("country", country);
+        model.addAttribute("form", form);
         model.addAttribute("page", ProductService.page(list, page, 12));
         model.addAttribute("category", cat);
         model.addAttribute("q", q);
@@ -84,6 +95,10 @@ public class ShopController {
         boolean canReview = u != null && u.getRole() == Role.CUSTOMER
                 && orderItemRepo.hasPurchased(u, p) && !reviewRepo.existsByProductAndUser(p, u);
         model.addAttribute("canReview", canReview);
+        model.addAttribute("questions", questionRepo.findByProductAndHiddenFalseAndAnswerIsNotNullOrderByCreatedAtDesc(p));
+        model.addAttribute("myPendingQuestions", u != null && u.getRole() == Role.CUSTOMER
+                ? questionRepo.findByProductAndUserAndAnswerIsNullOrderByCreatedAtDesc(p, u) : List.of());
+        model.addAttribute("subscribed", u != null && u.getRole() == Role.CUSTOMER && subscriptionRepo.existsByUserAndProductAndNotifiedFalse(u, p));
         model.addAttribute("title", p.getName());
         return "shop/product";
     }

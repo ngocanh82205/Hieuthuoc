@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="staff-body">
+<div class="staff-shell">
+    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
+    <div class="staff-main">
+        <header th:replace="~{fragments/staff :: topbar}"></header>
+        <main class="p-3 p-lg-4">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <ul class="nav nav-pills mb-3">
+                <li class="nav-item"><a class="nav-link" th:classappend="${!all} ? 'active'" th:href="@{/staff/questions}">Chờ trả lời</a></li>
+                <li class="nav-item"><a class="nav-link" th:classappend="${all} ? 'active'" th:href="@{/staff/questions(all=true)}">Tất cả</a></li>
+            </ul>
+            <p th:if="${list.isEmpty()}" class="card card-body text-muted">Không có câu hỏi nào.</p>
+            <div class="card mb-3" th:each="q : ${list}" th:classappend="${q.hidden} ? 'opacity-50'">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between flex-wrap gap-2">
+                        <div><a th:href="@{/products/{s}(s=${q.product.slug})}" target="_blank" class="fw-semibold" th:text="${q.product.name}"></a>
+                            <div class="small text-muted" th:text="${q.user.fullName} + ' · ' + ${@fmt.dateTime(q.createdAt)}"></div></div>
+                        <form th:action="@{/staff/questions/{id}/toggle(id=${q.id})}" method="post">
+                            <button class="btn btn-sm btn-outline-secondary" th:text="${q.hidden} ? 'Hiện' : 'Ẩn'"></button></form>
+                    </div>
+                    <p class="mt-2 mb-2"><i class="bi bi-question-circle text-primary me-1"></i><span th:text="${q.question}"></span></p>
+                    <div th:if="${q.answer != null}" class="qa-answer small">
+                        <strong th:text="${q.answeredBy != null ? q.answeredBy.fullName : ''}"></strong> <span class="text-muted" th:text="${@fmt.dateTime(q.answeredAt)}"></span>
+                        <div th:text="${q.answer}"></div></div>
+                    <form th:action="@{/staff/questions/{id}/answer(id=${q.id})}" method="post" class="mt-2">
+                        <textarea name="answer" class="form-control form-control-sm mb-2" rows="2" required minlength="5"
+                                  th:placeholder="${q.answer != null} ? 'Sửa câu trả lời...' : 'Nhập câu trả lời (hiển thị công khai trên trang sản phẩm)'" th:text="${q.answer}"></textarea>
+                        <button class="btn btn-sm btn-primary" th:text="${q.answer != null} ? 'Cập nhật' : 'Trả lời'"></button>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

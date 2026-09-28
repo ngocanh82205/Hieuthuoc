@@ -53,23 +53,51 @@
                     </div>
 
                     <form th:if="${rx.status.name() == 'PENDING'}" th:action="@{/staff/prescriptions/{id}/approve(id=${rx.id})}" method="post" class="card mb-3">
+                        <th:block th:if="${o != null}">
                         <div class="card-header">Đơn hàng <a th:href="@{/staff/orders/{id}(id=${o.id})}" th:text="${o.code}"></a> - đối chiếu & điều chỉnh</div>
                         <div class="table-responsive">
                             <table class="table table-sm mb-0">
-                                <thead><tr><th>Sản phẩm</th><th>Loại</th><th>Tồn khả dụng</th><th style="width: 100px">SL bán</th></tr></thead>
+                                <thead><tr><th>Sản phẩm</th><th>Tồn</th><th style="width: 90px">SL</th><th style="min-width: 190px">Thay thế cùng hoạt chất</th></tr></thead>
                                 <tbody>
                                 <tr th:each="it : ${o.items}">
                                     <td><div class="fw-semibold" th:text="${it.productName}"></div>
-                                        <small class="text-muted" th:text="${it.product.activeIngredient} + ' ' + ${it.product.strength ?: ''}"></small></td>
-                                    <td><span class="badge" th:classappend="'text-bg-' + ${it.drugType.color}" th:text="${it.drugType.shortLabel}"></span></td>
+                                        <span class="badge" th:classappend="'text-bg-' + ${it.drugType.color}" th:text="${it.drugType.shortLabel}"></span>
+                                        <small class="text-muted" th:text="${it.quantity} + ' ' + ${it.unit} + ' · ' + ${it.product.activeIngredient ?: ''}"></small></td>
                                     <td th:text="${available[it.id]}"></td>
-                                    <td><input type="number" class="form-control form-control-sm" min="0" th:max="${it.quantity}" th:name="'qty[' + ${it.id} + ']'" th:value="${it.quantity}"></td>
+                                    <td><input type="number" class="form-control form-control-sm" min="0" th:name="'qty[' + ${it.id} + ']'" th:value="${it.quantity}"></td>
+                                    <td>
+                                        <select class="form-select form-select-sm" th:name="'sub[' + ${it.id} + ']'" th:disabled="${equivalents[it.id].isEmpty()}">
+                                            <option value="">Giữ nguyên</option>
+                                            <option th:each="e : ${equivalents[it.id]}" th:value="${e.id}"
+                                                    th:text="|${e.name} - ${@fmt.money(e.price)}/${e.unit} (còn ${e.available})|"
+                                                    th:disabled="${e.available <= 0}"></option>
+                                        </select>
+                                    </td>
                                 </tr>
                                 </tbody>
                             </table>
                         </div>
+                        </th:block>
+                        <th:block th:if="${o == null}">
+                        <div class="card-header"><i class="bi bi-cart-plus text-primary me-1"></i>Lên đơn từ đơn thuốc (khách chưa chọn sản phẩm)</div>
+                        <div class="card-body pb-0">
+                            <p class="small text-muted mb-2">Chọn thuốc theo đơn và số lượng (theo đơn vị gốc). Khách sẽ nhận báo giá và xác nhận địa chỉ, thanh toán.</p>
+                            <div class="row g-2 mb-2" th:each="i : ${#numbers.sequence(0, 4)}">
+                                <div class="col-9">
+                                    <select name="productIds" class="form-select form-select-sm">
+                                        <option value="">-- Chọn thuốc --</option>
+                                        <option th:each="p : ${products}" th:value="${p.id}" th:disabled="${p.available <= 0}"
+                                                th:text="|${p.name} - ${@fmt.money(p.price)}/${p.unit} (còn ${p.available})|"></option>
+                                    </select>
+                                </div>
+                                <div class="col-3"><input type="number" name="quantities" min="1" class="form-control form-control-sm" placeholder="SL"></div>
+                            </div>
+                        </div>
+                        </th:block>
                         <div class="card-body">
-                            <p class="small text-muted">Chỉ được giảm số lượng so với khách đặt (đặt 0 để bỏ sản phẩm). Thông tin dưới đây được ghi vào <strong>sổ bán thuốc kê đơn</strong>.</p>
+                            <p class="small text-muted" th:if="${o != null}">Có thể giảm số lượng (0 = bỏ) hoặc thay bằng thuốc cùng hoạt chất khi hết hàng.
+                                Nếu có điều chỉnh, khách sẽ nhận thông báo và <strong>xác nhận lại</strong> đơn hàng.</p>
+                            <p class="small text-muted">Thông tin dưới đây được ghi vào <strong>sổ bán thuốc kê đơn</strong>.</p>
                             <div class="row g-2">
                                 <div class="col-md-6"><label class="form-label small">Tên bệnh nhân *</label><input class="form-control form-control-sm" name="patientName" required></div>
                                 <div class="col-md-6"><label class="form-label small">Bác sĩ kê đơn *</label><input class="form-control form-control-sm" name="doctorName" required></div>
@@ -78,7 +106,7 @@
                                 <div class="col-12"><label class="form-label small">Hướng dẫn / ghi chú gửi khách</label>
                                     <textarea class="form-control form-control-sm" name="pharmacistNote" rows="2" placeholder="VD: Uống Augmentin sau ăn, đủ 7 ngày..."></textarea></div>
                             </div>
-                            <button class="btn btn-success mt-3"><i class="bi bi-check2-circle"></i> Duyệt đơn thuốc</button>
+                            <button class="btn btn-success mt-3"><i class="bi bi-check2-circle"></i> <span th:text="${o == null} ? 'Lên đơn & gửi báo giá' : 'Duyệt đơn thuốc'">Duyệt</span></button>
                         </div>
                     </form>
 

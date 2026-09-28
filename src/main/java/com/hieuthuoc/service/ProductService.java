@@ -22,7 +22,11 @@ public class ProductService {
     private final OrderItemRepository orderItemRepo;
     private final StockService stockService;
 
-    public record Filter(String q, Category category, DrugType type, Long min, Long max, boolean inStock, String sort, boolean activeOnly) {
+    public record Filter(String q, Category category, DrugType type, Long min, Long max, boolean inStock, String sort, boolean activeOnly,
+                         String brand, String country, String dosageForm) {
+        public Filter(String q, Category category, DrugType type, Long min, Long max, boolean inStock, String sort, boolean activeOnly) {
+            this(q, category, type, min, max, inStock, sort, activeOnly, null, null, null);
+        }
     }
 
     /** Điền tồn kho, điểm đánh giá, số lượng đã bán. */
@@ -55,11 +59,15 @@ public class ProductService {
                         cb.like(cb.lower(root.get("name")), like),
                         cb.like(cb.lower(root.get("activeIngredient")), like),
                         cb.like(cb.lower(root.get("description")), like),
+                        cb.like(cb.lower(root.get("usageInstruction")), like),
                         cb.like(cb.lower(root.get("manufacturer")), like),
                         cb.like(cb.lower(root.get("registrationNo")), like)));
             }
             if (f.category() != null) ps.add(cb.equal(root.get("category"), f.category()));
             if (f.type() != null) ps.add(cb.equal(root.get("drugType"), f.type()));
+            if (!Texts.isBlank(f.brand())) ps.add(cb.equal(root.get("manufacturer"), f.brand()));
+            if (!Texts.isBlank(f.country())) ps.add(cb.equal(root.get("country"), f.country()));
+            if (!Texts.isBlank(f.dosageForm())) ps.add(cb.equal(root.get("dosageForm"), f.dosageForm()));
             if (f.min() != null) ps.add(cb.ge(root.get("price"), f.min()));
             if (f.max() != null) ps.add(cb.le(root.get("price"), f.max()));
             return cb.and(ps.toArray(new Predicate[0]));

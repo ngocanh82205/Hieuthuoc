@@ -33,15 +33,16 @@
                             <td>
                                 <a th:href="@{/products/{s}(s=${l.product.slug})}" class="fw-semibold" th:text="${l.product.name}"></a>
                                 <div><span class="badge" th:classappend="'text-bg-' + ${l.product.drugType.color}" th:text="${l.product.drugType.shortLabel}"></span>
-                                    <span class="small text-muted" th:text="${l.product.packaging}"></span></div>
+                                    <span class="small text-muted" th:text="'Đơn vị: ' + ${l.unit.name()} + (${l.unit.factor() > 1} ? ' (' + ${l.unit.factor()} + ' ' + ${l.product.unit} + ')' : '')"></span></div>
                                 <div th:if="${l.error != null}" class="small text-danger" th:text="${l.error}"></div>
                             </td>
-                            <td class="text-end text-nowrap" th:text="${@fmt.money(l.product.price)}"></td>
+                            <td class="text-end text-nowrap" th:text="${@fmt.money(l.unitPrice)} + '/' + ${l.unit.name()}"></td>
                             <td><input type="number" class="form-control form-control-sm" min="0" max="999" form="cartForm"
-                                       th:name="'qty_' + ${l.product.id}" th:value="${l.quantity}"></td>
+                                       th:name="'qty_' + ${#strings.replace(l.key, ':', '_')}" th:value="${l.quantity}"></td>
                             <td class="text-end fw-semibold text-nowrap" th:text="${@fmt.money(l.lineTotal)}"></td>
                             <td>
-                                <form th:action="@{/cart/remove/{id}(id=${l.product.id})}" method="post">
+                                <form th:action="@{/cart/remove}" method="post">
+                                    <input type="hidden" name="key" th:value="${l.key}">
                                     <button class="btn btn-sm btn-link text-danger" aria-label="Xóa"><i class="bi bi-trash"></i></button>
                                 </form>
                             </td>
@@ -67,13 +68,38 @@
                         <button class="btn btn-sm btn-link text-danger" name="remove" value="1">Bỏ mã</button>
                     </form>
                     <div th:if="${cart.voucherError != null}" class="small text-danger mt-2" th:text="${cart.voucherError}"></div>
+                    <div th:if="${!savedVouchers.isEmpty() && cart.voucher == null}" class="mt-3">
+                        <div class="small fw-semibold mb-2"><i class="bi bi-wallet2 me-1"></i>Voucher trong kho của bạn</div>
+                        <div class="d-flex flex-wrap gap-2">
+                            <form th:each="v : ${savedVouchers}" th:action="@{/cart/voucher}" method="post">
+                                <input type="hidden" name="code" th:value="${v.code}">
+                                <button class="voucher-chip" th:title="${v.description}" th:text="${v.code}"></button>
+                            </form>
+                        </div>
+                    </div>
                     <div class="small text-muted mt-2">Mã giảm giá không áp dụng cho thuốc kê đơn.</div>
+                </div>
+            </div>
+            <div class="card mb-3" th:if="${currentUser != null && currentUser.role.name() == 'CUSTOMER'}">
+                <div class="card-body">
+                    <form th:action="@{/cart/points}" method="post" class="d-flex justify-content-between align-items-center gap-2">
+                        <div>
+                            <div class="fw-semibold"><i class="bi bi-coin text-warning me-1"></i>Dùng điểm tích lũy</div>
+                            <div class="small text-muted">Bạn có <strong th:text="${cart.pointsAvailable}"></strong> điểm
+                                (1 điểm = <span th:text="${@fmt.money(cart.pointValue)}"></span>)</div>
+                        </div>
+                        <input type="hidden" name="use" th:value="${!cart.usePoints}">
+                        <button class="btn btn-sm" th:classappend="${cart.usePoints} ? 'btn-outline-secondary' : 'btn-primary'"
+                                th:disabled="${cart.pointsAvailable == 0}" th:text="${cart.usePoints} ? 'Bỏ dùng' : 'Dùng điểm'"></button>
+                    </form>
                 </div>
             </div>
             <div class="card">
                 <div class="card-body">
                     <div class="d-flex justify-content-between mb-2"><span>Tạm tính</span><span th:text="${@fmt.money(cart.subtotal)}"></span></div>
                     <div class="d-flex justify-content-between mb-2 text-success" th:if="${cart.discount > 0}"><span>Giảm giá</span><span th:text="'-' + ${@fmt.money(cart.discount)}"></span></div>
+                    <div class="d-flex justify-content-between mb-2 text-success" th:if="${cart.pointsDiscount > 0}">
+                        <span th:text="'Dùng ' + ${cart.pointsUsed} + ' điểm'"></span><span th:text="'-' + ${@fmt.money(cart.pointsDiscount)}"></span></div>
                     <div class="d-flex justify-content-between mb-2"><span>Phí giao hàng (dự kiến)</span>
                         <span th:text="${cart.shippingFee == 0} ? 'Miễn phí' : ${@fmt.money(cart.shippingFee)}"></span></div>
                     <hr>

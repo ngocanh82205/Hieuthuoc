@@ -79,6 +79,34 @@ public class AuthController {
         return "redirect:/";
     }
 
+    @GetMapping("/forgot-password")
+    public String forgotForm(Model model) {
+        model.addAttribute("title", "Quên mật khẩu");
+        return "auth/forgot";
+    }
+
+    @PostMapping("/forgot-password")
+    public String forgot(@org.springframework.web.bind.annotation.RequestParam String identifier,
+                         @org.springframework.web.bind.annotation.RequestParam String contactPhone,
+                         @org.springframework.web.bind.annotation.RequestParam(required = false) String note, RedirectAttributes ra) {
+        accountService.requestPasswordReset(identifier, contactPhone, note);
+        Flash.success(ra, "Đã gửi yêu cầu. Nhà thuốc sẽ gọi điện xác minh và cấp mật khẩu tạm cho bạn trong giờ làm việc.");
+        return "redirect:/login";
+    }
+
+    /** Số thông báo chưa đọc + thông báo mới nhất (JS gọi định kỳ để hiện toast, VD nhắc uống thuốc). */
+    @GetMapping("/notifications/unread")
+    @org.springframework.web.bind.annotation.ResponseBody
+    public java.util.Map<String, Object> unread() {
+        User u = currentUser.get();
+        java.util.List<java.util.Map<String, Object>> latest = new java.util.ArrayList<>();
+        for (var n : notificationRepo.findTop100ByUserOrderByIdDesc(u)) {
+            if (n.isSeen() || latest.size() >= 5) break;
+            latest.add(java.util.Map.of("id", n.getId(), "message", n.getMessage(), "link", n.getLink() == null ? "" : n.getLink()));
+        }
+        return java.util.Map.of("count", notificationRepo.countByUserAndSeenFalse(u), "latest", latest);
+    }
+
     @GetMapping("/notifications")
     @Transactional
     public String notifications(Model model) {

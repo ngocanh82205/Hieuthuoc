@@ -397,3 +397,33 @@ a.stat-card:hover, .stat-card:hover { transform: translateY(-3px); box-shadow: v
     .trust-item { padding: .8rem; gap: .6rem; }
     .trust-item i { width: 38px; height: 38px; font-size: 1.1rem; }
 }
+
+/* ---------- Yêu thích, đơn vị tính, hạng thành viên ---------- */
+.product-card { position: relative; }
+.wish-form { position: absolute; top: .6rem; left: .6rem; z-index: 3; margin: 0; }
+.wish-btn { width: 36px; height: 36px; border-radius: 50%; border: 0; display: grid; place-items: center; background: rgba(255, 255, 255, .92); color: #94a3b8; box-shadow: 0 4px 12px rgba(11, 55, 130, .15); transition: transform .2s, color .2s; }
+.wish-btn:hover { transform: scale(1.12); color: #ef4444; }
+.wish-btn.on { color: #ef4444; }
+.wish-btn.on i { animation: heartbeat .5s ease-out; }
+@keyframes heartbeat { 0% { transform: scale(1); } 40% { transform: scale(1.35); } 100% { transform: scale(1); } }
+.unit-picker .btn-check + .btn { border-radius: .8rem; text-align: left; min-width: 120px; border-color: #cfe0fb; }
+.unit-picker .btn-check:checked + .btn { background: var(--grad); color: #fff; border-color: transparent; box-shadow: 0 6px 16px rgba(11, 99, 229, .3); }
+.unit-picker .btn small { display: block; opacity: .8; }
+.tier-card { border-radius: 1.25rem; padding: 1.4rem; color: #fff; position: relative; overflow: hidden; background: var(--grad); box-shadow: var(--shadow-lg); }
+.tier-card::after { content: ""; position: absolute; right: -40px; top: -40px; width: 180px; height: 180px; border-radius: 50%; background: rgba(255, 255, 255, .12); }
+.tier-card .tier-name { font-size: 1.6rem; font-weight: 800; letter-spacing: -.01em; }
+.tier-card .progress { height: 8px; background: rgba(255, 255, 255, .25); border-radius: 99px; }
+.tier-card .progress-bar { background: #fff; border-radius: 99px; }
+.tier-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: .35rem; }
+.voucher-ticket { display: flex; border-radius: 1rem; overflow: hidden; background: #fff; border: 1px solid var(--line); box-shadow: var(--shadow-sm); transition: transform .2s, box-shadow .2s; height: 100%; }
+.voucher-ticket:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+.voucher-ticket .left { width: 110px; flex-shrink: 0; background: var(--grad); color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 800; font-size: 1.25rem; position: relative; text-align: center; padding: .5rem; }
+.voucher-ticket .left::after { content: ""; position: absolute; right: -8px; top: 0; bottom: 0; width: 16px; background: radial-gradient(circle at 8px 10px, #fff 6px, transparent 7px) 0 0 / 16px 20px repeat-y; }
+.voucher-ticket .right { padding: .9rem 1rem .9rem 1.4rem; flex: 1; }
+.voucher-chip { border: 1.5px dashed #9cc0f7; border-radius: .7rem; padding: .35rem .7rem; background: var(--brand-soft); color: var(--brand-dark); font-weight: 600; font-size: .8rem; }
+.qa-item { border-left: 3px solid var(--brand-soft); padding-left: 1rem; }
+.qa-answer { background: var(--grad-soft); border-radius: .8rem; padding: .7rem .9rem; margin-top: .5rem; }
+.schedule-item { display: flex; align-items: center; gap: .75rem; padding: .55rem .8rem; border-radius: .8rem; background: var(--brand-soft); margin-bottom: .5rem; }
+.schedule-item .time { font-weight: 800; color: var(--brand-dark); font-variant-numeric: tabular-nums; }
+.qr-box { background: #fff; border: 1px solid var(--line); border-radius: 1rem; padding: 1rem; text-align: center; }
+.qr-box img { max-width: 220px; width: 100%; }

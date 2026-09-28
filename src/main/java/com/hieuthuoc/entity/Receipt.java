@@ -1,6 +1,8 @@
 package com.hieuthuoc.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
@@ -32,6 +34,7 @@ public class Receipt {
     private User createdBy;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(nullable = false, length = 20)
     private ApprovalStatus status = ApprovalStatus.PENDING;
 

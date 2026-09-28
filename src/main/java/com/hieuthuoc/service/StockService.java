@@ -54,7 +54,7 @@ public class StockService {
     public void allocateFefo(Order order) {
         LocalDate today = LocalDate.now();
         for (OrderItem item : order.getItems()) {
-            int need = item.getQuantity();
+            int need = item.getBaseQuantity();
             for (Batch b : batchRepo.findSellableFefo(item.getProduct().getId(), today)) {
                 if (need <= 0) break;
                 int take = Math.min(need, b.getQuantity());
@@ -67,7 +67,7 @@ public class StockService {
                 need -= take;
             }
             if (need > 0) {
-                throw new BusinessException("Không đủ tồn kho hợp lệ cho \"" + item.getProductName() + "\" (thiếu " + need + " " + item.getUnit() + ").");
+                throw new BusinessException("Không đủ tồn kho hợp lệ cho \"" + item.getProductName() + "\" (thiếu " + need + " " + item.getProduct().getUnit() + ").");
             }
         }
     }

@@ -137,6 +137,10 @@ public class AdminCatalogController {
         private String sideEffects;
         private boolean active;
         private boolean removeImage;
+        /** Đơn vị quy đổi (tối đa 3 dòng): tên, số đơn vị gốc, giá. */
+        private List<String> unitNames = new ArrayList<>();
+        private List<Integer> unitFactors = new ArrayList<>();
+        private List<Long> unitPrices = new ArrayList<>();
     }
 
     @PostMapping({"/products", "/products/{id}"})
@@ -178,6 +182,20 @@ public class AdminCatalogController {
         p.setContraindications(Texts.emptyToNull(Texts.trim(f.getContraindications(), 1000)));
         p.setSideEffects(Texts.emptyToNull(Texts.trim(f.getSideEffects(), 1000)));
         p.setActive(f.isActive());
+        // Đơn vị quy đổi
+        p.getUnits().clear();
+        Set<String> names = new HashSet<>();
+        names.add(p.getUnit().toLowerCase());
+        for (int i = 0; i < f.getUnitNames().size(); i++) {
+            String n = Texts.trim(f.getUnitNames().get(i), 30);
+            if (n.isEmpty()) continue;
+            Integer factor = i < f.getUnitFactors().size() ? f.getUnitFactors().get(i) : null;
+            Long price = i < f.getUnitPrices().size() ? f.getUnitPrices().get(i) : null;
+            if (factor == null || factor < 2) throw new BusinessException("Đơn vị \"" + n + "\": số " + p.getUnit() + " quy đổi phải từ 2 trở lên.");
+            if (price == null || price <= 0) throw new BusinessException("Đơn vị \"" + n + "\": vui lòng nhập giá bán.");
+            if (!names.add(n.toLowerCase())) throw new BusinessException("Tên đơn vị \"" + n + "\" bị trùng.");
+            p.getUnits().add(new ProductUnit(p, n, factor, price));
+        }
         if (files.isPresent(image)) p.setImage("/media/products/" + files.store(FileStorageService.Kind.PRODUCTS, image));
         else if (f.isRemoveImage()) p.setImage(null);
         productRepo.save(p);
@@ -253,7 +271,8 @@ public class AdminCatalogController {
                               @RequestParam(required = false) Long maxDiscount, @RequestParam(required = false) Integer usageLimit,
                               @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
                               @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-                              @RequestParam(defaultValue = "false") boolean active, RedirectAttributes ra) {
+                              @RequestParam(defaultValue = "false") boolean active,
+                              @RequestParam(defaultValue = "false") boolean showInWallet, RedirectAttributes ra) {
         String c = Texts.trim(code).toUpperCase();
         if (!c.matches("[A-Z0-9_-]{3,30}")) throw new BusinessException("Mã chỉ gồm chữ in hoa, số, \"-\" hoặc \"_\" (3-30 ký tự).");
         if (value <= 0 || (type == VoucherType.PERCENT && value > 100)) throw new BusinessException("Giá trị giảm không hợp lệ.");
@@ -271,6 +290,7 @@ public class AdminCatalogController {
         v.setStartDate(startDate);
         v.setEndDate(endDate);
         v.setActive(active);
+        v.setShowInWallet(showInWallet);
         voucherRepo.save(v);
         notifications.log(currentUser.get(), "voucher.save", c);
         Flash.success(ra, "Đã lưu mã " + c + ".");

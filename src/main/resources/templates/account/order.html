@@ -34,6 +34,56 @@
                     </form>
                 </div>
             </div>
+            <!-- Dược sĩ đã lên đơn / điều chỉnh: khách xác nhận -->
+            <div th:if="${o.status.name() == 'AWAITING_CUSTOMER'}" class="card border-warning mb-3">
+                <div class="card-body">
+                    <h2 class="h6 fw-bold"><i class="bi bi-clipboard-check text-warning me-1"></i>Dược sĩ đã chuẩn bị đơn hàng theo đơn thuốc - vui lòng xem lại và xác nhận</h2>
+                    <p class="small text-muted" th:if="${o.latestPrescription != null && o.latestPrescription.pharmacistNote != null}">
+                        Ghi chú dược sĩ: <strong th:text="${o.latestPrescription.pharmacistNote}"></strong></p>
+                    <form th:action="@{/account/orders/{c}/confirm(c=${o.code})}" method="post" class="row g-2">
+                        <div class="col-md-6"><label class="form-label small">Người nhận</label><input name="recipient" class="form-control form-control-sm" th:value="${o.recipient}" required></div>
+                        <div class="col-md-6"><label class="form-label small">Số điện thoại</label><input name="phone" class="form-control form-control-sm" th:value="${o.phone}" required pattern="0[0-9]{9,10}"></div>
+                        <div class="col-md-4"><label class="form-label small">Nhận hàng</label>
+                            <select name="shippingMethod" class="form-select form-select-sm">
+                                <option th:each="m : ${shippingMethods}" th:value="${m}" th:text="${m.label}" th:selected="${o.shippingMethod == m}"></option></select></div>
+                        <div class="col-md-8"><label class="form-label small">Địa chỉ giao hàng</label>
+                            <input name="address" class="form-control form-control-sm" th:value="${o.address}" list="addrList" placeholder="Bỏ trống nếu nhận tại nhà thuốc">
+                            <datalist id="addrList"><option th:each="a : ${addresses}" th:value="${a.addressLine}"></option></datalist></div>
+                        <div class="col-12"><label class="form-label small">Thanh toán</label>
+                            <div class="d-flex flex-wrap gap-3">
+                                <div class="form-check" th:each="m, st : ${paymentMethods}">
+                                    <input class="form-check-input" type="radio" name="paymentMethod" th:id="'pm' + ${st.index}" th:value="${m}" th:checked="${o.paymentMethod == m}">
+                                    <label class="form-check-label small" th:for="'pm' + ${st.index}" th:text="${m.label}"></label></div></div></div>
+                        <div class="col-12 d-flex gap-2 mt-2">
+                            <button class="btn btn-primary"><i class="bi bi-check2-circle"></i> Xác nhận đặt hàng</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Chuyển khoản -->
+            <div th:if="${showBank}" class="card border-primary mb-3">
+                <div class="card-body row g-3 align-items-center">
+                    <div class="col-md-4">
+                        <div class="qr-box">
+                            <img th:src="|https://img.vietqr.io/image/${settings['bank_code']}-${settings['bank_account']}-compact2.png?amount=${o.total}&addInfo=${o.code}&accountName=${#uris.escapeQueryParam(settings['bank_holder'])}|"
+                                 alt="Mã QR chuyển khoản" loading="lazy">
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <h2 class="h6 fw-bold"><i class="bi bi-bank text-primary me-1"></i>Thông tin chuyển khoản</h2>
+                        <table class="table table-sm mb-2">
+                            <tr><th class="text-muted fw-normal">Ngân hàng</th><td th:text="${settings['bank_code']}"></td></tr>
+                            <tr><th class="text-muted fw-normal">Số tài khoản</th><td class="fw-bold" th:text="${settings['bank_account']}"></td></tr>
+                            <tr><th class="text-muted fw-normal">Chủ tài khoản</th><td th:text="${settings['bank_holder']}"></td></tr>
+                            <tr><th class="text-muted fw-normal">Số tiền</th><td class="fw-bold price" th:text="${@fmt.money(o.total)}"></td></tr>
+                            <tr><th class="text-muted fw-normal">Nội dung</th><td><code class="fs-6" th:text="${o.code}"></code></td></tr>
+                        </table>
+                        <p class="small text-muted mb-0">Quét mã QR bằng ứng dụng ngân hàng. Nhà thuốc sẽ xác nhận đơn ngay khi nhận được tiền.</p>
+                    </div>
+                </div>
+            </div>
+
             <div th:if="${canPay}" class="alert alert-info d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <span><i class="bi bi-credit-card"></i> Đơn hàng chọn thanh toán online và chưa được thanh toán.</span>
                 <a th:href="@{/account/orders/{c}/pay(c=${o.code})}" class="btn btn-primary btn-sm">Thanh toán ngay</a>
@@ -53,6 +103,14 @@
                                     <a th:href="@{/products/{s}(s=${it.product.slug})}" class="fw-semibold" th:text="${it.productName}"></a>
                                     <span th:if="${it.drugType != null && it.drugType.name() == 'ETC'}" class="badge text-bg-danger ms-1">Kê đơn</span>
                                     <div class="small text-muted" th:text="${it.quantity} + ' ' + ${it.unit} + ' x ' + ${@fmt.money(it.price)}"></div>
+                                    <form th:if="${o.status.name() == 'COMPLETED'}" th:action="@{/account/orders/{c}/remind(c=${o.code})}" method="post" class="d-flex align-items-center gap-1 mt-1">
+                                        <input type="hidden" name="productId" th:value="${it.product.id}">
+                                        <span class="small text-muted"><i class="bi bi-alarm"></i> Nhắc mua lại sau</span>
+                                        <select name="days" class="form-select form-select-sm w-auto">
+                                            <option value="7">7 ngày</option><option value="15">15 ngày</option><option value="30" selected>30 ngày</option><option value="60">60 ngày</option>
+                                        </select>
+                                        <button class="btn btn-sm btn-outline-primary">Đặt nhắc</button>
+                                    </form>
                                 </div>
                                 <span class="text-nowrap" th:text="${@fmt.money(it.lineTotal)}"></span>
                             </li>
@@ -61,6 +119,8 @@
                             <div class="d-flex justify-content-between"><span>Tạm tính</span><span th:text="${@fmt.money(o.subtotal)}"></span></div>
                             <div class="d-flex justify-content-between text-success" th:if="${o.discount > 0}">
                                 <span th:text="'Giảm giá (' + ${o.voucherCode} + ')'"></span><span th:text="'-' + ${@fmt.money(o.discount)}"></span></div>
+                            <div class="d-flex justify-content-between text-success" th:if="${o.pointsDiscountValue > 0}">
+                                <span th:text="'Dùng ' + ${o.pointsUsedValue} + ' điểm'"></span><span th:text="'-' + ${@fmt.money(o.pointsDiscountValue)}"></span></div>
                             <div class="d-flex justify-content-between"><span>Phí giao hàng</span><span th:text="${@fmt.money(o.shippingFee)}"></span></div>
                             <hr>
                             <div class="d-flex justify-content-between fw-bold"><span>Tổng cộng</span><span class="price" th:text="${@fmt.money(o.total)}"></span></div>
@@ -111,6 +171,7 @@
                             <div class="text-muted" th:if="${o.address == null}" th:text="${settings['store_address']}"></div>
                             <hr>
                             <div th:text="${o.paymentMethod.label}"></div>
+                            <div th:if="${o.pointsEarnedValue > 0}" class="text-success mt-1"><i class="bi bi-coin"></i> Được cộng <span th:text="${o.pointsEarnedValue}"></span> điểm</div>
                             <div th:if="${o.note != null}" class="mt-2"><i class="bi bi-sticky"></i> <span th:text="${o.note}"></span></div>
                         </div>
                     </div>

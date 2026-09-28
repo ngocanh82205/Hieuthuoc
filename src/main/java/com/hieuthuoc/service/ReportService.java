@@ -93,7 +93,7 @@ public class ReportService {
                 soldIds.add(p.getId());
                 String cat = p.getCategory() == null ? "Khác" : p.getCategory().getName();
                 categories.merge(cat, it.getLineTotal(), Long::sum);
-                products.merge(p.getId(), new ProductRow(it.getProductName(), it.getUnit(), it.getQuantity(), it.getLineTotal()),
+                products.merge(p.getId(), new ProductRow(p.getName(), p.getUnit(), it.getBaseQuantity(), it.getLineTotal()),
                         (a, b) -> new ProductRow(a.name(), a.unit(), a.quantity() + b.quantity(), a.revenue() + b.revenue()));
                 for (OrderItemBatch a : it.getAllocations()) r.cost += a.getQuantity() * a.getBatch().getImportPrice();
             }

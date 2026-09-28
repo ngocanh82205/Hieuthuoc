@@ -1,6 +1,8 @@
 package com.hieuthuoc.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
@@ -37,14 +39,17 @@ public class Order {
     private String address;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(nullable = false, length = 20)
     private ShippingMethod shippingMethod = ShippingMethod.DELIVERY;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(nullable = false, length = 20)
     private PaymentMethod paymentMethod = PaymentMethod.COD;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(nullable = false, length = 20)
     private PaymentStatus paymentStatus = PaymentStatus.UNPAID;
 
@@ -59,7 +64,16 @@ public class Order {
     @Column(length = 30)
     private String voucherCode;
 
+    /** Điểm tích lũy khách dùng để trừ tiền. */
+    private Integer pointsUsed;
+
+    private Long pointsDiscount;
+
+    /** Điểm khách được cộng khi đơn hoàn thành. */
+    private Integer pointsEarned;
+
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(nullable = false, length = 20)
     private OrderStatus status;
 
@@ -72,6 +86,7 @@ public class Order {
     private String cancelReason;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(length = 20)
     private ReturnStatus returnStatus;
 
@@ -110,6 +125,18 @@ public class Order {
     @PreUpdate
     void preUpdate() {
         updatedAt = LocalDateTime.now();
+    }
+
+    public int getPointsUsedValue() {
+        return pointsUsed == null ? 0 : pointsUsed;
+    }
+
+    public long getPointsDiscountValue() {
+        return pointsDiscount == null ? 0 : pointsDiscount;
+    }
+
+    public int getPointsEarnedValue() {
+        return pointsEarned == null ? 0 : pointsEarned;
     }
 
     public int getItemCount() {

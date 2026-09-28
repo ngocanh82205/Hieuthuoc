@@ -17,6 +17,10 @@
                     <div><div class="value" th:text="${inProgress}">0</div><div class="label">Đang chuẩn bị / giao</div></div></a></div>
                 <div class="col-6 col-xl-3"><a th:href="@{/staff/consultations}" class="stat-card"><div class="icon icon-violet"><i class="bi bi-chat-dots"></i></div>
                     <div><div class="value" th:text="${openChats}">0</div><div class="label">Cuộc tư vấn đang mở</div></div></a></div>
+                <div class="col-6 col-xl-3"><a th:href="@{/staff/questions}" class="stat-card"><div class="icon icon-blue"><i class="bi bi-question-circle"></i></div>
+                    <div><div class="value" th:text="${openQuestions}">0</div><div class="label">Câu hỏi chờ trả lời</div></div></a></div>
+                <div class="col-6 col-xl-3"><a th:href="@{/staff/callbacks}" class="stat-card"><div class="icon icon-violet"><i class="bi bi-telephone-inbound"></i></div>
+                    <div><div class="value" th:text="${openCallbacks}">0</div><div class="label">Yêu cầu gọi lại</div></div></a></div>
                 <div class="col-6 col-xl-3"><a th:href="@{/staff/orders(returns=true)}" class="stat-card"><div class="icon icon-amber"><i class="bi bi-arrow-return-left"></i></div>
                     <div><div class="value" th:text="${returns}">0</div><div class="label">Yêu cầu đổi/trả</div></div></a></div>
                 <div class="col-6 col-xl-3"><a th:href="@{/staff/inventory(filter='low')}" class="stat-card"><div class="icon icon-amber"><i class="bi bi-box-seam"></i></div>
@@ -35,7 +39,7 @@
                             <li class="list-group-item d-flex justify-content-between align-items-center" th:each="rx : ${rxQueue}">
                                 <div>
                                     <div class="fw-semibold" th:text="${rx.user.fullName}"></div>
-                                    <div class="small text-muted" th:text="'Đơn ' + ${rx.order.code} + ' · ' + ${@fmt.dateTime(rx.createdAt)}"></div>
+                                    <div class="small text-muted" th:text="(${rx.order != null} ? 'Đơn ' + ${rx.order.code} : 'Nhờ lên đơn') + ' · ' + ${@fmt.dateTime(rx.createdAt)}"></div>
                                 </div>
                                 <a th:href="@{/staff/prescriptions/{id}(id=${rx.id})}" class="btn btn-sm btn-primary">Duyệt</a>
                             </li>

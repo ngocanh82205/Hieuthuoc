@@ -22,7 +22,8 @@
                                     <td class="small" th:text="'Đơn từ ' + ${@fmt.money(v.minOrder)}"></td>
                                     <td class="small text-nowrap" th:text="${@fmt.date(v.startDate)} + ' - ' + ${@fmt.date(v.endDate)}"></td>
                                     <td class="text-end" th:text="${v.usedCount} + (${v.usageLimit != null} ? '/' + ${v.usageLimit} : '')"></td>
-                                    <td><span class="badge" th:classappend="${v.active} ? 'text-bg-success' : 'text-bg-secondary'" th:text="${v.active} ? 'Bật' : 'Tắt'"></span></td>
+                                    <td><span class="badge" th:classappend="${v.active} ? 'text-bg-success' : 'text-bg-secondary'" th:text="${v.active} ? 'Bật' : 'Tắt'"></span>
+                                        <span th:if="${v.inWallet}" class="badge text-bg-info">Kho voucher</span></td>
                                     <td><a th:href="@{/admin/vouchers(edit=${v.id})}" class="btn btn-sm btn-outline-primary">Sửa</a></td>
                                 </tr>
                                 </tbody>
@@ -49,6 +50,9 @@
                             <div class="col-6 d-flex align-items-end"><div class="form-check">
                                 <input type="checkbox" class="form-check-input" name="active" value="true" id="vActive" th:checked="${edit.id == null || edit.active}">
                                 <label class="form-check-label" for="vActive">Kích hoạt</label></div></div>
+                            <div class="col-12"><div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="showInWallet" value="true" id="vWallet" th:checked="${edit.inWallet}">
+                                <label class="form-check-label" for="vWallet">Hiện trong "Kho voucher" để khách lưu</label></div></div>
                             <div class="col-12 mt-3"><button class="btn btn-primary">Lưu</button>
                                 <a th:if="${edit.id != null}" th:href="@{/admin/vouchers}" class="btn btn-link">Hủy</a></div>
                         </div>

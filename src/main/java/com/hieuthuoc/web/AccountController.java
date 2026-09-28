@@ -29,6 +29,14 @@ public class AccountController {
     private final OrderService orderService;
     private final AccountService accountService;
     private final Cart cart;
+    private final CustomerCareService care;
+    private final com.hieuthuoc.repository.PrescriptionRepository prescriptionRepo;
+    private final com.hieuthuoc.repository.WishlistItemRepository wishlistRepo;
+    private final com.hieuthuoc.repository.StockSubscriptionRepository subscriptionRepo;
+    private final com.hieuthuoc.repository.ReminderRepository reminderRepo;
+    private final com.hieuthuoc.repository.ProductRepository productRepo;
+    private final StockService stockService;
+    private final SettingService settings;
 
     @GetMapping
     public String profile(Model model) {
@@ -36,6 +44,10 @@ public class AccountController {
         model.addAttribute("profile", u);
         model.addAttribute("orderCount", orderRepo.countByUser(u));
         model.addAttribute("spent", orderRepo.totalSpent(u));
+        model.addAttribute("tier", care.tierOf(u));
+        model.addAttribute("tiers", com.hieuthuoc.entity.MemberTier.values());
+        model.addAttribute("today", care.todaySchedule(u));
+        model.addAttribute("pointValue", settings.getLong("point_value"));
         model.addAttribute("title", "Tài khoản của tôi");
         return "account/profile";
     }
@@ -151,6 +163,10 @@ public class AccountController {
         model.addAttribute("order", o);
         model.addAttribute("canPay", orderService.canPay(o));
         model.addAttribute("canReturn", orderService.canRequestReturn(o));
+        model.addAttribute("showBank", orderService.showBankTransfer(o));
+        model.addAttribute("addresses", addressRepo.findByUserOrderByDefaultAddressDescIdAsc(o.getUser()));
+        model.addAttribute("shippingMethods", ShippingMethod.values());
+        model.addAttribute("paymentMethods", PaymentMethod.values());
         model.addAttribute("title", "Đơn hàng " + o.getCode());
         return "account/order";
     }
@@ -203,11 +219,129 @@ public class AccountController {
         return "redirect:/account/orders/" + code;
     }
 
+    @PostMapping("/orders/{code}/confirm")
+    @Transactional
+    public String confirm(@PathVariable String code, @ModelAttribute OrderService.ConfirmForm form, RedirectAttributes ra) {
+        Order o = myOrder(code);
+        orderService.confirmByCustomer(o, currentUser.get(), form);
+        Flash.success(ra, "Đã xác nhận đơn hàng. Nhà thuốc sẽ xử lý sớm nhất."
+                + (o.getPaymentMethod() == PaymentMethod.BANK_TRANSFER ? " Vui lòng chuyển khoản theo hướng dẫn." : ""));
+        return o.getPaymentMethod() == PaymentMethod.ONLINE ? "redirect:/account/orders/" + code + "/pay" : "redirect:/account/orders/" + code;
+    }
+
+    /** Tạo nhắc mua lại từ một sản phẩm trong đơn đã mua. */
+    @PostMapping("/orders/{code}/remind")
+    @Transactional
+    public String remindFromOrder(@PathVariable String code, @RequestParam Long productId, @RequestParam(defaultValue = "30") int days,
+                                  RedirectAttributes ra) {
+        myOrder(code);
+        CustomerCareService.ReminderForm f = new CustomerCareService.ReminderForm();
+        f.setType(ReminderType.REPURCHASE);
+        f.setProductId(productId);
+        f.setRemindDate(LocalDate.now().plusDays(Math.max(1, Math.min(days, 365))));
+        care.createReminder(currentUser.get(), f);
+        Flash.success(ra, "Đã đặt lịch nhắc mua lại sau " + days + " ngày.");
+        return "redirect:/account/orders/" + code;
+    }
+
     @PostMapping("/orders/{code}/reorder")
     public String reorder(@PathVariable String code, RedirectAttributes ra) {
         List<String> skipped = orderService.reorder(myOrder(code), cart);
         if (skipped.isEmpty()) Flash.success(ra, "Đã thêm các sản phẩm vào giỏ hàng.");
         else Flash.warning(ra, "Đã thêm vào giỏ. Không thêm được: " + String.join(", ", skipped));
         return "redirect:/cart";
+    }
+
+    /* ---------------- Gửi đơn thuốc (không chọn sản phẩm) ---------------- */
+
+    @GetMapping("/prescriptions")
+    public String prescriptions(Model model) {
+        model.addAttribute("list", prescriptionRepo.findByUserAndStandaloneTrueOrderByCreatedAtDesc(currentUser.get()));
+        model.addAttribute("title", "Gửi đơn thuốc");
+        return "account/prescriptions";
+    }
+
+    @PostMapping("/prescriptions")
+    @Transactional
+    public String submitPrescription(@RequestParam("prescription") MultipartFile file, @RequestParam(required = false) String note,
+                                     RedirectAttributes ra) {
+        orderService.submitStandalonePrescription(currentUser.get(), file, note);
+        Flash.success(ra, "Đã gửi đơn thuốc. Dược sĩ sẽ đọc đơn, lên đơn hàng và báo giá cho bạn.");
+        return "redirect:/account/prescriptions";
+    }
+
+    /* ---------------- Yêu thích & báo có hàng ---------------- */
+
+    @GetMapping("/wishlist")
+    public String wishlist(Model model) {
+        User u = currentUser.get();
+        List<com.hieuthuoc.entity.Product> products = new java.util.ArrayList<>(
+                wishlistRepo.findByUserOrderByCreatedAtDesc(u).stream().map(com.hieuthuoc.entity.WishlistItem::getProduct).toList());
+        stockService.fill(products);
+        model.addAttribute("products", products);
+        model.addAttribute("subscriptions", subscriptionRepo.findByUserAndNotifiedFalseOrderByCreatedAtDesc(u));
+        model.addAttribute("title", "Sản phẩm yêu thích");
+        return "account/wishlist";
+    }
+
+    /* ---------------- Kho voucher ---------------- */
+
+    @GetMapping("/vouchers")
+    public String vouchers(Model model) {
+        User u = currentUser.get();
+        model.addAttribute("saved", care.savedVouchers(u));
+        model.addAttribute("available", care.walletCandidates(u));
+        model.addAttribute("title", "Kho voucher");
+        return "account/vouchers";
+    }
+
+    @PostMapping("/vouchers/{id}/save")
+    @Transactional
+    public String saveVoucher(@PathVariable Long id, RedirectAttributes ra) {
+        care.saveVoucher(currentUser.get(), id);
+        Flash.success(ra, "Đã lưu voucher vào kho.");
+        return "redirect:/account/vouchers";
+    }
+
+    /** Dùng voucher trong kho: áp mã vào giỏ hàng. */
+    @PostMapping("/vouchers/{code}/use")
+    public String useVoucher(@PathVariable String code) {
+        cart.setVoucherCode(code);
+        return "redirect:/cart";
+    }
+
+    /* ---------------- Nhắc lịch ---------------- */
+
+    @GetMapping("/reminders")
+    public String reminders(Model model) {
+        User u = currentUser.get();
+        model.addAttribute("reminders", reminderRepo.findByUserOrderByActiveDescCreatedAtDesc(u));
+        model.addAttribute("today", care.todaySchedule(u));
+        model.addAttribute("products", productRepo.findSellable());
+        model.addAttribute("title", "Nhắc lịch uống thuốc");
+        return "account/reminders";
+    }
+
+    @PostMapping("/reminders")
+    @Transactional
+    public String createReminder(@ModelAttribute CustomerCareService.ReminderForm form, RedirectAttributes ra) {
+        care.createReminder(currentUser.get(), form);
+        Flash.success(ra, "Đã tạo lịch nhắc. Bạn sẽ nhận thông báo trên website đúng giờ.");
+        return "redirect:/account/reminders";
+    }
+
+    @PostMapping("/reminders/{id}/toggle")
+    @Transactional
+    public String toggleReminder(@PathVariable Long id) {
+        care.toggleReminder(currentUser.get(), id);
+        return "redirect:/account/reminders";
+    }
+
+    @PostMapping("/reminders/{id}/delete")
+    @Transactional
+    public String deleteReminder(@PathVariable Long id, RedirectAttributes ra) {
+        care.deleteReminder(currentUser.get(), id);
+        Flash.info(ra, "Đã xóa lịch nhắc.");
+        return "redirect:/account/reminders";
     }
 }

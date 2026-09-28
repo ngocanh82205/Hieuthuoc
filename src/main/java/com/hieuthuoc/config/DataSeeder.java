@@ -43,6 +43,8 @@ public class DataSeeder implements CommandLineRunner {
     private final StockService stockService;
     private final FileStorageService files;
     private final PasswordEncoder encoder;
+    private final ProductQuestionRepository questionRepo;
+    private final CallbackRequestRepository callbackRepo;
 
     private static final String[][] CATEGORIES = {
             {"Giảm đau - Hạ sốt", "bi-thermometer-half"},
@@ -58,6 +60,17 @@ public class DataSeeder implements CommandLineRunner {
     };
 
     /** cat, tên, hoạt chất, hàm lượng, dạng bào chế, quy cách, SĐK, NSX, nước, loại, ĐVT, giá, giá cũ, tối đa/đơn, mô tả, cách dùng, chống chỉ định, tác dụng phụ */
+    /** Thuốc bán lẻ theo vỉ: slug -> {đơn vị gốc, số vỉ trong 1 hộp, giá 1 vỉ}. Giá hộp giữ như bảng PRODUCTS. */
+    private static final Map<String, Object[]> SPLIT = Map.of(
+            "panadol-extra", new Object[]{"Vỉ", 15, 12_500L},
+            "efferalgan-500mg-vien-sui", new Object[]{"Vỉ", 4, 12_500L},
+            "ibuprofen-400mg", new Object[]{"Vỉ", 10, 7_000L},
+            "augmentin-625mg", new Object[]{"Vỉ", 2, 110_000L},
+            "amoxicillin-500mg-domesco", new Object[]{"Vỉ", 10, 9_000L},
+            "amlodipin-5mg-stada", new Object[]{"Vỉ", 3, 11_000L},
+            "concor-5mg", new Object[]{"Vỉ", 3, 45_000L},
+            "decolgen-nd", new Object[]{"Vỉ", 25, 5_000L});
+
     private static final Object[][] PRODUCTS = {
             {0, "Panadol Extra", "Paracetamol, Caffeine", "500mg/65mg", "Viên nén bao phim", "Hộp 15 vỉ x 12 viên", "VD-21189-14", "GSK", "Việt Nam", "OTC", "Hộp", 185000, 199000, 5,
                     "Giảm các cơn đau nhẹ đến vừa: đau đầu, đau nửa đầu, đau cơ, đau bụng kinh, đau họng, đau răng; hạ sốt.",
@@ -214,6 +227,17 @@ public class DataSeeder implements CommandLineRunner {
             p.setPrice(((Integer) d[11]).longValue());
             p.setOldPrice(d[12] == null ? null : ((Integer) d[12]).longValue());
             p.setMaxPerOrder((Integer) d[13]);
+            Object[] split = SPLIT.get(Texts.slugify((String) d[1]));
+            int factor = 1;
+            if (split != null) {
+                // Đơn vị gốc = Vỉ, thêm đơn vị Hộp quy đổi
+                factor = (Integer) split[1];
+                p.getUnits().add(new ProductUnit(p, p.getUnit(), factor, p.getPrice()));
+                p.setUnit((String) split[0]);
+                p.setPrice((Long) split[2]);
+                if (p.getOldPrice() != null) p.setOldPrice(Math.round(p.getOldPrice() / (double) factor));
+                if (p.getMaxPerOrder() != null) p.setMaxPerOrder(p.getMaxPerOrder() * factor);
+            }
             p.setDescription((String) d[14]);
             p.setUsageInstruction((String) d[15]);
             p.setContraindications((String) d[16]);
@@ -247,7 +271,7 @@ public class DataSeeder implements CommandLineRunner {
                 it.setBatchNo((String) lot[0]);
                 it.setMfgDate((LocalDate) lot[1]);
                 it.setExpDate((LocalDate) lot[2]);
-                it.setQuantity((Integer) lot[3]);
+                it.setQuantity((Integer) lot[3] * factor);
                 it.setImportPrice(importPrice);
                 r.getItems().add(it);
             }
@@ -287,6 +311,9 @@ public class DataSeeder implements CommandLineRunner {
 
         voucher("WELCOME10", "Giảm 10% cho đơn từ 100.000đ (tối đa 50.000đ)", VoucherType.PERCENT, 10, 100000, 50000L, 1000, today.minusDays(30), today.plusDays(180));
         voucher("GIAM30K", "Giảm 30.000đ cho đơn từ 300.000đ", VoucherType.FIXED, 30000, 300000, null, 200, today.minusDays(10), today.plusDays(60));
+        voucher("FREESHIP20", "Giảm 20.000đ cho đơn từ 150.000đ", VoucherType.FIXED, 20000, 150000, null, 500, today.minusDays(5), today.plusDays(90));
+        voucher("VITAMIN15", "Giảm 15% cho đơn từ 200.000đ (tối đa 40.000đ)", VoucherType.PERCENT, 15, 200000, 40000L, 300, today.minusDays(5), today.plusDays(45));
+        voucherRepo.findAll().forEach(v -> v.setShowInWallet(!v.getCode().equals("WELCOME10")));
 
         for (int i = 0; i < POSTS.length; i++) {
             Post p = new Post();
@@ -359,6 +386,26 @@ public class DataSeeder implements CommandLineRunner {
         orderRepo.save(o2);
 
         review(bySlug.get("panadol-extra"), kh2, 5, "Thuốc giảm đau nhanh, giao hàng nhanh.");
+        ProductQuestion q1 = new ProductQuestion();
+        q1.setProduct(bySlug.get("panadol-extra"));
+        q1.setUser(kh3);
+        q1.setQuestion("Người bị tăng huyết áp có dùng Panadol Extra được không ạ?");
+        q1.setAnswer("Panadol Extra có chứa caffeine có thể làm tăng nhịp tim, huyết áp. Người tăng huyết áp nên ưu tiên paracetamol đơn thuần và hỏi ý kiến bác sĩ.");
+        q1.setAnsweredBy(ds1);
+        q1.setAnsweredAt(now.minusDays(1));
+        questionRepo.save(q1);
+        ProductQuestion q2 = new ProductQuestion();
+        q2.setProduct(bySlug.get("smecta-huong-cam"));
+        q2.setUser(kh1);
+        q2.setQuestion("Smecta uống trước hay sau bữa ăn ạ? Có uống cùng thuốc khác được không?");
+        questionRepo.save(q2);
+        CallbackRequest cb = new CallbackRequest();
+        cb.setUser(kh2);
+        cb.setName(kh2.getFullName());
+        cb.setPhone(kh2.getPhone());
+        cb.setPreferredTime("Chiều (14h - 17h)");
+        cb.setNote("Cần tư vấn thuốc cho bé 3 tuổi bị sốt");
+        callbackRepo.save(cb);
         review(bySlug.get("smecta-huong-cam"), kh3, 4, "Dùng ổn, đóng gói cẩn thận.");
 
         Conversation conv = new Conversation();

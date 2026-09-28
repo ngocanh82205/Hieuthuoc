@@ -20,6 +20,8 @@
             <a class="nav-link" th:href="@{/staff/inventory/alerts}" th:classappend="${requestPath == '/staff/inventory/alerts'} ? 'active'"><i class="bi bi-exclamation-triangle"></i>Cảnh báo kho</a>
             <a class="nav-link" th:href="@{/staff/receipts}" th:classappend="${#strings.startsWith(requestPath, '/staff/receipts')} ? 'active'"><i class="bi bi-truck"></i>Phiếu nhập kho</a>
             <a class="nav-link" th:href="@{/staff/rx-log}" th:classappend="${requestPath == '/staff/rx-log'} ? 'active'"><i class="bi bi-journal-medical"></i>Sổ thuốc kê đơn</a>
+            <a class="nav-link" th:href="@{/staff/questions}" th:classappend="${requestPath == '/staff/questions'} ? 'active'"><i class="bi bi-question-circle"></i>Hỏi đáp sản phẩm</a>
+            <a class="nav-link" th:href="@{/staff/callbacks}" th:classappend="${requestPath == '/staff/callbacks'} ? 'active'"><i class="bi bi-telephone-inbound"></i>Yêu cầu gọi lại</a>
             <a class="nav-link" th:href="@{/staff/reviews}" th:classappend="${requestPath == '/staff/reviews'} ? 'active'"><i class="bi bi-star"></i>Đánh giá</a>
             <a class="nav-link" th:href="@{/staff/posts}" th:classappend="${#strings.startsWith(requestPath, '/staff/posts')} ? 'active'"><i class="bi bi-newspaper"></i>Bài viết sức khỏe</a>
         </nav>
@@ -34,6 +36,7 @@
                 <a class="nav-link" th:href="@{/admin/vouchers}" th:classappend="${requestPath == '/admin/vouchers'} ? 'active'"><i class="bi bi-ticket-perforated"></i>Mã giảm giá</a>
                 <a class="nav-link" th:href="@{/admin/users}" th:classappend="${#strings.startsWith(requestPath, '/admin/users')} ? 'active'"><i class="bi bi-person-badge"></i>Nhân viên</a>
                 <a class="nav-link" th:href="@{/admin/customers}" th:classappend="${#strings.startsWith(requestPath, '/admin/customers')} ? 'active'"><i class="bi bi-people"></i>Khách hàng</a>
+                <a class="nav-link" th:href="@{/admin/password-resets}" th:classappend="${requestPath == '/admin/password-resets'} ? 'active'"><i class="bi bi-key"></i>Quên mật khẩu</a>
                 <a class="nav-link" th:href="@{/admin/settings}" th:classappend="${requestPath == '/admin/settings'} ? 'active'"><i class="bi bi-gear"></i>Cấu hình</a>
                 <a class="nav-link" th:href="@{/admin/logs}" th:classappend="${requestPath == '/admin/logs'} ? 'active'"><i class="bi bi-clock-history"></i>Nhật ký hệ thống</a>
             </nav>

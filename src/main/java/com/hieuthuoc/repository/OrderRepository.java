@@ -25,6 +25,8 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
 
     long countByUser(User user);
 
+    boolean existsByCode(String code);
+
     List<Order> findTop8ByStatusInOrderByCreatedAtAsc(Collection<OrderStatus> statuses);
 
     List<Order> findByStatusAndCompletedAtBetween(OrderStatus status, LocalDateTime from, LocalDateTime to);

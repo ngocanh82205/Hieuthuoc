@@ -34,6 +34,8 @@ public class StaffController {
     private final StockService stockService;
     private final SettingService settings;
     private final CurrentUser currentUser;
+    private final ProductQuestionRepository questionRepo;
+    private final CallbackRequestRepository callbackRepo;
 
     @GetMapping
     public String dashboard(Model model) {
@@ -44,6 +46,8 @@ public class StaffController {
         model.addAttribute("inProgress", orderRepo.countByStatusIn(EnumSet.of(OrderStatus.PREPARING, OrderStatus.SHIPPING)));
         model.addAttribute("returns", orderRepo.countByReturnStatus(ReturnStatus.REQUESTED));
         model.addAttribute("openChats", conversationRepo.countByClosedFalse());
+        model.addAttribute("openQuestions", questionRepo.countByAnswerIsNullAndHiddenFalse());
+        model.addAttribute("openCallbacks", callbackRepo.countByDoneFalse());
         model.addAttribute("lowStock", products.stream().filter(Product::isLowStock).count());
         model.addAttribute("nearExpiry", batchRepo.findNearExpiry(today, today.plusDays(settings.getLong("near_expiry_days"))).size());
         model.addAttribute("expired", batchRepo.findExpired(today).size());
@@ -71,11 +75,22 @@ public class StaffController {
         Prescription rx = prescriptionRepo.findById(id).orElseThrow(() -> BusinessException.notFound("Không tìm thấy đơn thuốc."));
         Order o = rx.getOrder();
         Map<Long, Long> available = new HashMap<>();
-        for (OrderItem it : o.getItems()) available.put(it.getId(), stockService.fill(it.getProduct()).getAvailable());
+        Map<Long, List<Product>> equivalents = new HashMap<>();
+        if (o != null) {
+            for (OrderItem it : o.getItems()) {
+                available.put(it.getId(), stockService.fill(it.getProduct()).getAvailable());
+                String ing = it.getProduct().getActiveIngredient();
+                equivalents.put(it.getId(), ing == null ? List.of()
+                        : stockService.fill(new ArrayList<>(productRepo.findTop4ByActiveTrueAndActiveIngredientIgnoreCaseAndIdNot(ing, it.getProduct().getId()))));
+            }
+        } else {
+            model.addAttribute("products", stockService.fill(new ArrayList<>(productRepo.findSellable())));
+        }
         model.addAttribute("rx", rx);
         model.addAttribute("order", o);
         model.addAttribute("available", available);
-        model.addAttribute("previous", o.getPrescriptions().stream().filter(p -> !p.getId().equals(rx.getId())).toList());
+        model.addAttribute("equivalents", equivalents);
+        model.addAttribute("previous", o == null ? List.of() : o.getPrescriptions().stream().filter(p -> !p.getId().equals(rx.getId())).toList());
         model.addAttribute("title", "Đơn thuốc #" + rx.getId());
         return "staff/prescription";
     }
@@ -84,7 +99,9 @@ public class StaffController {
     @Transactional
     public String approve(@PathVariable Long id, @ModelAttribute OrderService.RxApproval form, RedirectAttributes ra) {
         Order o = orderService.approvePrescription(id, currentUser.get(), form);
-        Flash.success(ra, "Đã duyệt đơn thuốc cho đơn hàng " + o.getCode() + ".");
+        Flash.success(ra, o.getStatus() == OrderStatus.AWAITING_CUSTOMER
+                ? "Đã duyệt/lên đơn " + o.getCode() + ". Đang chờ khách xác nhận."
+                : "Đã duyệt đơn thuốc cho đơn hàng " + o.getCode() + ".");
         return "redirect:/staff/prescriptions";
     }
 
