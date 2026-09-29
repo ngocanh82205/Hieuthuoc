@@ -7,6 +7,8 @@ caption Use case phân rã - Khách hàng
 actor "Khách hàng" as C
 actor "Trợ lý AI" as AI <<hệ thống>>
 actor "Dược sĩ" as P
+actor "Cổng thanh toán" as PG <<hệ thống ngoài>>
+actor "Đơn vị vận chuyển" as SH <<bên ngoài>>
 
 rectangle "VinaPharma" {
   usecase "Đặt hàng" as Order
@@ -21,6 +23,7 @@ rectangle "VinaPharma" {
   usecase "Hủy đơn" as Cancel
   usecase "Yêu cầu đổi trả" as Return
   usecase "Xác nhận báo giá /\nthuốc thay thế" as Confirm
+  usecase "Nhận hàng,\ntrả tiền COD" as Receive
   usecase "Chat tư vấn" as Chat
   usecase "Chuyển dược sĩ" as Handoff
   usecase "Quản lý hồ sơ sức khỏe" as Health
@@ -45,4 +48,7 @@ Confirm ..> Track : <<extend>>
 Handoff ..> Chat : <<extend>>
 AI --> Chat
 P --> Handoff
+PG --> PayOnline
+C --> Receive
+SH --> Receive
 @enduml

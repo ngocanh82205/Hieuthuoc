@@ -7,6 +7,8 @@ caption Use case phân rã - Dược sĩ, Dược sĩ quản lý, Quản trị v
 actor "Dược sĩ" as P
 actor "Dược sĩ quản lý" as M
 actor "Quản trị viên" as A
+actor "Đơn vị vận chuyển" as SH <<bên ngoài>>
+actor "Cổng thanh toán" as PG <<hệ thống ngoài>>
 M -|> P
 
 rectangle "VinaPharma - khu vực nội bộ" {
@@ -16,6 +18,9 @@ rectangle "VinaPharma - khu vực nội bộ" {
   usecase "Đề xuất thuốc thay thế" as Sub
   usecase "Xử lý đơn hàng" as Proc
   usecase "Xuất kho theo FEFO" as Fefo
+  usecase "Bàn giao vận chuyển,\nghi mã vận đơn" as Handover
+  usecase "Xác nhận đã nhận\nthanh toán" as Paid
+  usecase "Cấu hình thanh toán,\nvận chuyển, phí giao" as ShipCfg
   usecase "Tiếp nhận tư vấn từ AI" as Consult
   usecase "Lập phiếu nhập / hủy /\nkiểm kê / chuyển kho" as Slip
   usecase "Vào ca, kết thúc ca" as Clock
@@ -35,9 +40,14 @@ rectangle "VinaPharma - khu vực nội bộ" {
 P --> Rx
 Rx ..> RxLog : <<include>>
 Rx ..> Safety : <<include>>
-Sub ..> Rx : <<extend>>
+Rx <.. Sub : <<extend>>
 P --> Proc
 Proc ..> Fefo : <<include>>
+Handover ..> Proc : <<extend>>
+Paid ..> Proc : <<extend>>
+SH --> Handover
+PG --> Paid
+A --> ShipCfg
 P --> Consult
 P --> Slip
 P --> Clock
