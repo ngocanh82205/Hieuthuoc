@@ -16,9 +16,9 @@ UI -> CH : POST /consult (nội dung)
 CH -> DB : Lưu tin nhắn của khách
 CH -> AI : Xử lý bất đồng bộ (hội thoại đang ở chế độ AI)
 CH --> UI : Tin nhắn đã gửi
-AI -> AI : Luật cứng: ảnh? dấu hiệu nguy hiểm?\nmuốn gặp người? đối tượng đặc biệt?\nthuốc kê đơn? (BR24, BR25)
+AI -> AI : Luật cứng: ảnh? dấu hiệu nguy hiểm?\nmuốn gặp người? đối tượng đặc biệt?\nthuốc kê đơn? (BR26, BR27)
 alt Thuộc trường hợp phải chuyển dược sĩ
-  AI -> DB : Tìm dược sĩ có CCHN, đang online,\nít hội thoại nhất (BR26)
+  AI -> DB : Tìm dược sĩ có CCHN, đang online,\nít hội thoại nhất (BR28)
   AI -> DB : Chế độ = HUMAN, gán dược sĩ,\nlưu tin hệ thống + bản tóm tắt
   AI -> P : Thông báo có hội thoại mới
   AI --> UI : "Đã chuyển dược sĩ ..."

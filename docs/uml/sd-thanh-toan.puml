@@ -16,11 +16,11 @@ database "CSDL" as DB
 alt Thanh toán online
   C -> UI : Chọn "Thanh toán online"
   UI -> AC : GET /account/orders/{code}/pay
-  AC -> OS : canPay(đơn)? (chưa thanh toán,\nkhông chờ duyệt đơn thuốc)
+  AC -> OS : canPay(đơn)? (chưa thanh toán,\nkhông chờ duyệt đơn thuốc - BR22)
   AC --> UI : Chuyển tới cổng thanh toán
   UI -> PG : Yêu cầu thanh toán (mã đơn, số tiền)
   C -> PG : Xác nhận thanh toán
-  PG --> AC : Kết quả giao dịch (thành công / thất bại)
+  PG --> AC : Kết quả giao dịch (thành công / thất bại - BR21)
   alt Thành công
     AC -> OS : pay(đơn, thành công)
     OS -> DB : Trạng thái thanh toán = Đã thanh toán,\nghi lịch sử đơn
@@ -31,7 +31,7 @@ alt Thanh toán online
 else Chuyển khoản VietQR
   UI --> C : Mã QR (ngân hàng, số TK,\nsố tiền, nội dung = mã đơn)
   C -> BANK : Chuyển khoản
-  P -> BANK : Đối soát sao kê
+  P -> BANK : Đối soát sao kê (BR21)
   P -> OS : markPaid(đơn)
   OS -> DB : Đã thanh toán, thông báo khách
 end
