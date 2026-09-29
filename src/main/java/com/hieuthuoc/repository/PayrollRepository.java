@@ -13,4 +13,6 @@ public interface PayrollRepository extends JpaRepository<Payroll, Long> {
     List<Payroll> findAllByOrderByMonthDesc();
 
     Optional<Payroll> findByMonth(String month);
+
+    long countByStatus(String status);
 }

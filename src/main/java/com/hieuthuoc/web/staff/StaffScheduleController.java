@@ -1,4 +1,4 @@
-package com.hieuthuoc.web.admin;
+package com.hieuthuoc.web.staff;
 
 import com.hieuthuoc.entity.*;
 import com.hieuthuoc.repository.PayrollRepository;
@@ -22,11 +22,14 @@ import java.time.LocalTime;
 import java.time.YearMonth;
 import java.util.*;
 
-/** Admin - nhân sự: ca làm, lịch làm việc, chấm công, bảng lương. */
+/**
+ * Nhân sự (quyền SCHEDULE - dược sĩ quản lý; admin cũng dùng được): ca làm, xếp lịch làm việc, chấm công,
+ * lập bảng lương và trình admin duyệt. Duyệt / trả lại / đánh dấu đã trả nằm ở {@link com.hieuthuoc.web.admin.AdminPayrollController}.
+ */
 @Controller
-@RequestMapping("/admin")
+@RequestMapping("/staff")
 @RequiredArgsConstructor
-public class AdminHrController {
+public class StaffScheduleController {
     public static final List<String> DAY_NAMES = List.of("Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "CN");
 
     private final WorkScheduleService scheduleService;
@@ -58,7 +61,7 @@ public class AdminHrController {
         model.addAttribute("cells", cells);
         model.addAttribute("hours", hours);
         model.addAttribute("title", "Lịch làm việc");
-        return "admin/schedule";
+        return "staff/schedule";
     }
 
     @PostMapping("/schedule")
@@ -71,7 +74,7 @@ public class AdminHrController {
         notifications.notify(a.getUser(), "Bạn được xếp " + a.getShift().getName() + " (" + a.getShift().getTimeRange() + ") ngày "
                 + date.getDayOfMonth() + "/" + date.getMonthValue(), "/staff/my-schedule?week=" + date);
         Flash.success(ra, "Đã xếp " + a.getShift().getName() + " cho " + a.getUser().getFullName() + ".");
-        return "redirect:/admin/schedule?week=" + WorkScheduleService.monday(date);
+        return "redirect:/staff/schedule?week=" + WorkScheduleService.monday(date);
     }
 
     @PostMapping("/schedule/{id}/delete")
@@ -79,7 +82,7 @@ public class AdminHrController {
     public String unassign(@PathVariable Long id, @RequestParam(required = false) String week, RedirectAttributes ra) {
         scheduleService.remove(id, currentUser.get());
         Flash.info(ra, "Đã bỏ ca.");
-        return "redirect:/admin/schedule" + (week == null ? "" : "?week=" + week);
+        return "redirect:/staff/schedule" + (week == null ? "" : "?week=" + week);
     }
 
     @PostMapping("/schedule/copy")
@@ -89,7 +92,7 @@ public class AdminHrController {
         LocalDate dst = src.plusWeeks(1);
         int n = scheduleService.copyWeek(src, dst, currentUser.get());
         Flash.success(ra, "Đã sao chép " + n + " ca sang tuần " + dst.getDayOfMonth() + "/" + dst.getMonthValue() + ".");
-        return "redirect:/admin/schedule?week=" + dst;
+        return "redirect:/staff/schedule?week=" + dst;
     }
 
     /* ---------------- Chấm công ---------------- */
@@ -105,7 +108,7 @@ public class AdminHrController {
             return s.equals("Vắng") || s.equals("Quên kết ca");
         }).toList());
         model.addAttribute("title", "Chấm công");
-        return "admin/attendance";
+        return "staff/attendance";
     }
 
     @PostMapping("/attendance/{id}")
@@ -116,7 +119,7 @@ public class AdminHrController {
                          @RequestParam String note, @RequestParam(required = false) String back, RedirectAttributes ra) {
         ShiftAssignment a = scheduleService.adjust(id, checkIn, checkOut, note, currentUser.get());
         Flash.success(ra, "Đã sửa công " + a.getUser().getFullName() + " ngày " + a.getWorkDate().getDayOfMonth() + "/" + a.getWorkDate().getMonthValue() + ".");
-        return "redirect:" + (back != null && back.startsWith("/admin/") ? back : "/admin/attendance?date=" + a.getWorkDate());
+        return "redirect:" + (back != null && back.startsWith("/staff/") ? back : "/staff/attendance?date=" + a.getWorkDate());
     }
 
     /* ---------------- Ca làm ---------------- */
@@ -131,7 +134,7 @@ public class AdminHrController {
         model.addAttribute("edit", edit == null ? new WorkShift() : shiftRepo.findById(edit).orElse(new WorkShift()));
         model.addAttribute("colors", Map.of("primary", "Xanh dương", "info", "Xanh ngọc", "success", "Xanh lá", "warning", "Vàng", "danger", "Đỏ", "secondary", "Xám"));
         model.addAttribute("title", "Ca làm việc");
-        return "admin/shifts";
+        return "staff/shifts";
     }
 
     @PostMapping({"/shifts", "/shifts/{id}"})
@@ -157,7 +160,7 @@ public class AdminHrController {
         shiftRepo.save(s);
         notifications.log(currentUser.get(), "hr.shift", s.getName() + " " + s.getTimeRange());
         Flash.success(ra, "Đã lưu " + s.getName() + ".");
-        return "redirect:/admin/shifts";
+        return "redirect:/staff/shifts";
     }
 
     /* ---------------- Bảng lương ---------------- */
@@ -168,7 +171,7 @@ public class AdminHrController {
         model.addAttribute("thisMonth", YearMonth.now().toString());
         model.addAttribute("lastMonth", YearMonth.now().minusMonths(1).toString());
         model.addAttribute("title", "Bảng lương");
-        return "admin/payrolls";
+        return "staff/payrolls";
     }
 
     @PostMapping("/payroll/generate")
@@ -182,7 +185,7 @@ public class AdminHrController {
         }
         Payroll p = payrollService.generate(ym, currentUser.get());
         Flash.success(ra, "Đã tính lương tháng " + p.getMonthLabel() + " cho " + p.getLines().size() + " nhân viên.");
-        return "redirect:/admin/payroll/" + p.getId();
+        return "redirect:/staff/payroll/" + p.getId();
     }
 
     @GetMapping("/payroll/{id}")
@@ -190,7 +193,7 @@ public class AdminHrController {
         Payroll p = payrollService.get(id);
         model.addAttribute("payroll", p);
         model.addAttribute("title", "Bảng lương tháng " + p.getMonthLabel());
-        return "admin/payroll";
+        return "staff/payroll";
     }
 
     @PostMapping("/payroll/lines/{id}")
@@ -199,7 +202,7 @@ public class AdminHrController {
                              @RequestParam(required = false) String note, RedirectAttributes ra) {
         PayrollLine l = payrollService.updateLine(id, bonus, deduction, note, currentUser.get());
         Flash.success(ra, "Đã cập nhật lương " + l.getUser().getFullName() + ".");
-        return "redirect:/admin/payroll/" + l.getPayroll().getId();
+        return "redirect:/staff/payroll/" + l.getPayroll().getId();
     }
 
     @PostMapping("/payroll/{id}/{action}")
@@ -207,13 +210,9 @@ public class AdminHrController {
     public String payrollAction(@PathVariable Long id, @PathVariable String action, RedirectAttributes ra) {
         User me = currentUser.get();
         switch (action) {
-            case "approve" -> {
-                payrollService.approve(id, me);
-                Flash.success(ra, "Đã chốt bảng lương, nhân viên xem được phiếu lương.");
-            }
-            case "paid" -> {
-                payrollService.markPaid(id, me);
-                Flash.success(ra, "Đã đánh dấu đã trả lương.");
+            case "submit" -> {
+                payrollService.submit(id, me);
+                Flash.success(ra, "Đã trình bảng lương, chờ admin duyệt.");
             }
             case "recalc" -> {
                 Payroll p = payrollService.get(id);
@@ -223,11 +222,11 @@ public class AdminHrController {
             case "delete" -> {
                 payrollService.deleteDraft(id, me);
                 Flash.info(ra, "Đã xóa bảng lương nháp.");
-                return "redirect:/admin/payroll";
+                return "redirect:/staff/payroll";
             }
             default -> throw BusinessException.notFound("Thao tác không hợp lệ.");
         }
-        return "redirect:/admin/payroll/" + id;
+        return "redirect:/staff/payroll/" + id;
     }
 
     @GetMapping("/payroll/{id}/export.xlsx")

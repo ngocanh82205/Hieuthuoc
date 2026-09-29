@@ -21,8 +21,8 @@
                                     <td class="text-end" th:text="${p.lines.size()}"></td>
                                     <td class="text-end fw-semibold" th:text="${@fmt.money(p.total)}"></td>
                                     <td><span class="badge" th:classappend="'text-bg-' + ${p.statusColor}" th:text="${p.statusLabel}"></span></td>
-                                    <td class="small text-muted" th:text="${@fmt.dateTime(p.paidAt != null ? p.paidAt : (p.approvedAt != null ? p.approvedAt : p.calculatedAt))}"></td>
-                                    <td><a th:href="@{/admin/payroll/{id}(id=${p.id})}" class="btn btn-sm btn-outline-primary">Xem</a></td>
+                                    <td class="small text-muted" th:text="${@fmt.dateTime(p.paidAt != null ? p.paidAt : (p.approvedAt != null ? p.approvedAt : (p.submitted ? p.submittedAt : p.calculatedAt)))}"></td>
+                                    <td><a th:href="@{/staff/payroll/{id}(id=${p.id})}" class="btn btn-sm btn-outline-primary">Xem</a></td>
                                 </tr>
                                 </tbody>
                             </table>
@@ -30,7 +30,7 @@
                     </div>
                 </div>
                 <div class="col-lg-4">
-                    <form th:action="@{/admin/payroll/generate}" method="post" class="card mb-3">
+                    <form th:action="@{/staff/payroll/generate}" method="post" class="card mb-3">
                         <div class="card-header">Tính lương</div>
                         <div class="card-body">
                             <label class="form-label small">Tháng</label>
@@ -47,7 +47,9 @@
                             <li class="list-group-item"><strong>Cộng:</strong> phụ cấp ca + phụ cấp cố định + thưởng</li>
                             <li class="list-group-item"><strong>Trừ:</strong> đi muộn (quá <span th:text="${settings['late_grace_minutes']}"></span> phút) × <span th:text="${@fmt.money(settings['late_penalty'])}"></span>
                                 + bảo hiểm (lương tháng) + khấu trừ khác</li>
-                            <li class="list-group-item"><a th:href="@{/admin/settings}">Đổi tham số tại Cấu hình</a> · lương từng người tại <a th:href="@{/admin/users}">Nhân viên</a></li>
+                            <li class="list-group-item"><strong>Quy trình:</strong> dược sĩ quản lý tính lương nháp, nhập thưởng / khấu trừ → trình duyệt → admin duyệt (hoặc trả lại) → đã trả lương.</li>
+                            <li class="list-group-item" th:if="${currentUser.role.name() == 'ADMIN'}"><a th:href="@{/admin/settings}">Đổi tham số tại Cấu hình</a> · lương từng người tại <a th:href="@{/admin/users}">Nhân viên</a></li>
+                            <li class="list-group-item text-muted" th:unless="${currentUser.role.name() == 'ADMIN'}">Mức lương từng người và tham số tính lương do admin cấu hình.</li>
                         </ul>
                     </div>
                 </div>

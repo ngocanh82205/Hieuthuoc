@@ -8,22 +8,38 @@
         <header th:replace="~{fragments/staff :: topbar}"></header>
         <main class="p-3 p-lg-4">
             <div th:replace="~{fragments/layout :: flash}"></div>
-            <div class="d-flex flex-wrap gap-2 align-items-center mb-3" th:with="p=${payroll}">
+            <div class="d-flex flex-wrap gap-2 align-items-center mb-3" th:with="p=${payroll},isAdmin=${currentUser.role.name() == 'ADMIN'}">
                 <span class="badge fs-6" th:classappend="'text-bg-' + ${p.statusColor}" th:text="${p.statusLabel}"></span>
-                <span class="small text-muted" th:text="'Tính lúc ' + ${@fmt.dateTime(p.calculatedAt)}"></span>
-                <span class="small text-muted" th:if="${p.approvedBy != null}" th:text="' · chốt bởi ' + ${p.approvedBy.fullName} + ' ' + ${@fmt.dateTime(p.approvedAt)}"></span>
+                <span class="small text-muted">
+                    <span th:text="'Tính lúc ' + ${@fmt.dateTime(p.calculatedAt)}"></span><span th:if="${p.preparedBy != null}" th:text="' bởi ' + ${p.preparedBy.fullName}"></span>
+                    <span th:if="${p.submittedAt != null && !p.draft}" th:text="' · trình duyệt ' + ${@fmt.dateTime(p.submittedAt)}"></span>
+                    <span th:if="${p.approvedBy != null}" th:text="' · duyệt bởi ' + ${p.approvedBy.fullName} + ' ' + ${@fmt.dateTime(p.approvedAt)}"></span>
+                    <span th:if="${p.paidAt != null}" th:text="' · trả lương ' + ${@fmt.dateTime(p.paidAt)}"></span>
+                </span>
                 <div class="ms-auto d-flex flex-wrap gap-2">
-                    <a th:href="@{/admin/payroll/{id}/export.xlsx(id=${p.id})}" class="btn btn-sm btn-outline-success"><i class="bi bi-file-earmark-excel"></i> Xuất Excel</a>
-                    <th:block th:if="${p.status == 'DRAFT'}">
-                        <form th:action="@{/admin/payroll/{id}/recalc(id=${p.id})}" method="post"><button class="btn btn-sm btn-outline-primary"><i class="bi bi-arrow-repeat"></i> Tính lại</button></form>
-                        <form th:action="@{/admin/payroll/{id}/approve(id=${p.id})}" method="post" data-confirm="Chốt bảng lương? Sau khi chốt không sửa được, nhân viên sẽ xem được phiếu lương.">
-                            <button class="btn btn-sm btn-primary"><i class="bi bi-check2-circle"></i> Chốt bảng lương</button></form>
-                        <form th:action="@{/admin/payroll/{id}/delete(id=${p.id})}" method="post" data-confirm="Xóa bảng lương nháp?"><button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
+                    <a th:href="@{/staff/payroll/{id}/export.xlsx(id=${p.id})}" class="btn btn-sm btn-outline-success"><i class="bi bi-file-earmark-excel"></i> Xuất Excel</a>
+                    <th:block th:if="${p.draft}">
+                        <form th:action="@{/staff/payroll/{id}/recalc(id=${p.id})}" method="post"><button class="btn btn-sm btn-outline-primary"><i class="bi bi-arrow-repeat"></i> Tính lại</button></form>
+                        <form th:action="@{/staff/payroll/{id}/submit(id=${p.id})}" method="post" data-confirm="Trình bảng lương lên admin duyệt? Trong lúc chờ duyệt không sửa được.">
+                            <button class="btn btn-sm btn-primary"><i class="bi bi-send"></i> Trình admin duyệt</button></form>
+                        <form th:action="@{/staff/payroll/{id}/delete(id=${p.id})}" method="post" data-confirm="Xóa bảng lương nháp?"><button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
                     </th:block>
-                    <form th:if="${p.status == 'APPROVED'}" th:action="@{/admin/payroll/{id}/paid(id=${p.id})}" method="post" data-confirm="Xác nhận đã chuyển lương cho nhân viên?">
+                    <th:block th:if="${p.submitted && isAdmin}">
+                        <form th:action="@{/admin/payroll/{id}/approve(id=${p.id})}" method="post" data-confirm="Duyệt bảng lương? Sau khi duyệt không sửa được, nhân viên sẽ xem được phiếu lương.">
+                            <button class="btn btn-sm btn-primary"><i class="bi bi-check2-circle"></i> Duyệt bảng lương</button></form>
+                        <button class="btn btn-sm btn-outline-danger" type="button" data-bs-toggle="collapse" data-bs-target="#rejectBox"><i class="bi bi-arrow-return-left"></i> Trả lại</button>
+                    </th:block>
+                    <form th:if="${p.status == 'APPROVED' && isAdmin}" th:action="@{/admin/payroll/{id}/paid(id=${p.id})}" method="post" data-confirm="Xác nhận đã chuyển lương cho nhân viên?">
                         <button class="btn btn-sm btn-success"><i class="bi bi-cash-coin"></i> Đánh dấu đã trả</button></form>
                 </div>
             </div>
+            <form th:if="${payroll.submitted && currentUser.role.name() == 'ADMIN'}" id="rejectBox" th:action="@{/admin/payroll/{id}/reject(id=${payroll.id})}" method="post" class="collapse card card-body mb-3">
+                <label class="form-label small">Lý do trả lại (dược sĩ quản lý sẽ nhận thông báo)</label>
+                <div class="d-flex gap-2"><input name="reason" class="form-control" maxlength="500" required placeholder="VD: Kiểm tra lại công ngày 12, thưởng chưa đúng...">
+                    <button class="btn btn-danger text-nowrap">Trả lại</button></div>
+            </form>
+            <div th:if="${payroll.submitted && currentUser.role.name() != 'ADMIN'}" class="alert alert-warning py-2"><i class="bi bi-hourglass-split"></i> Bảng lương đã trình, đang chờ admin duyệt.</div>
+            <div th:if="${payroll.draft && payroll.rejectNote != null}" class="alert alert-danger py-2"><i class="bi bi-arrow-return-left"></i> Admin trả lại: <span th:text="${payroll.rejectNote}"></span></div>
             <div class="card">
                 <div class="table-responsive">
                     <table class="table table-sm align-middle mb-0 payroll-table">
@@ -43,13 +59,13 @@
                             <td class="text-end text-nowrap small text-danger"><div th:if="${l.latePenalty > 0}" th:text="'Muộn: -' + ${@fmt.money(l.latePenalty)}"></div>
                                 <div th:if="${l.insurance > 0}" th:text="'BH: -' + ${@fmt.money(l.insurance)}"></div></td>
                             <td>
-                                <form th:if="${payroll.status == 'DRAFT'}" th:action="@{/admin/payroll/lines/{id}(id=${l.id})}" method="post" class="d-flex flex-wrap gap-1 payroll-adjust">
+                                <form th:if="${payroll.draft}" th:action="@{/staff/payroll/lines/{id}(id=${l.id})}" method="post" class="d-flex flex-wrap gap-1 payroll-adjust">
                                     <input type="number" min="0" step="1000" name="bonus" class="form-control form-control-sm" th:value="${l.bonus}" title="Thưởng" placeholder="Thưởng">
                                     <input type="number" min="0" step="1000" name="deduction" class="form-control form-control-sm" th:value="${l.otherDeduction}" title="Khấu trừ khác" placeholder="Khấu trừ">
                                     <input name="note" class="form-control form-control-sm" th:value="${l.note}" placeholder="Ghi chú">
                                     <button class="btn btn-sm btn-outline-primary"><i class="bi bi-check"></i></button>
                                 </form>
-                                <div th:unless="${payroll.status == 'DRAFT'}" class="small"><span th:text="'Thưởng ' + ${@fmt.money(l.bonus)}"></span> ·
+                                <div th:unless="${payroll.draft}" class="small"><span th:text="'Thưởng ' + ${@fmt.money(l.bonus)}"></span> ·
                                     <span th:text="'Khấu trừ ' + ${@fmt.money(l.otherDeduction)}"></span>
                                     <div class="text-muted" th:text="${l.note}"></div></div>
                             </td>
@@ -60,7 +76,7 @@
                     </table>
                 </div>
             </div>
-            <p class="small text-muted mt-2">Ca vắng / quên kết ca không được tính công; sửa tại <a th:href="@{/admin/attendance}">Chấm công</a> rồi bấm "Tính lại".</p>
+            <p class="small text-muted mt-2">Ca vắng / quên kết ca không được tính công; sửa tại <a th:href="@{/staff/attendance}">Chấm công</a> rồi bấm "Tính lại".</p>
         </main>
     </div>
 </div>

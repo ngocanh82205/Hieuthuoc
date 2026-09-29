@@ -338,9 +338,13 @@ class BusinessRulesTest {
             assertThat(ds.hasPermission(StaffPermission.APPROVE_STOCK)).isFalse();
             assertThat(ds.hasPermission(StaffPermission.REFUND)).isFalse();
             assertThat(ds.hasPermission(StaffPermission.CONTENT)).isFalse();
+            assertThat(ds.hasPermission(StaffPermission.SCHEDULE)).isFalse();
         }
         assertThat(manager.hasPermission(StaffPermission.APPROVE_STOCK)).isTrue();
         assertThat(manager.hasPermission(StaffPermission.REFUND)).isTrue();
+        assertThat(manager.hasPermission(StaffPermission.SCHEDULE)).isTrue();
+        assertThat(com.hieuthuoc.config.StaffAccessInterceptor.required("/staff/payroll/3")).isEqualTo(StaffPermission.SCHEDULE);
+        assertThat(com.hieuthuoc.config.StaffAccessInterceptor.required("/staff/my-schedule")).isNull();
         assertThat(com.hieuthuoc.config.StaffAccessInterceptor.required("/staff/prescriptions/5")).isEqualTo(StaffPermission.RX_REVIEW);
         assertThat(com.hieuthuoc.config.StaffAccessInterceptor.required("/staff/stocktake")).isEqualTo(StaffPermission.INVENTORY);
         assertThat(com.hieuthuoc.config.StaffAccessInterceptor.required("/staff")).isNull();
@@ -769,8 +773,22 @@ class BusinessRulesTest {
         // Tính lại giữ nguyên thưởng
         Payroll again = payrollService.generate(java.time.YearMonth.now(), admin);
         assertThat(again.getLines().stream().filter(x -> x.getUser().getId().equals(ds.getId())).findFirst().orElseThrow().getBonus()).isEqualTo(500_000);
+        // Chưa trình thì admin chưa duyệt được; trình -> không sửa được -> admin trả lại -> sửa -> trình lại -> duyệt
+        assertThatThrownBy(() -> payrollService.approve(again.getId(), admin)).hasMessageContaining("trình");
+        payrollService.submit(again.getId(), ds);
+        assertThat(payrollService.myPayslips(ds).stream().anyMatch(x -> x.getPayroll().getId().equals(again.getId()))).isFalse();
+        PayrollLine l2 = again.getLines().stream().filter(x -> x.getUser().getId().equals(ds.getId())).findFirst().orElseThrow();
+        assertThatThrownBy(() -> payrollService.updateLine(l2.getId(), 0, 0, null, ds)).hasMessageContaining("trình duyệt");
+        assertThatThrownBy(() -> payrollService.generate(java.time.YearMonth.now(), ds)).hasMessageContaining("chờ admin duyệt");
+        assertThatThrownBy(() -> payrollService.reject(again.getId(), " ", admin)).hasMessageContaining("lý do");
+        payrollService.reject(again.getId(), "Kiểm tra lại thưởng", admin);
+        assertThat(again.getStatus()).isEqualTo(Payroll.DRAFT);
+        assertThat(again.getRejectNote()).isEqualTo("Kiểm tra lại thưởng");
+        payrollService.updateLine(l2.getId(), 300_000, 0, "Thưởng doanh số", ds);
+        payrollService.submit(again.getId(), ds);
         payrollService.approve(again.getId(), admin);
-        assertThatThrownBy(() -> payrollService.updateLine(l.getId(), 0, 0, null, admin)).isInstanceOf(BusinessException.class);
+        assertThat(payrollService.myPayslips(ds).stream().anyMatch(x -> x.getPayroll().getId().equals(again.getId()))).isTrue();
+        assertThatThrownBy(() -> payrollService.updateLine(l2.getId(), 0, 0, null, admin)).hasMessageContaining("không sửa được");
         assertThatThrownBy(() -> payrollService.generate(java.time.YearMonth.now().plusMonths(1), admin)).hasMessageContaining("chưa tới");
     }
 }

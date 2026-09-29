@@ -109,8 +109,9 @@ Bảng được tự tạo khi chạy (`spring.jpa.hibernate.ddl-auto=update`).
 | Bán tại quầy | Màn hình POS |
 | Hoàn tiền | Hủy đơn đã thanh toán, đổi trả, duyệt hoàn tiền |
 | Nội dung | Bài viết, thông tin sản phẩm, kiểm duyệt đánh giá |
+| Lịch làm & chấm công | Xếp lịch làm việc, ca làm, chấm công, lập bảng lương trình admin duyệt |
 
-Tài khoản mẫu (tất cả là dược sĩ có chứng chỉ hành nghề): `duocsi@` là **Dược sĩ quản lý** (đủ quyền, gồm duyệt phiếu kho, hoàn tiền, nội dung); `duocsi2@`, `duocsi3@`, `duocsi4@` là **Dược sĩ** (duyệt đơn thuốc, đơn hàng, tư vấn, bán quầy, kho). Mật khẩu đều là `duocsi123`.
+Tài khoản mẫu (tất cả là dược sĩ có chứng chỉ hành nghề): `duocsi@` là **Dược sĩ quản lý** (đủ quyền, gồm duyệt phiếu kho, hoàn tiền, nội dung, xếp lịch làm & lập bảng lương); `duocsi2@`, `duocsi3@`, `duocsi4@` là **Dược sĩ** (duyệt đơn thuốc, đơn hàng, tư vấn, bán quầy, kho). Mật khẩu đều là `duocsi123`.
 
 ### Admin (`/admin`, dùng được cả toàn bộ chức năng dược sĩ)
 - **Người dùng & phân quyền (RBAC):**
@@ -181,12 +182,18 @@ Khi dùng Claude, nội dung tin nhắn trong phiên chat với trợ lý và th
 
 ## Lịch làm việc, chấm công và tính lương
 
-**Admin → nhóm "Nhân sự"**
-- **Ca làm** (`/admin/shifts`): khai báo ca (giờ bắt đầu/kết thúc, hỗ trợ ca qua đêm), thời gian nghỉ, phụ cấp ca, màu hiển thị. Mẫu: Ca sáng 07–15, Ca chiều 14–22 (phụ cấp 30.000 đ), Hành chính 08–17.
-- **Lịch làm việc** (`/admin/schedule`): lưới tuần nhân viên × ngày, bấm ⊕ để xếp ca; chặn xếp trùng giờ, không xếp lùi quá 31 ngày; bỏ ca chưa chấm công; **sao chép lịch sang tuần sau**. Dược sĩ nhận thông báo khi được xếp ca.
-- **Chấm công** (`/admin/attendance`): xem giờ vào/ra theo ngày, trạng thái (Hoàn thành / Muộn X phút / Vắng / Quên kết ca / Đang làm); admin sửa giờ công (bắt buộc ghi lý do, lưu nhật ký).
-- **Bảng lương** (`/admin/payroll`): tính lương theo tháng → bảng **Nháp** (nhập thưởng, khấu trừ khác, ghi chú; tính lại giữ nguyên các khoản nhập tay) → **Chốt** (gửi thông báo phiếu lương cho nhân viên) → **Đã trả**. Xuất Excel.
-- Lương từng người khai báo ở form **Nhân viên**: lương tháng (lương cơ bản) hoặc lương giờ (đơn giá/giờ) + phụ cấp cố định.
+Phân công: **Dược sĩ quản lý** (quyền "Lịch làm & chấm công") xếp lịch, chấm công và lập bảng lương; **Admin** khai báo mức lương từng người, tham số tính lương và **duyệt bảng lương**.
+
+**Dược sĩ quản lý → nhóm "Nhân sự"** (`/staff/...`)
+- **Ca làm** (`/staff/shifts`): khai báo ca (giờ bắt đầu/kết thúc, hỗ trợ ca qua đêm), thời gian nghỉ, phụ cấp ca, màu hiển thị. Mẫu: Ca sáng 07–15, Ca chiều 14–22 (phụ cấp 30.000 đ), Hành chính 08–17.
+- **Xếp lịch làm việc** (`/staff/schedule`): lưới tuần nhân viên × ngày, bấm ⊕ để xếp ca; chặn xếp trùng giờ, không xếp lùi quá 31 ngày; bỏ ca chưa chấm công; **sao chép lịch sang tuần sau**. Dược sĩ nhận thông báo khi được xếp ca.
+- **Chấm công** (`/staff/attendance`): xem giờ vào/ra theo ngày, trạng thái (Hoàn thành / Muộn X phút / Vắng / Quên kết ca / Đang làm); sửa giờ công (bắt buộc ghi lý do, lưu nhật ký).
+- **Bảng lương** (`/staff/payroll`): tính lương theo tháng → **Nháp** (nhập thưởng, khấu trừ khác, ghi chú; tính lại giữ nguyên các khoản nhập tay) → **Trình admin duyệt** (khóa sửa, admin nhận thông báo). Xuất Excel.
+
+**Admin**
+- Mở bảng lương chờ duyệt (menu **Nhân sự → Duyệt bảng lương** hoặc từ thông báo) → **Duyệt** (nhân viên nhận phiếu lương) hoặc **Trả lại** kèm lý do (bảng lương về nháp, dược sĩ quản lý nhận thông báo để sửa và trình lại) → **Đánh dấu đã trả**.
+- Mức lương từng người ở form **Nhân viên**: lương tháng (lương cơ bản) hoặc lương giờ (đơn giá/giờ) + phụ cấp cố định; tham số ở **Cấu hình → Chấm công & tính lương**.
+- Admin có toàn quyền nên cũng xếp lịch / chấm công được khi cần.
 
 **Cách tính**
 - Giờ công mỗi ca = phần thời gian có mặt nằm trong khung ca (trừ giờ nghỉ nếu làm > 4 giờ), tối đa bằng số giờ của ca. Ca vắng / quên kết ca không tính công.
@@ -194,9 +201,9 @@ Khi dùng Claude, nội dung tin nhắn trong phiên chat với trợ lý và th
 - Cộng: phụ cấp ca (theo từng ca đã làm) + phụ cấp cố định (khi có ngày công) + thưởng.
 - Trừ: số lần muộn quá `late_grace_minutes` (5 phút) × `late_penalty` (20.000 đ) + bảo hiểm `insurance_permille` (105‰ = 10,5% lương cơ bản, chỉ lương tháng) + khấu trừ khác. Các tham số chỉnh ở **Cấu hình → Chấm công & tính lương**.
 
-**Dược sĩ** (`/staff/my-schedule`, `/staff/my-payslips`): xem lịch tuần, bấm **Vào ca / Kết thúc ca** (mở trước giờ vào ca 60 phút; cũng có trên trang Tổng quan), xem phiếu lương đã chốt.
+**Dược sĩ** (`/staff/my-schedule`, `/staff/my-payslips`): xem lịch tuần, bấm **Vào ca / Kết thúc ca** (mở trước giờ vào ca 60 phút; cũng có trên trang Tổng quan), xem phiếu lương đã được admin duyệt.
 
-Dữ liệu mẫu: lịch và chấm công từ đầu tháng trước tới 2 tuần tới cho 4 dược sĩ, bảng lương tháng trước đã trả.
+Dữ liệu mẫu: lịch và chấm công từ đầu tháng trước tới 2 tuần tới cho 4 dược sĩ; bảng lương tháng trước do dược sĩ quản lý trình, admin đã duyệt và đã trả.
 
 ## Quy tắc nghiệp vụ đã cài đặt
 

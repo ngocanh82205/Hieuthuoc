@@ -9,17 +9,17 @@
         <main class="p-3 p-lg-4">
             <div th:replace="~{fragments/layout :: flash}"></div>
             <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
-                <a class="btn btn-sm btn-outline-secondary" th:href="@{/admin/schedule(week=${monday.minusWeeks(1)})}"><i class="bi bi-chevron-left"></i> Tuần trước</a>
+                <a class="btn btn-sm btn-outline-secondary" th:href="@{/staff/schedule(week=${monday.minusWeeks(1)})}"><i class="bi bi-chevron-left"></i> Tuần trước</a>
                 <span class="fw-semibold" th:text="'Tuần ' + ${#temporals.format(monday, 'dd/MM')} + ' - ' + ${#temporals.format(monday.plusDays(6), 'dd/MM/yyyy')}"></span>
-                <a class="btn btn-sm btn-outline-secondary" th:href="@{/admin/schedule(week=${monday.plusWeeks(1)})}">Tuần sau <i class="bi bi-chevron-right"></i></a>
-                <a class="btn btn-sm btn-link" th:href="@{/admin/schedule}">Tuần này</a>
-                <form th:action="@{/admin/schedule/copy}" method="post" class="ms-auto" data-confirm="Sao chép toàn bộ lịch tuần này sang tuần sau?">
+                <a class="btn btn-sm btn-outline-secondary" th:href="@{/staff/schedule(week=${monday.plusWeeks(1)})}">Tuần sau <i class="bi bi-chevron-right"></i></a>
+                <a class="btn btn-sm btn-link" th:href="@{/staff/schedule}">Tuần này</a>
+                <form th:action="@{/staff/schedule/copy}" method="post" class="ms-auto" data-confirm="Sao chép toàn bộ lịch tuần này sang tuần sau?">
                     <input type="hidden" name="from" th:value="${monday}">
                     <button class="btn btn-sm btn-outline-primary"><i class="bi bi-copy"></i> Sao chép sang tuần sau</button></form>
-                <a th:href="@{/admin/attendance}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-fingerprint"></i> Chấm công</a>
-                <a th:href="@{/admin/shifts}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-clock"></i> Ca làm</a>
+                <a th:href="@{/staff/attendance}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-fingerprint"></i> Chấm công</a>
+                <a th:href="@{/staff/shifts}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-clock"></i> Ca làm</a>
             </div>
-            <form th:action="@{/admin/schedule}" method="post" class="card card-body mb-3" id="assignForm">
+            <form th:action="@{/staff/schedule}" method="post" class="card card-body mb-3" id="assignForm">
                 <div class="row g-2 align-items-end">
                     <div class="col-md-3"><label class="form-label small">Nhân viên</label>
                         <select name="userId" class="form-select form-select-sm" required>
@@ -49,7 +49,7 @@
                                 <div th:each="a : ${list}" class="shift-chip" th:classappend="'border-' + ${a.shift.color}">
                                     <div class="d-flex justify-content-between align-items-start gap-1">
                                         <span class="fw-semibold small" th:classappend="'text-' + ${a.shift.color}" th:text="${a.shift.name}"></span>
-                                        <form th:if="${a.checkInAt == null}" th:action="@{/admin/schedule/{id}/delete(id=${a.id})}" method="post">
+                                        <form th:if="${a.checkInAt == null}" th:action="@{/staff/schedule/{id}/delete(id=${a.id})}" method="post">
                                             <input type="hidden" name="week" th:value="${monday}">
                                             <button class="btn btn-link btn-sm p-0 text-muted" title="Bỏ ca"><i class="bi bi-x"></i></button></form>
                                     </div>

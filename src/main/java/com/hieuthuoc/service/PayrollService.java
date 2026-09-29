@@ -44,7 +44,8 @@ public class PayrollService {
     public Payroll generate(YearMonth month, User admin) {
         if (month.isAfter(YearMonth.now())) throw new BusinessException("Không tính lương cho tháng chưa tới.");
         Payroll p = payrollRepo.findByMonth(month.toString()).orElse(null);
-        if (p != null && !Payroll.DRAFT.equals(p.getStatus())) throw new BusinessException("Bảng lương tháng " + p.getMonthLabel() + " đã chốt, không tính lại được.");
+        if (p != null && p.isSubmitted()) throw new BusinessException("Bảng lương tháng " + p.getMonthLabel() + " đang chờ admin duyệt, không tính lại được.");
+        if (p != null && !p.isDraft()) throw new BusinessException("Bảng lương tháng " + p.getMonthLabel() + " đã chốt, không tính lại được.");
         Map<Long, PayrollLine> old = new HashMap<>();
         if (p == null) {
             p = new Payroll();
@@ -80,6 +81,7 @@ public class PayrollService {
             p.getLines().add(l);
         }
         p.setCalculatedAt(LocalDateTime.now());
+        p.setPreparedBy(admin);
         payrollRepo.save(p);
         notifications.log(admin, "hr.payroll_calc", "Bảng lương " + p.getMonthLabel() + ": " + p.getLines().size() + " nhân viên, " + p.getTotal() + " đ");
         return p;
@@ -129,7 +131,7 @@ public class PayrollService {
 
     public PayrollLine updateLine(Long lineId, long bonus, long deduction, String note, User admin) {
         PayrollLine l = lineRepo.findById(lineId).orElseThrow(() -> BusinessException.notFound("Không tìm thấy dòng lương."));
-        if (!Payroll.DRAFT.equals(l.getPayroll().getStatus())) throw new BusinessException("Bảng lương đã chốt, không sửa được.");
+        if (!l.getPayroll().isDraft()) throw new BusinessException("Bảng lương đã trình duyệt / đã chốt, không sửa được.");
         if (bonus < 0 || deduction < 0) throw new BusinessException("Thưởng / khấu trừ không được âm.");
         l.setBonus(bonus);
         l.setOtherDeduction(deduction);
@@ -139,10 +141,40 @@ public class PayrollService {
         return l;
     }
 
+    /** Dược sĩ quản lý trình bảng lương nháp lên admin duyệt. */
+    public Payroll submit(Long id, User manager) {
+        Payroll p = get(id);
+        if (!p.isDraft()) throw new BusinessException("Chỉ trình duyệt được bảng lương nháp.");
+        if (p.getLines().isEmpty()) throw new BusinessException("Bảng lương chưa có nhân viên nào.");
+        p.setStatus(Payroll.SUBMITTED);
+        p.setSubmittedBy(manager);
+        p.setSubmittedAt(LocalDateTime.now());
+        p.setRejectNote(null);
+        notifications.notifyAdmins("Bảng lương tháng " + p.getMonthLabel() + " chờ duyệt (" + manager.getFullName() + " trình, tổng "
+                + String.format("%,d", p.getTotal()).replace(',', '.') + " đ)", "/staff/payroll/" + p.getId());
+        notifications.log(manager, "hr.payroll_submit", p.getMonthLabel() + ": " + p.getTotal() + " đ");
+        return p;
+    }
+
+    /** Admin trả lại bảng lương về nháp kèm lý do để dược sĩ quản lý sửa. */
+    public Payroll reject(Long id, String reason, User admin) {
+        Payroll p = get(id);
+        if (!p.isSubmitted()) throw new BusinessException("Bảng lương không ở trạng thái chờ duyệt.");
+        String r = Texts.trim(reason, 500);
+        if (r.isEmpty()) throw new BusinessException("Vui lòng nhập lý do trả lại.");
+        p.setStatus(Payroll.DRAFT);
+        p.setRejectNote(r);
+        if (p.getSubmittedBy() != null) {
+            notifications.notify(p.getSubmittedBy(), "Admin trả lại bảng lương tháng " + p.getMonthLabel() + ": " + r, "/staff/payroll/" + p.getId());
+        }
+        notifications.log(admin, "hr.payroll_reject", p.getMonthLabel() + ": " + r);
+        return p;
+    }
+
+    /** Admin duyệt (chốt) bảng lương đã trình; nhân viên nhận phiếu lương. */
     public Payroll approve(Long id, User admin) {
         Payroll p = get(id);
-        if (!Payroll.DRAFT.equals(p.getStatus())) throw new BusinessException("Bảng lương không ở trạng thái nháp.");
-        if (p.getLines().isEmpty()) throw new BusinessException("Bảng lương chưa có nhân viên nào.");
+        if (!p.isSubmitted()) throw new BusinessException("Chỉ duyệt được bảng lương đã được dược sĩ quản lý trình.");
         p.setStatus(Payroll.APPROVED);
         p.setApprovedBy(admin);
         p.setApprovedAt(LocalDateTime.now());
@@ -150,13 +182,16 @@ public class PayrollService {
             notifications.notify(l.getUser(), "Phiếu lương tháng " + p.getMonthLabel() + " đã có: thực lĩnh "
                     + String.format("%,d", l.getTotal()).replace(',', '.') + " đ", "/staff/my-payslips");
         }
+        if (p.getSubmittedBy() != null && !p.getSubmittedBy().getId().equals(admin.getId())) {
+            notifications.notify(p.getSubmittedBy(), "Admin đã duyệt bảng lương tháng " + p.getMonthLabel(), "/staff/payroll/" + p.getId());
+        }
         notifications.log(admin, "hr.payroll_approve", p.getMonthLabel() + ": " + p.getTotal() + " đ");
         return p;
     }
 
     public Payroll markPaid(Long id, User admin) {
         Payroll p = get(id);
-        if (!Payroll.APPROVED.equals(p.getStatus())) throw new BusinessException("Chỉ đánh dấu đã trả với bảng lương đã chốt.");
+        if (!Payroll.APPROVED.equals(p.getStatus())) throw new BusinessException("Chỉ đánh dấu đã trả với bảng lương đã duyệt.");
         p.setStatus(Payroll.PAID);
         p.setPaidAt(LocalDateTime.now());
         notifications.log(admin, "hr.payroll_paid", p.getMonthLabel());
@@ -165,7 +200,7 @@ public class PayrollService {
 
     public void deleteDraft(Long id, User admin) {
         Payroll p = get(id);
-        if (!Payroll.DRAFT.equals(p.getStatus())) throw new BusinessException("Chỉ xóa được bảng lương nháp.");
+        if (!p.isDraft()) throw new BusinessException("Chỉ xóa được bảng lương nháp.");
         payrollRepo.delete(p);
         notifications.log(admin, "hr.payroll_delete", p.getMonthLabel());
     }

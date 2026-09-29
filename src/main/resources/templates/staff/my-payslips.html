@@ -8,7 +8,7 @@
         <header th:replace="~{fragments/staff :: topbar}"></header>
         <main class="p-3 p-lg-4">
             <div th:replace="~{fragments/layout :: flash}"></div>
-            <div class="alert alert-info small" th:if="${lines.isEmpty()}">Chưa có phiếu lương nào được chốt.</div>
+            <div class="alert alert-info small" th:if="${lines.isEmpty()}">Chưa có phiếu lương nào được admin duyệt.</div>
             <div class="row g-3">
                 <div class="col-lg-6" th:each="l : ${lines}">
                     <div class="card h-100">

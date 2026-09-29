@@ -9,7 +9,10 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Bảng lương theo tháng. DRAFT (nháp, tính lại được) -> APPROVED (đã chốt) -> PAID (đã trả). */
+/**
+ * Bảng lương theo tháng. Dược sĩ quản lý lập: DRAFT (nháp, tính lại được) -> SUBMITTED (trình duyệt);
+ * admin duyệt -> APPROVED (đã chốt, nhân viên xem phiếu lương) hoặc trả lại về DRAFT; -> PAID (đã trả).
+ */
 @Entity
 @Table(name = "payrolls")
 @Getter
@@ -17,6 +20,7 @@ import java.util.List;
 @NoArgsConstructor
 public class Payroll {
     public static final String DRAFT = "DRAFT";
+    public static final String SUBMITTED = "SUBMITTED";
     public static final String APPROVED = "APPROVED";
     public static final String PAID = "PAID";
 
@@ -37,6 +41,18 @@ public class Payroll {
     private LocalDateTime createdAt;
 
     private LocalDateTime calculatedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    private User preparedBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    private User submittedBy;
+
+    private LocalDateTime submittedAt;
+
+    /** Lý do admin trả lại (bảng lương về nháp) */
+    @Column(length = 500)
+    private String rejectNote;
 
     @ManyToOne(fetch = FetchType.LAZY)
     private User approvedBy;
@@ -60,7 +76,8 @@ public class Payroll {
 
     public String getStatusLabel() {
         return switch (status) {
-            case APPROVED -> "Đã chốt";
+            case SUBMITTED -> "Chờ admin duyệt";
+            case APPROVED -> "Đã duyệt";
             case PAID -> "Đã trả lương";
             default -> "Nháp";
         };
@@ -68,10 +85,19 @@ public class Payroll {
 
     public String getStatusColor() {
         return switch (status) {
+            case SUBMITTED -> "warning";
             case APPROVED -> "primary";
             case PAID -> "success";
             default -> "secondary";
         };
+    }
+
+    public boolean isDraft() {
+        return DRAFT.equals(status);
+    }
+
+    public boolean isSubmitted() {
+        return SUBMITTED.equals(status);
     }
 
     public String getMonthLabel() {

@@ -10,6 +10,6 @@ import java.util.List;
 import java.util.Optional;
 
 public interface PayrollLineRepository extends JpaRepository<PayrollLine, Long> {
-    @Query("select l from PayrollLine l join fetch l.payroll p where l.user = :user and p.status <> 'DRAFT' order by p.month desc")
+    @Query("select l from PayrollLine l join fetch l.payroll p where l.user = :user and p.status in ('APPROVED', 'PAID') order by p.month desc")
     List<PayrollLine> findPublishedForUser(@Param("user") User user);
 }

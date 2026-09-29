@@ -763,7 +763,7 @@ public class DataSeeder implements CommandLineRunner {
             if (dow >= 2) plan.add(new Object[]{ds4, d.getDayOfMonth() % 2 == 0 ? morning : evening});
             for (Object[] pl : plan) {
                 ShiftAssignment a = new ShiftAssignment((User) pl[0], d, (WorkShift) pl[1]);
-                a.setCreatedBy(admin);
+                a.setCreatedBy(ds1);
                 if (a.getEndAt().isBefore(now) && rnd.nextInt(100) >= 3) {          // ~3% vắng
                     int late = rnd.nextInt(100) < 12 ? 6 + rnd.nextInt(20) : -rnd.nextInt(10); // ~12% đi muộn
                     a.setCheckInAt(a.getStartAt().plusMinutes(late));
@@ -773,7 +773,9 @@ public class DataSeeder implements CommandLineRunner {
             }
         }
         shiftAssignmentRepo.flush();
-        com.hieuthuoc.entity.Payroll p = payrollService.generate(java.time.YearMonth.from(today).minusMonths(1), admin);
+        // Dược sĩ quản lý lập & trình bảng lương tháng trước, admin duyệt rồi đánh dấu đã trả
+        com.hieuthuoc.entity.Payroll p = payrollService.generate(java.time.YearMonth.from(today).minusMonths(1), ds1);
+        payrollService.submit(p.getId(), ds1);
         payrollService.approve(p.getId(), admin);
         payrollService.markPaid(p.getId(), admin);
     }

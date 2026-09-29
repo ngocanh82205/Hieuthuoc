@@ -39,6 +39,10 @@ public class StaffAccessInterceptor implements HandlerInterceptor {
         RULES.put("/staff/posts", StaffPermission.CONTENT);
         RULES.put("/staff/reviews", StaffPermission.CONTENT);
         RULES.put("/staff/products", StaffPermission.CONTENT);
+        RULES.put("/staff/schedule", StaffPermission.SCHEDULE);
+        RULES.put("/staff/attendance", StaffPermission.SCHEDULE);
+        RULES.put("/staff/shifts", StaffPermission.SCHEDULE);
+        RULES.put("/staff/payroll", StaffPermission.SCHEDULE);
     }
 
     private final CurrentUser currentUser;

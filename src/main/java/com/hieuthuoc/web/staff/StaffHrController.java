@@ -36,7 +36,7 @@ public class StaffHrController {
         List<ShiftAssignment> shifts = assignmentRepo.findForUser(me, monday, monday.plusDays(6));
         model.addAttribute("monday", monday);
         model.addAttribute("days", days);
-        model.addAttribute("dayNames", com.hieuthuoc.web.admin.AdminHrController.DAY_NAMES);
+        model.addAttribute("dayNames", StaffScheduleController.DAY_NAMES);
         model.addAttribute("today", LocalDate.now());
         model.addAttribute("shifts", shifts);
         model.addAttribute("todayShifts", scheduleService.todayShifts(me));

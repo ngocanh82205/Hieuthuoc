@@ -23,7 +23,7 @@
                                     <td class="text-end" th:text="${#numbers.formatDecimal(s.paidMinutes / 60.0, 1, 1)} + ' h'"></td>
                                     <td class="text-end" th:text="${@fmt.money(s.allowance)}"></td>
                                     <td class="text-end" th:text="${used[s.id]}"></td>
-                                    <td><a th:href="@{/admin/shifts(edit=${s.id})}" class="btn btn-sm btn-outline-primary">Sửa</a></td>
+                                    <td><a th:href="@{/staff/shifts(edit=${s.id})}" class="btn btn-sm btn-outline-primary">Sửa</a></td>
                                 </tr>
                                 </tbody>
                             </table>
@@ -31,7 +31,7 @@
                     </div>
                 </div>
                 <div class="col-lg-5">
-                    <form th:action="${edit.id == null} ? @{/admin/shifts} : @{/admin/shifts/{id}(id=${edit.id})}" method="post" class="card">
+                    <form th:action="${edit.id == null} ? @{/staff/shifts} : @{/staff/shifts/{id}(id=${edit.id})}" method="post" class="card">
                         <div class="card-header" th:text="${edit.id == null} ? 'Thêm ca làm' : 'Sửa ca làm'"></div>
                         <div class="card-body row g-2">
                             <div class="col-12"><label class="form-label small">Tên ca</label><input name="name" class="form-control" th:value="${edit.name}" required placeholder="VD: Ca sáng"></div>
@@ -47,7 +47,7 @@
                             <div class="col-12 small text-muted">Giờ kết thúc nhỏ hơn giờ bắt đầu = ca qua đêm.</div>
                         </div>
                         <div class="card-footer bg-white"><button class="btn btn-primary">Lưu</button>
-                            <a th:if="${edit.id != null}" th:href="@{/admin/shifts}" class="btn btn-link">Hủy</a></div>
+                            <a th:if="${edit.id != null}" th:href="@{/staff/shifts}" class="btn btn-link">Hủy</a></div>
                     </form>
                 </div>
             </div>

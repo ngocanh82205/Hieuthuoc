@@ -11,11 +11,11 @@
             <form method="get" class="d-flex gap-2 align-items-center mb-3">
                 <label class="small fw-semibold">Ngày</label>
                 <input type="date" name="date" class="form-control form-control-sm" style="max-width: 180px" th:value="${date}" onchange="this.form.submit()">
-                <a th:href="@{/admin/schedule(week=${date})}" class="btn btn-sm btn-outline-secondary ms-auto"><i class="bi bi-calendar-week"></i> Lịch tuần</a>
+                <a th:href="@{/staff/schedule(week=${date})}" class="btn btn-sm btn-outline-secondary ms-auto"><i class="bi bi-calendar-week"></i> Lịch tuần</a>
             </form>
             <div class="alert alert-warning small" th:if="${!issues.isEmpty()}">
                 <div class="fw-semibold mb-1"><i class="bi bi-exclamation-triangle"></i> 14 ngày qua có <span th:text="${issues.size()}"></span> ca vắng / quên kết ca cần kiểm tra:</div>
-                <span th:each="a, st : ${issues}"><a th:href="@{/admin/attendance(date=${a.workDate})}" th:text="${a.user.fullName} + ' ' + ${#temporals.format(a.workDate, 'dd/MM')} + ' (' + ${a.attendance[0]} + ')'"></a><span th:unless="${st.last}">, </span></span>
+                <span th:each="a, st : ${issues}"><a th:href="@{/staff/attendance(date=${a.workDate})}" th:text="${a.user.fullName} + ' ' + ${#temporals.format(a.workDate, 'dd/MM')} + ' (' + ${a.attendance[0]} + ')'"></a><span th:unless="${st.last}">, </span></span>
             </div>
             <div class="card">
                 <div class="table-responsive">
@@ -32,7 +32,7 @@
                             <td><span class="badge" th:classappend="'text-bg-' + ${a.attendance[1]}" th:text="${a.attendance[0]}"></span>
                                 <div class="small text-muted" th:if="${a.adjustNote != null}" th:text="'Sửa: ' + ${a.adjustNote}"></div></td>
                             <td>
-                                <form th:action="@{/admin/attendance/{id}(id=${a.id})}" method="post" class="d-flex gap-1">
+                                <form th:action="@{/staff/attendance/{id}(id=${a.id})}" method="post" class="d-flex gap-1">
                                     <input type="datetime-local" name="checkIn" class="form-control form-control-sm" th:value="${@fmt.isoTime(a.checkInAt != null ? a.checkInAt : a.startAt)}">
                                     <input type="datetime-local" name="checkOut" class="form-control form-control-sm" th:value="${@fmt.isoTime(a.checkOutAt != null ? a.checkOutAt : a.endAt)}">
                                     <input name="note" class="form-control form-control-sm" placeholder="Lý do" required style="max-width: 120px">
