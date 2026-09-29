@@ -1,0 +1,57 @@
+@startwbs phan-ra-chuc-nang
+!include _style.iuml
+<style>
+wbsDiagram {
+  node { BackgroundColor #eaf3fb; LineColor #1f4e79; FontSize 12 }
+  :depth(0) { BackgroundColor #1f4e79; FontColor white; FontSize 14 }
+  :depth(1) { BackgroundColor #cfe2f3 }
+}
+</style>
+* Hệ thống bán thuốc trực tuyến VinaPharma
+** Người dùng & phân quyền
+*** Đăng ký, đăng nhập
+*** Quên mật khẩu
+*** Hồ sơ cá nhân, sức khỏe
+*** Quản lý tài khoản
+*** Vai trò & phân quyền
+*** Nhật ký hoạt động
+** Sản phẩm & kho
+*** Danh mục, hoạt chất, NSX
+*** Sản phẩm, đơn vị tính
+*** Tương tác thuốc
+*** Tồn kho theo lô
+*** Nhập / hủy / kiểm kê
+*** Chuyển kho, duyệt phiếu
+** Khuyến mãi
+*** Mã giảm giá, voucher
+*** Flash sale, combo, quà tặng
+*** Điểm, hạng thành viên
+** Đơn hàng & đơn thuốc
+*** Giỏ hàng, đặt hàng
+*** Duyệt đơn thuốc
+*** Xử lý đơn, xuất kho FEFO
+*** Hủy, đổi trả, hoàn tiền
+*** Bán tại quầy (POS)
+** Thanh toán & vận chuyển
+*** COD, VietQR, online
+*** Xác nhận thanh toán
+*** Phí giao theo khu vực
+*** Hãng vận chuyển, mã vận đơn
+** Tư vấn & chăm sóc
+*** Chat với trợ lý AI
+*** Chuyển dược sĩ
+*** Hỏi đáp, gọi lại
+*** Đánh giá sản phẩm
+*** Nhắc uống thuốc, mua lại
+** Nhân sự
+*** Ca làm, xếp lịch
+*** Chấm công
+*** Lập bảng lương
+*** Duyệt bảng lương
+*** Phiếu lương
+** Báo cáo & hệ thống
+*** Doanh thu, tồn kho, cận hạn
+*** Xuất Excel / PDF
+*** Cấu hình hệ thống
+*** Sao lưu dữ liệu
+@endwbs
