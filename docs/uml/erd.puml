@@ -1,0 +1,186 @@
+@startuml erd
+!pragma layout smetana
+!include _style.iuml
+hide circle
+hide methods
+skinparam linetype ortho
+skinparam ClassBackgroundColor #eaf3fb
+skinparam ClassBorderColor #1f4e79
+caption Sơ đồ quan hệ thực thể (các bảng chính)
+entity users {
+  id PK
+  --
+  full_name
+  phone
+  email
+  password_hash
+  role
+  staff_role_id FK
+  license_no
+  allergies
+  points
+}
+entity staff_roles {
+  id PK
+  --
+  name
+  permissions
+}
+entity categories {
+  id PK
+  --
+  name
+  slug
+  parent_id FK
+}
+entity products {
+  id PK
+  --
+  name
+  drug_type
+  active_ingredient
+  price
+  unit
+  category_id FK
+}
+entity product_units {
+  id PK
+  --
+  product_id FK
+  name
+  factor
+  price
+}
+entity warehouses {
+  id PK
+  --
+  name
+  sellable
+}
+entity batches {
+  id PK
+  --
+  product_id FK
+  warehouse_id FK
+  batch_no
+  exp_date
+  quantity
+  locked
+}
+entity orders {
+  id PK
+  --
+  code
+  user_id FK
+  status
+  payment_method
+  payment_status
+  carrier
+  tracking_code
+  total
+}
+entity order_items {
+  id PK
+  --
+  order_id FK
+  product_id FK
+  quantity
+  price
+}
+entity order_item_batches {
+  id PK
+  --
+  order_item_id FK
+  batch_id FK
+  quantity
+}
+entity prescriptions {
+  id PK
+  --
+  order_id FK
+  user_id FK
+  pharmacist_id FK
+  status
+  image
+}
+entity vouchers {
+  id PK
+  --
+  code
+  type
+  discount_value
+  usage_limit
+}
+entity conversations {
+  id PK
+  --
+  customer_id FK
+  pharmacist_id FK
+  mode
+}
+entity messages {
+  id PK
+  --
+  conversation_id FK
+  sender_id FK
+  kind
+  body
+}
+entity reviews {
+  id PK
+  --
+  product_id FK
+  user_id FK
+  rating
+}
+entity shift_assignments {
+  id PK
+  --
+  user_id FK
+  shift_id FK
+  work_date
+  check_in_at
+}
+entity work_shifts {
+  id PK
+  --
+  name
+  start_time
+  end_time
+}
+entity payrolls {
+  id PK
+  --
+  pay_month
+  status
+}
+entity payroll_lines {
+  id PK
+  --
+  payroll_id FK
+  user_id FK
+  total
+}
+
+staff_roles ||--o{ users
+categories ||--o{ categories
+categories ||--o{ products
+products ||--o{ product_units
+products ||--o{ batches
+warehouses ||--o{ batches
+users ||--o{ orders
+orders ||--|{ order_items
+products ||--o{ order_items
+order_items ||--o{ order_item_batches
+batches ||--o{ order_item_batches
+orders ||--o{ prescriptions
+users ||--o{ prescriptions
+users ||--o{ conversations
+conversations ||--o{ messages
+products ||--o{ reviews
+users ||--o{ reviews
+users ||--o{ shift_assignments
+work_shifts ||--o{ shift_assignments
+payrolls ||--|{ payroll_lines
+users ||--o{ payroll_lines
+@enduml
