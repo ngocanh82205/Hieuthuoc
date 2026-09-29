@@ -1,0 +1,43 @@
+@startuml sd-tu-van-ai
+!include _style.iuml
+autonumber
+title Sơ đồ tuần tự - Tư vấn: trợ lý AI tiếp nhận, chuyển dược sĩ
+actor "Khách hàng" as C
+boundary "Trang tư vấn" as UI
+control "ChatService" as CH
+control "AiAssistantService" as AI
+control "SafetyService" as SF
+participant "Claude API\n(Trợ lý AI)" as LLM
+actor "Dược sĩ" as P
+database "CSDL" as DB
+
+C -> UI : Gửi tin nhắn
+UI -> CH : POST /consult (nội dung)
+CH -> DB : Lưu tin nhắn của khách
+CH -> AI : Xử lý bất đồng bộ (hội thoại đang ở chế độ AI)
+CH --> UI : Tin nhắn đã gửi
+AI -> AI : Luật cứng: ảnh? dấu hiệu nguy hiểm?\nmuốn gặp người? đối tượng đặc biệt?\nthuốc kê đơn? (BR24, BR25)
+alt Thuộc trường hợp phải chuyển dược sĩ
+  AI -> DB : Tìm dược sĩ có CCHN, đang online,\nít hội thoại nhất (BR26)
+  AI -> DB : Chế độ = HUMAN, gán dược sĩ,\nlưu tin hệ thống + bản tóm tắt
+  AI -> P : Thông báo có hội thoại mới
+  AI --> UI : "Đã chuyển dược sĩ ..."
+  P -> UI : Trả lời khách
+else Câu hỏi thông thường
+  AI -> SF : Kiểm tra sản phẩm được nhắc tới\nvới hồ sơ sức khỏe (dị ứng, tương tác)
+  alt Có cảnh báo an toàn
+    SF --> AI : Cảnh báo
+    AI -> DB : Chuyển dược sĩ (như trên)
+  else An toàn
+    alt Đã cấu hình API key
+      AI -> LLM : Lời nhắc hệ thống + lịch sử hội thoại\n(không gửi hồ sơ sức khỏe)
+      LLM --> AI : Câu trả lời
+    else Không có key / lỗi kết nối
+      AI -> AI : Trả lời theo kịch bản
+    end
+    AI -> DB : Lưu tin nhắn AI
+    AI --> UI : Hiển thị câu trả lời
+  end
+end
+UI --> C : Tin nhắn mới
+@enduml

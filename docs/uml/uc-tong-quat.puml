@@ -1,0 +1,66 @@
+@startuml uc-tong-quat
+!pragma layout smetana
+!include _style.iuml
+left to right direction
+caption Biểu đồ use case tổng quát - VinaPharma
+
+actor "Khách vãng lai" as G
+actor "Khách hàng" as C
+actor "Dược sĩ" as P
+actor "Dược sĩ quản lý" as M
+actor "Quản trị viên" as A
+actor "Trợ lý AI" as AI <<hệ thống>>
+actor "Bộ lập lịch" as S <<thời gian>>
+
+C -|> G
+M -|> P
+
+rectangle "Hệ thống bán thuốc trực tuyến VinaPharma" {
+  usecase "Tra cứu, tìm kiếm thuốc" as U1
+  usecase "Quản lý giỏ hàng" as U2
+  usecase "Đăng ký / đăng nhập" as U3
+  usecase "Đặt hàng, thanh toán" as U4
+  usecase "Gửi đơn thuốc kê đơn" as U5
+  usecase "Theo dõi, hủy, đổi trả đơn" as U6
+  usecase "Chat tư vấn" as U7
+  usecase "Nhắc uống thuốc, mua lại" as U8
+  usecase "Duyệt đơn thuốc" as U9
+  usecase "Xử lý đơn hàng" as U10
+  usecase "Bán tại quầy (POS)" as U11
+  usecase "Quản lý kho theo lô" as U12
+  usecase "Chấm công, xem phiếu lương" as U13
+  usecase "Duyệt phiếu kho, hoàn tiền" as U14
+  usecase "Xếp lịch làm, lập bảng lương" as U15
+  usecase "Quản lý người dùng, phân quyền" as U16
+  usecase "Quản lý danh mục sản phẩm" as U17
+  usecase "Quản lý khuyến mãi" as U18
+  usecase "Cấu hình hệ thống" as U19
+  usecase "Duyệt bảng lương" as U20
+  usecase "Thống kê, báo cáo" as U21
+}
+
+G --> U1
+G --> U2
+G --> U3
+C --> U4
+C --> U5
+C --> U6
+C --> U7
+C --> U8
+AI --> U7
+P --> U7
+P --> U9
+P --> U10
+P --> U11
+P --> U12
+P --> U13
+M --> U14
+M --> U15
+A --> U16
+A --> U17
+A --> U18
+A --> U19
+A --> U20
+A --> U21
+S --> U8
+@enduml

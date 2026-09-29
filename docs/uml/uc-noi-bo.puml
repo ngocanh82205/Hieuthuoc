@@ -1,0 +1,55 @@
+@startuml uc-noi-bo
+!pragma layout smetana
+!include _style.iuml
+left to right direction
+caption Use case phân rã - Dược sĩ, Dược sĩ quản lý, Quản trị viên
+
+actor "Dược sĩ" as P
+actor "Dược sĩ quản lý" as M
+actor "Quản trị viên" as A
+M -|> P
+
+rectangle "VinaPharma - khu vực nội bộ" {
+  usecase "Duyệt đơn thuốc" as Rx
+  usecase "Ghi sổ thuốc kê đơn" as RxLog
+  usecase "Cảnh báo dị ứng,\ntương tác thuốc" as Safety
+  usecase "Đề xuất thuốc thay thế" as Sub
+  usecase "Xử lý đơn hàng" as Proc
+  usecase "Xuất kho theo FEFO" as Fefo
+  usecase "Tiếp nhận tư vấn từ AI" as Consult
+  usecase "Lập phiếu nhập / hủy /\nkiểm kê / chuyển kho" as Slip
+  usecase "Vào ca, kết thúc ca" as Clock
+  usecase "Duyệt phiếu kho" as ApproveSlip
+  usecase "Duyệt hoàn tiền, đổi trả" as Refund
+  usecase "Xếp lịch làm việc" as Sched
+  usecase "Điều chỉnh chấm công" as Adjust
+  usecase "Lập, trình bảng lương" as Payroll
+  usecase "Duyệt / trả lại bảng lương" as ApprovePay
+  usecase "Quản lý vai trò, phân quyền" as Rbac
+  usecase "Khai báo mức lương" as Salary
+  usecase "Quản lý sản phẩm, danh mục" as Catalog
+  usecase "Quản lý khuyến mãi" as Promo
+  usecase "Báo cáo, thống kê" as Report
+}
+
+P --> Rx
+Rx ..> RxLog : <<include>>
+Rx ..> Safety : <<include>>
+Sub ..> Rx : <<extend>>
+P --> Proc
+Proc ..> Fefo : <<include>>
+P --> Consult
+P --> Slip
+P --> Clock
+M --> ApproveSlip
+M --> Refund
+M --> Sched
+M --> Adjust
+M --> Payroll
+A --> ApprovePay
+A --> Rbac
+A --> Salary
+A --> Catalog
+A --> Promo
+A --> Report
+@enduml
