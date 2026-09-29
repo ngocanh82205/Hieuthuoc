@@ -15,7 +15,7 @@ import java.util.Map;
 
 /**
  * Phân quyền theo chức năng (RBAC) cho khu vực nhân viên: mỗi nhóm đường dẫn /staff/... yêu cầu một quyền.
- * Vai trò (Dược sĩ quản lý, Dược sĩ, Dược sĩ phụ trách kho, Dược sĩ tư vấn...) do admin cấu hình tập quyền.
+ * Vai trò (Dược sĩ quản lý, Dược sĩ, Biên tập viên...) do admin cấu hình tập quyền.
  */
 @Component
 @RequiredArgsConstructor

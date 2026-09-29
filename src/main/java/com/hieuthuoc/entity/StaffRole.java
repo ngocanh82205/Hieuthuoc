@@ -7,7 +7,7 @@ import lombok.Setter;
 
 import java.util.*;
 
-/** Vai trò nhân viên (RBAC): Dược sĩ quản lý, Dược sĩ, Dược sĩ phụ trách kho, Dược sĩ tư vấn... mỗi vai trò là một tập quyền do admin cấu hình. */
+/** Vai trò nhân viên (RBAC): Dược sĩ quản lý, Dược sĩ, Biên tập viên... mỗi vai trò là một tập quyền do admin cấu hình. */
 @Entity
 @Table(name = "staff_roles")
 @Getter

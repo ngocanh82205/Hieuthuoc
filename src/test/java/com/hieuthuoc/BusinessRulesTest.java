@@ -258,7 +258,7 @@ class BusinessRulesTest {
         User kho = userRepo.findByEmailIgnoreCase("duocsi3@hieuthuoc.vn").orElseThrow();
         Batch b = batchRepo.findByProductOrderByExpDateAsc(product("Berberin 100mg")).get(0);
         int qty = b.getQuantity();
-        // Dược sĩ phụ trách kho (không có quyền duyệt phiếu kho): lập phiếu điều chỉnh kiểm kê, chưa đổi tồn
+        // Dược sĩ (không có quyền duyệt phiếu kho): lập phiếu điều chỉnh kiểm kê, chưa đổi tồn
         assertThat(inventoryService.stocktake(java.util.Map.of(b.getId(), qty - 2), kho, "test")).isEqualTo(1);
         assertThat(b.getQuantity()).isEqualTo(qty);
         StockAdjustment pending = adjustmentRepo.findByStatusOrderByIdAsc(ApprovalStatus.PENDING).stream()
@@ -317,16 +317,21 @@ class BusinessRulesTest {
     void staffRoleControlsPermissionsAndUrls() {
         User kho = userRepo.findByEmailIgnoreCase("duocsi3@hieuthuoc.vn").orElseThrow();
         User cskh = userRepo.findByEmailIgnoreCase("duocsi4@hieuthuoc.vn").orElseThrow();
-        // Cả hai đều là dược sĩ có CCHN: được duyệt đơn thuốc
-        assertThat(kho.getLicenseNo()).isNotBlank();
-        assertThat(cskh.getLicenseNo()).isNotBlank();
-        assertThat(kho.hasPermission(StaffPermission.RX_REVIEW)).isTrue();
-        assertThat(cskh.hasPermission(StaffPermission.RX_REVIEW)).isTrue();
-        // Khác nhau ở quyền theo chức năng
-        assertThat(kho.hasPermission(StaffPermission.INVENTORY)).isTrue();
-        assertThat(cskh.hasPermission(StaffPermission.INVENTORY)).isFalse();
-        assertThat(cskh.hasPermission(StaffPermission.CONSULT)).isTrue();
-        assertThat(kho.hasPermission(StaffPermission.APPROVE_STOCK)).isFalse();
+        // Các dược sĩ dùng chung vai trò "Dược sĩ", đều có CCHN
+        User manager = userRepo.findByEmailIgnoreCase("duocsi@hieuthuoc.vn").orElseThrow();
+        for (User ds : List.of(kho, cskh)) {
+            assertThat(ds.getStaffRole().getName()).isEqualTo("Dược sĩ");
+            assertThat(ds.getLicenseNo()).isNotBlank();
+            assertThat(ds.hasPermission(StaffPermission.RX_REVIEW)).isTrue();
+            assertThat(ds.hasPermission(StaffPermission.INVENTORY)).isTrue();
+            assertThat(ds.hasPermission(StaffPermission.CONSULT)).isTrue();
+            // Duyệt phiếu kho, hoàn tiền, nội dung: chỉ dược sĩ quản lý / admin
+            assertThat(ds.hasPermission(StaffPermission.APPROVE_STOCK)).isFalse();
+            assertThat(ds.hasPermission(StaffPermission.REFUND)).isFalse();
+            assertThat(ds.hasPermission(StaffPermission.CONTENT)).isFalse();
+        }
+        assertThat(manager.hasPermission(StaffPermission.APPROVE_STOCK)).isTrue();
+        assertThat(manager.hasPermission(StaffPermission.REFUND)).isTrue();
         assertThat(com.hieuthuoc.config.StaffAccessInterceptor.required("/staff/prescriptions/5")).isEqualTo(StaffPermission.RX_REVIEW);
         assertThat(com.hieuthuoc.config.StaffAccessInterceptor.required("/staff/stocktake")).isEqualTo(StaffPermission.INVENTORY);
         assertThat(com.hieuthuoc.config.StaffAccessInterceptor.required("/staff")).isNull();
@@ -341,8 +346,8 @@ class BusinessRulesTest {
         Prescription rx = prescriptionRepo.findByStatusOrderByCreatedAtAsc(ApprovalStatus.PENDING).get(0);
         assertThatThrownBy(() -> orderService.rejectPrescription(rx.getId(), editor, "Không hợp lệ")).hasMessageContaining("quyền");
         // Quyền cấp thêm ngoài vai trò
-        cskh.setPermissions("POS");
-        assertThat(cskh.hasPermission(StaffPermission.POS)).isTrue();
+        cskh.setPermissions("CONTENT");
+        assertThat(cskh.hasPermission(StaffPermission.CONTENT)).isTrue();
     }
 
     @Test

@@ -188,12 +188,8 @@ public class DataSeeder implements CommandLineRunner {
         if (staffRoleRepo.count() == 0) {
             staffRoleRepo.save(new StaffRole("Dược sĩ quản lý", "Dược sĩ phụ trách chuyên môn / quản lý nhà thuốc - toàn quyền nghiệp vụ",
                     StaffPermission.values()));
-            staffRoleRepo.save(new StaffRole("Dược sĩ", "Duyệt đơn thuốc, tư vấn, xử lý đơn và bán tại quầy",
-                    StaffPermission.RX_REVIEW, StaffPermission.ORDER, StaffPermission.CONSULT, StaffPermission.POS));
-            staffRoleRepo.save(new StaffRole("Dược sĩ phụ trách kho", "Dược sĩ kiêm quản lý kho: nhập hàng, soạn hàng, kiểm kê, chuyển kho",
+            staffRoleRepo.save(new StaffRole("Dược sĩ", "Duyệt đơn thuốc, tư vấn khách hàng, xử lý đơn hàng, bán tại quầy, quản lý kho",
                     StaffPermission.RX_REVIEW, StaffPermission.ORDER, StaffPermission.CONSULT, StaffPermission.POS, StaffPermission.INVENTORY));
-            staffRoleRepo.save(new StaffRole("Dược sĩ tư vấn", "Dược sĩ chuyên tư vấn / chăm sóc khách hàng: chat, hỏi đáp, gọi lại, theo dõi đơn",
-                    StaffPermission.RX_REVIEW, StaffPermission.ORDER, StaffPermission.CONSULT));
             staffRoleRepo.save(new StaffRole("Biên tập viên", "Bài viết sức khỏe, thông tin sản phẩm, kiểm duyệt đánh giá",
                     StaffPermission.CONTENT));
         }
@@ -266,20 +262,19 @@ public class DataSeeder implements CommandLineRunner {
         User admin = user(Role.ADMIN, "Quản trị viên", "admin@hieuthuoc.vn", "0901000001", "admin123", null);
         User ds1 = user(Role.PHARMACIST, "DS. Nguyễn Thị Lan", "duocsi@hieuthuoc.vn", "0901000002", "duocsi123", "012345/HNO-CCHND");
         User ds2 = user(Role.PHARMACIST, "DS. Phạm Quốc Huy", "duocsi2@hieuthuoc.vn", "0901000003", "duocsi123", "023456/HNO-CCHND");
-        // DS. Lan là dược sĩ quản lý: đủ quyền; DS. Huy: dược sĩ bán hàng, cấp thêm quyền nội dung
+        // DS. Lan là dược sĩ quản lý (đủ quyền); các dược sĩ còn lại dùng chung vai trò "Dược sĩ"
         ds1.setStaffRole(role("Dược sĩ quản lý"));
         ds1.setDegree("Dược sĩ đại học - ĐH Dược Hà Nội");
         ds1.setShift("Ca sáng 7h - 15h");
         ds2.setStaffRole(role("Dược sĩ"));
-        ds2.setPermissions("CONTENT");
         ds2.setDegree("Dược sĩ cao đẳng");
         ds2.setShift("Ca chiều 14h - 22h");
         User kho = user(Role.PHARMACIST, "DS. Vũ Văn Kiên", "duocsi3@hieuthuoc.vn", "0901000004", "duocsi123", "034567/HNO-CCHND");
-        kho.setStaffRole(role("Dược sĩ phụ trách kho"));
+        kho.setStaffRole(role("Dược sĩ"));
         kho.setDegree("Dược sĩ đại học - ĐH Y Dược Thái Bình");
         kho.setShift("Hành chính 8h - 17h");
         User cskh = user(Role.PHARMACIST, "DS. Đỗ Thu Hà", "duocsi4@hieuthuoc.vn", "0901000005", "duocsi123", "045678/HNO-CCHND");
-        cskh.setStaffRole(role("Dược sĩ tư vấn"));
+        cskh.setStaffRole(role("Dược sĩ"));
         cskh.setDegree("Dược sĩ cao đẳng");
         cskh.setShift("Ca chiều 14h - 22h");
         User kh1 = user(Role.CUSTOMER, "Trần Văn An", "khachhang@gmail.com", "0912345678", "123456", null);
