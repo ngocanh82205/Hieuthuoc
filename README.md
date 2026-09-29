@@ -30,8 +30,8 @@ Mở trình duyệt tại <http://localhost:8080>. Lần chạy đầu tiên, h�
 |---|---|---|
 | Admin | `admin@hieuthuoc.vn` | `admin123` |
 | Dược sĩ | `duocsi@hieuthuoc.vn` | `duocsi123` |
-| Nhân viên kho | `kho@hieuthuoc.vn` | `nhanvien123` |
-| Nhân viên CSKH | `cskh@hieuthuoc.vn` | `nhanvien123` |
+| Dược sĩ phụ trách kho | `duocsi3@hieuthuoc.vn` | `duocsi123` |
+| Dược sĩ tư vấn | `duocsi4@hieuthuoc.vn` | `duocsi123` |
 | Khách hàng | `khachhang@gmail.com` | `123456` |
 
 - Muốn làm lại dữ liệu mẫu từ đầu: dừng ứng dụng, xóa thư mục `data/` và `uploads/`, rồi chạy lại.
@@ -111,12 +111,12 @@ Bảng được tự tạo khi chạy (`spring.jpa.hibernate.ddl-auto=update`).
 | Hoàn tiền | Hủy đơn đã thanh toán, đổi trả, duyệt hoàn tiền |
 | Nội dung | Bài viết, thông tin sản phẩm, kiểm duyệt đánh giá |
 
-Tài khoản mẫu: `duocsi@hieuthuoc.vn` là Dược sĩ quản lý (đủ quyền); `duocsi2@hieuthuoc.vn` (mật khẩu `duocsi123`) là Dược sĩ, được cấp thêm quyền Nội dung; `kho@` là Nhân viên kho; `cskh@` là Nhân viên CSKH.
+Tài khoản mẫu (tất cả đều là dược sĩ có chứng chỉ hành nghề): `duocsi@` là Dược sĩ quản lý (đủ quyền); `duocsi2@` là Dược sĩ, được cấp thêm quyền Nội dung; `duocsi3@` là Dược sĩ phụ trách kho; `duocsi4@` là Dược sĩ tư vấn. Mật khẩu đều là `duocsi123`.
 
 ### Admin (`/admin`, dùng được cả toàn bộ chức năng dược sĩ)
 - **Người dùng & phân quyền (RBAC):**
   - Nhân viên: thêm/sửa, số CCHN, bằng cấp, ca làm; khóa tài khoản khi nghỉ việc (giữ lịch sử để truy vết).
-  - **Vai trò** (Dược sĩ quản lý, Dược sĩ, Nhân viên kho, Nhân viên CSKH, Biên tập viên... thêm được vai trò mới) với **ma trận quyền theo chức năng**; có thể cấp thêm quyền riêng cho từng người.
+  - **Vai trò** (Dược sĩ quản lý, Dược sĩ, Dược sĩ phụ trách kho, Dược sĩ tư vấn, Biên tập viên... thêm được vai trò mới) với **ma trận quyền theo chức năng**; có thể cấp thêm quyền riêng cho từng người.
   - Quyền được kiểm tra ở cả menu, đường dẫn và nghiệp vụ. Người có quyền duyệt đơn thuốc bắt buộc có CCHN.
   - Khách hàng: xem, khóa/mở khóa, lịch sử mua, điều chỉnh điểm.
   - **Nhật ký hoạt động** lọc theo nhân viên, nhóm hành động, nội dung, khoảng ngày.
