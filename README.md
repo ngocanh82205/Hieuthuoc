@@ -179,6 +179,25 @@ $env:ANTHROPIC_API_KEY="sk-ant-..."
 Có thể đổi model bằng `ANTHROPIC_MODEL` (mặc định `claude-sonnet-5`). Không có key, trợ lý **trả lời tự động theo kịch bản** (hiểu cả tiếng Việt không dấu) và vẫn áp dụng đủ các quy tắc chuyển dược sĩ ở trên.
 Khi dùng Claude, nội dung tin nhắn trong phiên chat với trợ lý và thông tin đơn hàng gần đây của khách được gửi tới Anthropic để tạo câu trả lời.
 
+## Lịch làm việc, chấm công và tính lương
+
+**Admin → nhóm "Nhân sự"**
+- **Ca làm** (`/admin/shifts`): khai báo ca (giờ bắt đầu/kết thúc, hỗ trợ ca qua đêm), thời gian nghỉ, phụ cấp ca, màu hiển thị. Mẫu: Ca sáng 07–15, Ca chiều 14–22 (phụ cấp 30.000 đ), Hành chính 08–17.
+- **Lịch làm việc** (`/admin/schedule`): lưới tuần nhân viên × ngày, bấm ⊕ để xếp ca; chặn xếp trùng giờ, không xếp lùi quá 31 ngày; bỏ ca chưa chấm công; **sao chép lịch sang tuần sau**. Dược sĩ nhận thông báo khi được xếp ca.
+- **Chấm công** (`/admin/attendance`): xem giờ vào/ra theo ngày, trạng thái (Hoàn thành / Muộn X phút / Vắng / Quên kết ca / Đang làm); admin sửa giờ công (bắt buộc ghi lý do, lưu nhật ký).
+- **Bảng lương** (`/admin/payroll`): tính lương theo tháng → bảng **Nháp** (nhập thưởng, khấu trừ khác, ghi chú; tính lại giữ nguyên các khoản nhập tay) → **Chốt** (gửi thông báo phiếu lương cho nhân viên) → **Đã trả**. Xuất Excel.
+- Lương từng người khai báo ở form **Nhân viên**: lương tháng (lương cơ bản) hoặc lương giờ (đơn giá/giờ) + phụ cấp cố định.
+
+**Cách tính**
+- Giờ công mỗi ca = phần thời gian có mặt nằm trong khung ca (trừ giờ nghỉ nếu làm > 4 giờ), tối đa bằng số giờ của ca. Ca vắng / quên kết ca không tính công.
+- Lương tháng = lương cơ bản × ngày công ÷ `payroll_standard_days` (mặc định 26).  Lương giờ = giờ công × đơn giá.
+- Cộng: phụ cấp ca (theo từng ca đã làm) + phụ cấp cố định (khi có ngày công) + thưởng.
+- Trừ: số lần muộn quá `late_grace_minutes` (5 phút) × `late_penalty` (20.000 đ) + bảo hiểm `insurance_permille` (105‰ = 10,5% lương cơ bản, chỉ lương tháng) + khấu trừ khác. Các tham số chỉnh ở **Cấu hình → Chấm công & tính lương**.
+
+**Dược sĩ** (`/staff/my-schedule`, `/staff/my-payslips`): xem lịch tuần, bấm **Vào ca / Kết thúc ca** (mở trước giờ vào ca 60 phút; cũng có trên trang Tổng quan), xem phiếu lương đã chốt.
+
+Dữ liệu mẫu: lịch và chấm công từ đầu tháng trước tới 2 tuần tới cho 4 dược sĩ, bảng lương tháng trước đã trả.
+
 ## Quy tắc nghiệp vụ đã cài đặt
 
 1. Thuốc kê đơn không được thanh toán/xử lý khi chưa có dược sĩ duyệt đơn thuốc.

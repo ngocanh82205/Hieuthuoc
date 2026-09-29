@@ -27,6 +27,9 @@ import java.util.*;
 public class DataSeeder implements CommandLineRunner {
     private final UserRepository userRepo;
     private final StaffRoleRepository staffRoleRepo;
+    private final WorkShiftRepository workShiftRepo;
+    private final ShiftAssignmentRepository shiftAssignmentRepo;
+    private final com.hieuthuoc.service.PayrollService payrollService;
     private final WarehouseRepository warehouseRepo;
     private final StockAdjustmentRepository adjustmentRepo;
     private final SupplierPaymentRepository supplierPaymentRepo;
@@ -192,6 +195,11 @@ public class DataSeeder implements CommandLineRunner {
                     StaffPermission.RX_REVIEW, StaffPermission.ORDER, StaffPermission.CONSULT, StaffPermission.POS, StaffPermission.INVENTORY));
             staffRoleRepo.save(new StaffRole("Biên tập viên", "Bài viết sức khỏe, thông tin sản phẩm, kiểm duyệt đánh giá",
                     StaffPermission.CONTENT));
+        }
+        if (workShiftRepo.count() == 0) {
+            workShiftRepo.save(new WorkShift("Ca sáng", java.time.LocalTime.of(7, 0), java.time.LocalTime.of(15, 0), 30, 0, "primary"));
+            workShiftRepo.save(new WorkShift("Ca chiều", java.time.LocalTime.of(14, 0), java.time.LocalTime.of(22, 0), 30, 30000, "warning"));
+            workShiftRepo.save(new WorkShift("Hành chính", java.time.LocalTime.of(8, 0), java.time.LocalTime.of(17, 0), 60, 0, "info"));
         }
         if (warehouseRepo.count() == 0) {
             warehouseRepo.save(new Warehouse("Kho chính - Nhà thuốc Thanh Xuân", "123 Nguyễn Trãi, Thanh Xuân, Hà Nội", true, true));
@@ -632,6 +640,8 @@ public class DataSeeder implements CommandLineRunner {
         pay.setCreatedBy(admin);
         supplierPaymentRepo.save(pay);
 
+        seedSchedule(admin, ds1, ds2, kho, cskh, today);
+
         catalogService.syncMasters();
         log.info("Đã tạo dữ liệu mẫu. Tài khoản: admin@hieuthuoc.vn/admin123, duocsi@hieuthuoc.vn/duocsi123, khachhang@gmail.com/123456");
     }
@@ -723,6 +733,49 @@ public class DataSeeder implements CommandLineRunner {
         r.setRating(rating);
         r.setComment(comment);
         reviewRepo.save(r);
+    }
+
+    /** Lương, lịch làm và chấm công mẫu từ đầu tháng trước đến 2 tuần tới; bảng lương tháng trước đã trả. */
+    private void seedSchedule(User admin, User ds1, User ds2, User ds3, User ds4, LocalDate today) {
+        ds1.setSalaryType("MONTHLY");
+        ds1.setBaseSalary(15_000_000L);
+        ds1.setAllowance(2_000_000L);
+        ds2.setSalaryType("MONTHLY");
+        ds2.setBaseSalary(11_000_000L);
+        ds2.setAllowance(1_000_000L);
+        ds3.setSalaryType("HOURLY");
+        ds3.setHourlyRate(55_000L);
+        ds4.setSalaryType("MONTHLY");
+        ds4.setBaseSalary(10_000_000L);
+        ds4.setAllowance(500_000L);
+        Map<String, WorkShift> shifts = new HashMap<>();
+        workShiftRepo.findAll().forEach(sh -> shifts.put(sh.getName(), sh));
+        WorkShift morning = shifts.get("Ca sáng"), evening = shifts.get("Ca chiều"), office = shifts.get("Hành chính");
+        Random rnd = new Random(42);
+        LocalDateTime now = LocalDateTime.now();
+        LocalDate from = today.withDayOfMonth(1).minusMonths(1);
+        for (LocalDate d = from; !d.isAfter(today.plusDays(13)); d = d.plusDays(1)) {
+            int dow = d.getDayOfWeek().getValue();
+            List<Object[]> plan = new ArrayList<>();
+            if (dow <= 6) plan.add(new Object[]{ds1, morning});
+            if (dow <= 6) plan.add(new Object[]{ds2, evening});
+            if (dow <= 5) plan.add(new Object[]{ds3, office});
+            if (dow >= 2) plan.add(new Object[]{ds4, d.getDayOfMonth() % 2 == 0 ? morning : evening});
+            for (Object[] pl : plan) {
+                ShiftAssignment a = new ShiftAssignment((User) pl[0], d, (WorkShift) pl[1]);
+                a.setCreatedBy(admin);
+                if (a.getEndAt().isBefore(now) && rnd.nextInt(100) >= 3) {          // ~3% vắng
+                    int late = rnd.nextInt(100) < 12 ? 6 + rnd.nextInt(20) : -rnd.nextInt(10); // ~12% đi muộn
+                    a.setCheckInAt(a.getStartAt().plusMinutes(late));
+                    a.setCheckOutAt(a.getEndAt().plusMinutes(rnd.nextInt(12)));
+                }
+                shiftAssignmentRepo.save(a);
+            }
+        }
+        shiftAssignmentRepo.flush();
+        com.hieuthuoc.entity.Payroll p = payrollService.generate(java.time.YearMonth.from(today).minusMonths(1), admin);
+        payrollService.approve(p.getId(), admin);
+        payrollService.markPaid(p.getId(), admin);
     }
 
     private void botMessage(Conversation c, String kind, String body, LocalDateTime at) {

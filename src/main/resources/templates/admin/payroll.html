@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="staff-body">
+<div class="staff-shell">
+    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
+    <div class="staff-main">
+        <header th:replace="~{fragments/staff :: topbar}"></header>
+        <main class="p-3 p-lg-4">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="d-flex flex-wrap gap-2 align-items-center mb-3" th:with="p=${payroll}">
+                <span class="badge fs-6" th:classappend="'text-bg-' + ${p.statusColor}" th:text="${p.statusLabel}"></span>
+                <span class="small text-muted" th:text="'Tính lúc ' + ${@fmt.dateTime(p.calculatedAt)}"></span>
+                <span class="small text-muted" th:if="${p.approvedBy != null}" th:text="' · chốt bởi ' + ${p.approvedBy.fullName} + ' ' + ${@fmt.dateTime(p.approvedAt)}"></span>
+                <div class="ms-auto d-flex flex-wrap gap-2">
+                    <a th:href="@{/admin/payroll/{id}/export.xlsx(id=${p.id})}" class="btn btn-sm btn-outline-success"><i class="bi bi-file-earmark-excel"></i> Xuất Excel</a>
+                    <th:block th:if="${p.status == 'DRAFT'}">
+                        <form th:action="@{/admin/payroll/{id}/recalc(id=${p.id})}" method="post"><button class="btn btn-sm btn-outline-primary"><i class="bi bi-arrow-repeat"></i> Tính lại</button></form>
+                        <form th:action="@{/admin/payroll/{id}/approve(id=${p.id})}" method="post" data-confirm="Chốt bảng lương? Sau khi chốt không sửa được, nhân viên sẽ xem được phiếu lương.">
+                            <button class="btn btn-sm btn-primary"><i class="bi bi-check2-circle"></i> Chốt bảng lương</button></form>
+                        <form th:action="@{/admin/payroll/{id}/delete(id=${p.id})}" method="post" data-confirm="Xóa bảng lương nháp?"><button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
+                    </th:block>
+                    <form th:if="${p.status == 'APPROVED'}" th:action="@{/admin/payroll/{id}/paid(id=${p.id})}" method="post" data-confirm="Xác nhận đã chuyển lương cho nhân viên?">
+                        <button class="btn btn-sm btn-success"><i class="bi bi-cash-coin"></i> Đánh dấu đã trả</button></form>
+                </div>
+            </div>
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0 payroll-table">
+                        <thead><tr><th style="min-width: 170px">Nhân viên</th><th class="text-end">Công</th><th class="text-end">Lương theo công</th><th class="text-end">Phụ cấp</th>
+                            <th class="text-end">Phạt / BH</th><th style="min-width: 190px">Thưởng / khấu trừ khác</th><th class="text-end">Thực lĩnh</th></tr></thead>
+                        <tbody>
+                        <tr th:each="l : ${payroll.lines}">
+                            <td><div class="fw-semibold" th:text="${l.user.fullName}"></div>
+                                <div class="small text-muted" th:text="(${l.salaryType == 'HOURLY'} ? 'Theo giờ: ' : 'Theo tháng: ') + ${@fmt.money(l.rate)}"></div></td>
+                            <td class="text-end text-nowrap small"><div th:text="${l.daysWorked} + ' ngày · ' + ${l.workedHours} + ' h'"></div>
+                                <div class="text-muted" th:text="${l.shiftsWorked} + '/' + ${l.scheduledShifts} + ' ca'"></div>
+                                <div th:if="${l.absentShifts > 0}" class="text-danger" th:text="'Vắng ' + ${l.absentShifts}"></div>
+                                <div th:if="${l.lateCount > 0}" class="text-warning-emphasis" th:text="'Muộn ' + ${l.lateCount} + ' lần'"></div>
+                                <div th:if="${l.missingCheckout > 0}" class="text-warning-emphasis" th:text="'Quên kết ca ' + ${l.missingCheckout}"></div></td>
+                            <td class="text-end text-nowrap" th:text="${@fmt.money(l.baseAmount)}"></td>
+                            <td class="text-end text-nowrap small"><div th:text="'Ca: ' + ${@fmt.money(l.shiftAllowance)}"></div><div th:text="'Cố định: ' + ${@fmt.money(l.fixedAllowance)}"></div></td>
+                            <td class="text-end text-nowrap small text-danger"><div th:if="${l.latePenalty > 0}" th:text="'Muộn: -' + ${@fmt.money(l.latePenalty)}"></div>
+                                <div th:if="${l.insurance > 0}" th:text="'BH: -' + ${@fmt.money(l.insurance)}"></div></td>
+                            <td>
+                                <form th:if="${payroll.status == 'DRAFT'}" th:action="@{/admin/payroll/lines/{id}(id=${l.id})}" method="post" class="d-flex flex-wrap gap-1 payroll-adjust">
+                                    <input type="number" min="0" step="1000" name="bonus" class="form-control form-control-sm" th:value="${l.bonus}" title="Thưởng" placeholder="Thưởng">
+                                    <input type="number" min="0" step="1000" name="deduction" class="form-control form-control-sm" th:value="${l.otherDeduction}" title="Khấu trừ khác" placeholder="Khấu trừ">
+                                    <input name="note" class="form-control form-control-sm" th:value="${l.note}" placeholder="Ghi chú">
+                                    <button class="btn btn-sm btn-outline-primary"><i class="bi bi-check"></i></button>
+                                </form>
+                                <div th:unless="${payroll.status == 'DRAFT'}" class="small"><span th:text="'Thưởng ' + ${@fmt.money(l.bonus)}"></span> ·
+                                    <span th:text="'Khấu trừ ' + ${@fmt.money(l.otherDeduction)}"></span>
+                                    <div class="text-muted" th:text="${l.note}"></div></div>
+                            </td>
+                            <td class="text-end text-nowrap fw-bold text-primary" th:text="${@fmt.money(l.total)}"></td>
+                        </tr>
+                        </tbody>
+                        <tfoot><tr class="fw-bold"><td colspan="6" class="text-end text-nowrap">Tổng quỹ lương</td><td class="text-end text-nowrap" th:text="${@fmt.money(payroll.total)}"></td></tr></tfoot>
+                    </table>
+                </div>
+            </div>
+            <p class="small text-muted mt-2">Ca vắng / quên kết ca không được tính công; sửa tại <a th:href="@{/admin/attendance}">Chấm công</a> rồi bấm "Tính lại".</p>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

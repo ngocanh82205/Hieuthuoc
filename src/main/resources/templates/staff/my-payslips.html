@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="staff-body">
+<div class="staff-shell">
+    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
+    <div class="staff-main">
+        <header th:replace="~{fragments/staff :: topbar}"></header>
+        <main class="p-3 p-lg-4">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="alert alert-info small" th:if="${lines.isEmpty()}">Chưa có phiếu lương nào được chốt.</div>
+            <div class="row g-3">
+                <div class="col-lg-6" th:each="l : ${lines}">
+                    <div class="card h-100">
+                        <div class="card-header d-flex justify-content-between">
+                            <span class="fw-semibold" th:text="'Tháng ' + ${l.payroll.monthLabel}"></span>
+                            <span class="badge" th:classappend="'text-bg-' + ${l.payroll.statusColor}" th:text="${l.payroll.statusLabel}"></span>
+                        </div>
+                        <ul class="list-group list-group-flush small">
+                            <li class="list-group-item d-flex justify-content-between"><span>Công</span>
+                                <span th:text="${l.daysWorked} + ' ngày · ' + ${l.workedHours} + ' giờ · ' + ${l.shiftsWorked} + '/' + ${l.scheduledShifts} + ' ca'"></span></li>
+                            <li class="list-group-item d-flex justify-content-between"><span th:text="${l.salaryType == 'HOURLY'} ? 'Lương theo giờ (' + ${@fmt.money(l.rate)} + '/giờ)' : 'Lương theo ngày công (CB ' + ${@fmt.money(l.rate)} + ')'"></span>
+                                <span th:text="${@fmt.money(l.baseAmount)}"></span></li>
+                            <li class="list-group-item d-flex justify-content-between"><span>Phụ cấp ca</span><span th:text="${@fmt.money(l.shiftAllowance)}"></span></li>
+                            <li class="list-group-item d-flex justify-content-between"><span>Phụ cấp cố định</span><span th:text="${@fmt.money(l.fixedAllowance)}"></span></li>
+                            <li class="list-group-item d-flex justify-content-between" th:if="${l.bonus > 0}"><span>Thưởng</span><span th:text="${@fmt.money(l.bonus)}"></span></li>
+                            <li class="list-group-item d-flex justify-content-between text-danger" th:if="${l.latePenalty > 0}"><span th:text="'Đi muộn ' + ${l.lateCount} + ' lần'"></span><span th:text="'-' + ${@fmt.money(l.latePenalty)}"></span></li>
+                            <li class="list-group-item d-flex justify-content-between text-danger" th:if="${l.insurance > 0}"><span>Bảo hiểm</span><span th:text="'-' + ${@fmt.money(l.insurance)}"></span></li>
+                            <li class="list-group-item d-flex justify-content-between text-danger" th:if="${l.otherDeduction > 0}"><span>Khấu trừ khác</span><span th:text="'-' + ${@fmt.money(l.otherDeduction)}"></span></li>
+                            <li class="list-group-item d-flex justify-content-between fw-bold fs-6"><span>Thực lĩnh</span><span class="text-primary" th:text="${@fmt.money(l.total)}"></span></li>
+                            <li class="list-group-item text-muted" th:if="${l.note != null}" th:text="${l.note}"></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

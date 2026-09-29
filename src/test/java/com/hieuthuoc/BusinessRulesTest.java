@@ -51,6 +51,15 @@ class BusinessRulesTest {
 
     @Autowired StaffRoleRepository staffRoleRepo;
     @Autowired AiAssistantService aiAssistant;
+    @Autowired WorkScheduleService workSchedule;
+    @Autowired PayrollService payrollService;
+    @Autowired WorkShiftRepository workShiftRepo;
+    @Autowired ShiftAssignmentRepository shiftAssignmentRepo;
+    @Autowired PayrollRepository payrollRepo;
+
+    private WorkShift shift(String name) {
+        return workShiftRepo.findAll().stream().filter(s -> s.getName().equals(name)).findFirst().orElseThrow();
+    }
     @Autowired MessageRepository messageRepo;
 
     /** Khách nhắn, trợ lý trả lời (đồng bộ trong test); trả về hội thoại. */
@@ -654,5 +663,114 @@ class BusinessRulesTest {
         assertThat(c.isAiMode()).isFalse();
         assertThat(lastBody(c, "AI")).isNull();
         settingService.save(java.util.Map.of("ai_enabled", "1"));
+    }
+
+    /* ======================= Lịch làm & lương ======================= */
+
+    @Test
+    void scheduleRejectsOverlappingShifts() {
+        User admin = userRepo.findByEmailIgnoreCase("admin@hieuthuoc.vn").orElseThrow();
+        User ds = userRepo.findByEmailIgnoreCase("duocsi2@hieuthuoc.vn").orElseThrow();
+        java.time.LocalDate d = java.time.LocalDate.now().plusDays(25);
+        workSchedule.assign(ds.getId(), d, shift("Ca sáng").getId(), null, admin);
+        // Ca chiều 14h-22h trùng giờ ca sáng 7h-15h
+        assertThatThrownBy(() -> workSchedule.assign(ds.getId(), d, shift("Ca chiều").getId(), null, admin)).hasMessageContaining("trùng giờ");
+        // Khách hàng không được xếp ca
+        User customer = userRepo.findByEmailIgnoreCase("khachhang@gmail.com").orElseThrow();
+        assertThatThrownBy(() -> workSchedule.assign(customer.getId(), d, shift("Ca sáng").getId(), null, admin)).hasMessageContaining("nhân viên");
+        // Sao chép tuần
+        java.time.LocalDate monday = WorkScheduleService.monday(d);
+        assertThat(workSchedule.copyWeek(monday, monday.plusWeeks(1), admin)).isGreaterThanOrEqualTo(1);
+    }
+
+    @Test
+    void checkInAndOutRecordAttendance() {
+        User admin = userRepo.findByEmailIgnoreCase("admin@hieuthuoc.vn").orElseThrow();
+        User ds = new User();
+        ds.setRole(Role.PHARMACIST);
+        ds.setFullName("DS Test Chấm Công");
+        ds.setEmail("chamcong@x.vn");
+        ds.setPasswordHash("x");
+        userRepo.save(ds);
+        java.time.LocalDateTime start = java.time.LocalDateTime.now().minusMinutes(30).withSecond(0).withNano(0);
+        WorkShift sh = workShiftRepo.save(new WorkShift("Ca test", start.toLocalTime(), start.toLocalTime().plusHours(3), 0, 10000, "info"));
+        assertThatThrownBy(() -> workSchedule.checkOut(ds)).hasMessageContaining("chưa vào ca");
+        ShiftAssignment a = workSchedule.assign(ds.getId(), start.toLocalDate(), sh.getId(), null, admin);
+        workSchedule.checkIn(ds);
+        assertThat(a.getCheckInAt()).isNotNull();
+        assertThat(a.getLateMinutes()).isBetween(29L, 31L);
+        assertThatThrownBy(() -> workSchedule.checkIn(ds)).hasMessageContaining("Không có ca");
+        workSchedule.checkOut(ds);
+        assertThat(a.isCompleted()).isTrue();
+        // Sửa công bắt buộc có lý do
+        assertThatThrownBy(() -> workSchedule.adjust(a.getId(), a.getStartAt(), a.getEndAt(), "", admin)).hasMessageContaining("lý do");
+        workSchedule.adjust(a.getId(), a.getStartAt(), a.getEndAt(), "Quên chấm", admin);
+        assertThat(a.getPaidMinutes()).isEqualTo(180);
+    }
+
+    @Test
+    void payrollCalculation() {
+        User m = new User();
+        m.setFullName("Lương tháng");
+        m.setSalaryType("MONTHLY");
+        m.setBaseSalary(13_000_000L);
+        m.setAllowance(500_000L);
+        java.time.LocalDate d = java.time.LocalDate.now().minusMonths(1).withDayOfMonth(10);
+        ShiftAssignment a1 = new ShiftAssignment(m, d, shift("Ca sáng"));
+        a1.setCheckInAt(a1.getStartAt());
+        a1.setCheckOutAt(a1.getEndAt());
+        ShiftAssignment a2 = new ShiftAssignment(m, d.plusDays(1), shift("Ca chiều"));
+        a2.setCheckInAt(a2.getStartAt().plusMinutes(15));   // muộn 15 phút
+        a2.setCheckOutAt(a2.getEndAt());
+        ShiftAssignment a3 = new ShiftAssignment(m, d.plusDays(2), shift("Ca sáng"));     // vắng
+        PayrollLine l = payrollService.calculate(m, List.of(a1, a2, a3));
+        assertThat(l.getScheduledShifts()).isEqualTo(3);
+        assertThat(l.getShiftsWorked()).isEqualTo(2);
+        assertThat(l.getAbsentShifts()).isEqualTo(1);
+        assertThat(l.getLateCount()).isEqualTo(1);
+        assertThat(l.getBaseAmount()).isEqualTo(1_000_000);          // 13tr x 2 / 26
+        assertThat(l.getShiftAllowance()).isEqualTo(30_000);           // phụ cấp ca chiều
+        assertThat(l.getFixedAllowance()).isEqualTo(500_000);
+        assertThat(l.getLatePenalty()).isEqualTo(20_000);
+        assertThat(l.getInsurance()).isEqualTo(1_365_000);           // 10,5%
+        assertThat(l.getTotal()).isEqualTo(1_000_000 + 30_000 + 500_000 - 20_000 - 1_365_000);
+
+        User h = new User();
+        h.setFullName("Lương giờ");
+        h.setSalaryType("HOURLY");
+        h.setHourlyRate(50_000L);
+        ShiftAssignment b = new ShiftAssignment(h, d, shift("Ca sáng"));
+        b.setCheckInAt(b.getStartAt());
+        b.setCheckOutAt(b.getEndAt());
+        PayrollLine lh = payrollService.calculate(h, List.of(b));
+        assertThat(lh.getWorkedMinutes()).isEqualTo(450);                // 8h - 30 phút nghỉ
+        assertThat(lh.getBaseAmount()).isEqualTo(375_000);
+        assertThat(lh.getInsurance()).isZero();
+    }
+
+    @Test
+    void payrollWorkflow() {
+        User admin = userRepo.findByEmailIgnoreCase("admin@hieuthuoc.vn").orElseThrow();
+        User ds = userRepo.findByEmailIgnoreCase("duocsi@hieuthuoc.vn").orElseThrow();
+        java.time.YearMonth last = java.time.YearMonth.now().minusMonths(1);
+        // Dữ liệu mẫu: bảng lương tháng trước đã trả, không tính lại được
+        Payroll paid = payrollRepo.findByMonth(last.toString()).orElseThrow();
+        assertThat(paid.getStatus()).isEqualTo(Payroll.PAID);
+        assertThat(paid.getLines()).hasSize(4);
+        assertThatThrownBy(() -> payrollService.generate(last, admin)).hasMessageContaining("đã chốt");
+        assertThat(payrollService.myPayslips(ds)).isNotEmpty();
+        // Tháng này: nháp -> thưởng -> chốt
+        Payroll p = payrollService.generate(java.time.YearMonth.now(), admin);
+        assertThat(p.getStatus()).isEqualTo(Payroll.DRAFT);
+        PayrollLine l = p.getLines().stream().filter(x -> x.getUser().getId().equals(ds.getId())).findFirst().orElseThrow();
+        long before = l.getTotal();
+        payrollService.updateLine(l.getId(), 500_000, 0, "Thưởng doanh số", admin);
+        assertThat(l.getTotal()).isEqualTo(before + 500_000);
+        // Tính lại giữ nguyên thưởng
+        Payroll again = payrollService.generate(java.time.YearMonth.now(), admin);
+        assertThat(again.getLines().stream().filter(x -> x.getUser().getId().equals(ds.getId())).findFirst().orElseThrow().getBonus()).isEqualTo(500_000);
+        payrollService.approve(again.getId(), admin);
+        assertThatThrownBy(() -> payrollService.updateLine(l.getId(), 0, 0, null, admin)).isInstanceOf(BusinessException.class);
+        assertThatThrownBy(() -> payrollService.generate(java.time.YearMonth.now().plusMonths(1), admin)).hasMessageContaining("chưa tới");
     }
 }

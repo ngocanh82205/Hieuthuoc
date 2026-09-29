@@ -13,6 +13,7 @@
         <div class="sidebar-label">Dược sĩ / Nhân viên</div>
         <nav class="nav flex-column">
             <a class="nav-link" th:href="@{/staff}" th:classappend="${requestPath == '/staff'} ? 'active'"><i class="bi bi-speedometer2"></i>Tổng quan</a>
+            <a class="nav-link" th:href="@{/staff/my-schedule}" th:classappend="${#strings.startsWith(requestPath, '/staff/my-')} ? 'active'"><i class="bi bi-calendar-check"></i>Lịch làm & lương</a>
             <a th:if="${currentUser.can('RX_REVIEW')}" class="nav-link" th:href="@{/staff/prescriptions}" th:classappend="${#strings.startsWith(requestPath, '/staff/prescriptions')} ? 'active'"><i class="bi bi-file-earmark-medical"></i>Duyệt đơn thuốc</a>
             <a th:if="${currentUser.can('POS')}" class="nav-link" th:href="@{/staff/pos}" th:classappend="${#strings.startsWith(requestPath, '/staff/pos')} ? 'active'"><i class="bi bi-shop-window"></i>Bán tại quầy (POS)</a>
             <a th:if="${currentUser.can('ORDER')}" class="nav-link" th:href="@{/staff/orders}" th:classappend="${#strings.startsWith(requestPath, '/staff/orders')} ? 'active'"><i class="bi bi-receipt"></i>Đơn hàng</a>
@@ -43,6 +44,13 @@
             <a class="nav-link" th:href="@{/admin/customers}" th:classappend="${#strings.startsWith(requestPath, '/admin/customers')} ? 'active'"><i class="bi bi-people"></i>Khách hàng</a>
             <a class="nav-link" th:href="@{/admin/password-resets}" th:classappend="${#strings.startsWith(requestPath, '/admin/password-resets')} ? 'active'"><i class="bi bi-key"></i>Quên mật khẩu</a>
             <a class="nav-link" th:href="@{/admin/logs}" th:classappend="${#strings.startsWith(requestPath, '/admin/logs')} ? 'active'"><i class="bi bi-clock-history"></i>Nhật ký hoạt động</a>
+            </nav>
+            <div class="sidebar-label">Nhân sự</div>
+            <nav class="nav flex-column">
+            <a class="nav-link" th:href="@{/admin/schedule}" th:classappend="${#strings.startsWith(requestPath, '/admin/schedule')} ? 'active'"><i class="bi bi-calendar-week"></i>Lịch làm việc</a>
+            <a class="nav-link" th:href="@{/admin/attendance}" th:classappend="${#strings.startsWith(requestPath, '/admin/attendance')} ? 'active'"><i class="bi bi-fingerprint"></i>Chấm công</a>
+            <a class="nav-link" th:href="@{/admin/shifts}" th:classappend="${#strings.startsWith(requestPath, '/admin/shifts')} ? 'active'"><i class="bi bi-clock"></i>Ca làm</a>
+            <a class="nav-link" th:href="@{/admin/payroll}" th:classappend="${#strings.startsWith(requestPath, '/admin/payroll')} ? 'active'"><i class="bi bi-wallet2"></i>Bảng lương</a>
             </nav>
             <div class="sidebar-label">Danh mục & sản phẩm</div>
             <nav class="nav flex-column">
