@@ -1,0 +1,54 @@
+@startuml uc-khach-hang
+!pragma layout smetana
+!include _style.iuml
+left to right direction
+caption Use case phân rã - Khách hàng
+
+actor "Khách hàng" as C
+actor "Trợ lý AI" as AI <<hệ thống>>
+actor "Dược sĩ" as P
+actor "Cổng thanh toán" as PG <<hệ thống ngoài>>
+actor "Đơn vị vận chuyển" as SH <<bên ngoài>>
+
+rectangle "VinaPharma" {
+  usecase "Đặt hàng" as Order
+  usecase "Kiểm tra tồn kho,\ngiới hạn mua" as Stock
+  usecase "Tính phí giao hàng\ntheo khu vực" as Ship
+  usecase "Áp mã giảm giá /\nvoucher" as Voucher
+  usecase "Dùng điểm tích lũy" as Points
+  usecase "Tải ảnh đơn thuốc" as RxUp
+  usecase "Thanh toán" as Pay
+  usecase "Thanh toán online /\nVietQR" as PayOnline
+  usecase "Theo dõi đơn hàng" as Track
+  usecase "Hủy đơn" as Cancel
+  usecase "Yêu cầu đổi trả" as Return
+  usecase "Xác nhận báo giá /\nthuốc thay thế" as Confirm
+  usecase "Nhận hàng,\ntrả tiền COD" as Receive
+  usecase "Chat tư vấn" as Chat
+  usecase "Chuyển dược sĩ" as Handoff
+  usecase "Quản lý hồ sơ sức khỏe" as Health
+  usecase "Đánh giá, hỏi đáp\nsản phẩm" as Review
+}
+
+C --> Order
+C --> Track
+C --> Chat
+C --> Health
+C --> Review
+Order ..> Stock : <<include>>
+Order ..> Ship : <<include>>
+Order ..> Pay : <<include>>
+Voucher ..> Order : <<extend>>
+Points ..> Order : <<extend>>
+RxUp ..> Order : <<extend>>\n(giỏ có thuốc kê đơn)
+PayOnline ..> Pay : <<extend>>
+Cancel ..> Track : <<extend>>
+Return ..> Track : <<extend>>
+Confirm ..> Track : <<extend>>
+Handoff ..> Chat : <<extend>>
+AI --> Chat
+P --> Handoff
+PG --> PayOnline
+C --> Receive
+SH --> Receive
+@enduml

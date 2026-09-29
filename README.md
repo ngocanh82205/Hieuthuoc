@@ -29,9 +29,8 @@ Mở trình duyệt tại <http://localhost:8080>. Lần chạy đầu tiên, h�
 | Vai trò | Email | Mật khẩu |
 |---|---|---|
 | Admin | `admin@hieuthuoc.vn` | `admin123` |
-| Dược sĩ | `duocsi@hieuthuoc.vn` | `duocsi123` |
-| Nhân viên kho | `kho@hieuthuoc.vn` | `nhanvien123` |
-| Nhân viên CSKH | `cskh@hieuthuoc.vn` | `nhanvien123` |
+| Dược sĩ quản lý | `duocsi@hieuthuoc.vn` | `duocsi123` |
+| Dược sĩ | `duocsi2@`, `duocsi3@`, `duocsi4@hieuthuoc.vn` | `duocsi123` |
 | Khách hàng | `khachhang@gmail.com` | `123456` |
 
 - Muốn làm lại dữ liệu mẫu từ đầu: dừng ứng dụng, xóa thư mục `data/` và `uploads/`, rồi chạy lại.
@@ -110,13 +109,14 @@ Bảng được tự tạo khi chạy (`spring.jpa.hibernate.ddl-auto=update`).
 | Bán tại quầy | Màn hình POS |
 | Hoàn tiền | Hủy đơn đã thanh toán, đổi trả, duyệt hoàn tiền |
 | Nội dung | Bài viết, thông tin sản phẩm, kiểm duyệt đánh giá |
+| Lịch làm & chấm công | Xếp lịch làm việc, ca làm, chấm công, lập bảng lương trình admin duyệt |
 
-Tài khoản mẫu: `duocsi@hieuthuoc.vn` là Dược sĩ quản lý (đủ quyền); `duocsi2@hieuthuoc.vn` (mật khẩu `duocsi123`) là Dược sĩ, được cấp thêm quyền Nội dung; `kho@` là Nhân viên kho; `cskh@` là Nhân viên CSKH.
+Tài khoản mẫu (tất cả là dược sĩ có chứng chỉ hành nghề): `duocsi@` là **Dược sĩ quản lý** (đủ quyền, gồm duyệt phiếu kho, hoàn tiền, nội dung, xếp lịch làm & lập bảng lương); `duocsi2@`, `duocsi3@`, `duocsi4@` là **Dược sĩ** (duyệt đơn thuốc, đơn hàng, tư vấn, bán quầy, kho). Mật khẩu đều là `duocsi123`.
 
 ### Admin (`/admin`, dùng được cả toàn bộ chức năng dược sĩ)
 - **Người dùng & phân quyền (RBAC):**
   - Nhân viên: thêm/sửa, số CCHN, bằng cấp, ca làm; khóa tài khoản khi nghỉ việc (giữ lịch sử để truy vết).
-  - **Vai trò** (Dược sĩ quản lý, Dược sĩ, Nhân viên kho, Nhân viên CSKH, Biên tập viên... thêm được vai trò mới) với **ma trận quyền theo chức năng**; có thể cấp thêm quyền riêng cho từng người.
+  - **Vai trò** (Dược sĩ quản lý, Dược sĩ, Biên tập viên... thêm được vai trò mới) với **ma trận quyền theo chức năng**; có thể cấp thêm quyền riêng cho từng người.
   - Quyền được kiểm tra ở cả menu, đường dẫn và nghiệp vụ. Người có quyền duyệt đơn thuốc bắt buộc có CCHN.
   - Khách hàng: xem, khóa/mở khóa, lịch sử mua, điều chỉnh điểm.
   - **Nhật ký hoạt động** lọc theo nhân viên, nhóm hành động, nội dung, khoảng ngày.
@@ -179,6 +179,31 @@ $env:ANTHROPIC_API_KEY="sk-ant-..."
 
 Có thể đổi model bằng `ANTHROPIC_MODEL` (mặc định `claude-sonnet-5`). Không có key, trợ lý **trả lời tự động theo kịch bản** (hiểu cả tiếng Việt không dấu) và vẫn áp dụng đủ các quy tắc chuyển dược sĩ ở trên.
 Khi dùng Claude, nội dung tin nhắn trong phiên chat với trợ lý và thông tin đơn hàng gần đây của khách được gửi tới Anthropic để tạo câu trả lời.
+
+## Lịch làm việc, chấm công và tính lương
+
+Phân công: **Dược sĩ quản lý** (quyền "Lịch làm & chấm công") xếp lịch, chấm công và lập bảng lương; **Admin** khai báo mức lương từng người, tham số tính lương và **duyệt bảng lương**.
+
+**Dược sĩ quản lý → nhóm "Nhân sự"** (`/staff/...`)
+- **Ca làm** (`/staff/shifts`): khai báo ca (giờ bắt đầu/kết thúc, hỗ trợ ca qua đêm), thời gian nghỉ, phụ cấp ca, màu hiển thị. Mẫu: Ca sáng 07–15, Ca chiều 14–22 (phụ cấp 30.000 đ), Hành chính 08–17.
+- **Xếp lịch làm việc** (`/staff/schedule`): lưới tuần nhân viên × ngày, bấm ⊕ để xếp ca; chặn xếp trùng giờ, không xếp lùi quá 31 ngày; bỏ ca chưa chấm công; **sao chép lịch sang tuần sau**. Dược sĩ nhận thông báo khi được xếp ca.
+- **Chấm công** (`/staff/attendance`): xem giờ vào/ra theo ngày, trạng thái (Hoàn thành / Muộn X phút / Vắng / Quên kết ca / Đang làm); sửa giờ công (bắt buộc ghi lý do, lưu nhật ký).
+- **Bảng lương** (`/staff/payroll`): tính lương theo tháng → **Nháp** (nhập thưởng, khấu trừ khác, ghi chú; tính lại giữ nguyên các khoản nhập tay) → **Trình admin duyệt** (khóa sửa, admin nhận thông báo). Xuất Excel.
+
+**Admin**
+- Mở bảng lương chờ duyệt (menu **Nhân sự → Duyệt bảng lương** hoặc từ thông báo) → **Duyệt** (nhân viên nhận phiếu lương) hoặc **Trả lại** kèm lý do (bảng lương về nháp, dược sĩ quản lý nhận thông báo để sửa và trình lại) → **Đánh dấu đã trả**.
+- Mức lương từng người ở form **Nhân viên**: lương tháng (lương cơ bản) hoặc lương giờ (đơn giá/giờ) + phụ cấp cố định; tham số ở **Cấu hình → Chấm công & tính lương**.
+- Admin có toàn quyền nên cũng xếp lịch / chấm công được khi cần.
+
+**Cách tính**
+- Giờ công mỗi ca = phần thời gian có mặt nằm trong khung ca (trừ giờ nghỉ nếu làm > 4 giờ), tối đa bằng số giờ của ca. Ca vắng / quên kết ca không tính công.
+- Lương tháng = lương cơ bản × ngày công ÷ `payroll_standard_days` (mặc định 26).  Lương giờ = giờ công × đơn giá.
+- Cộng: phụ cấp ca (theo từng ca đã làm) + phụ cấp cố định (khi có ngày công) + thưởng.
+- Trừ: số lần muộn quá `late_grace_minutes` (5 phút) × `late_penalty` (20.000 đ) + bảo hiểm `insurance_permille` (105‰ = 10,5% lương cơ bản, chỉ lương tháng) + khấu trừ khác. Các tham số chỉnh ở **Cấu hình → Chấm công & tính lương**.
+
+**Dược sĩ** (`/staff/my-schedule`, `/staff/my-payslips`): xem lịch tuần, bấm **Vào ca / Kết thúc ca** (mở trước giờ vào ca 60 phút; cũng có trên trang Tổng quan), xem phiếu lương đã được admin duyệt.
+
+Dữ liệu mẫu: lịch và chấm công từ đầu tháng trước tới 2 tuần tới cho 4 dược sĩ; bảng lương tháng trước do dược sĩ quản lý trình, admin đã duyệt và đã trả.
 
 ## Quy tắc nghiệp vụ đã cài đặt
 

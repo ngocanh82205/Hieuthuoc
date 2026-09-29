@@ -147,7 +147,7 @@ public class InventoryService {
 
     /**
      * Phiếu hủy thuốc (số âm) / điều chỉnh (số dương). Người có quyền duyệt phiếu kho: áp dụng ngay.
-     * Nhân viên kho khác: tạo phiếu chờ admin / quản lý duyệt (chưa trừ tồn).
+     * Người không có quyền duyệt phiếu kho: tạo phiếu chờ admin / quản lý duyệt (chưa trừ tồn).
      */
     public StockAdjustment adjust(Long batchId, User user, int quantity, String reason) {
         Batch b = batch(batchId);

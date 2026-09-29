@@ -27,6 +27,9 @@ import java.util.*;
 public class DataSeeder implements CommandLineRunner {
     private final UserRepository userRepo;
     private final StaffRoleRepository staffRoleRepo;
+    private final WorkShiftRepository workShiftRepo;
+    private final ShiftAssignmentRepository shiftAssignmentRepo;
+    private final com.hieuthuoc.service.PayrollService payrollService;
     private final WarehouseRepository warehouseRepo;
     private final StockAdjustmentRepository adjustmentRepo;
     private final SupplierPaymentRepository supplierPaymentRepo;
@@ -188,14 +191,15 @@ public class DataSeeder implements CommandLineRunner {
         if (staffRoleRepo.count() == 0) {
             staffRoleRepo.save(new StaffRole("Dược sĩ quản lý", "Dược sĩ phụ trách chuyên môn / quản lý nhà thuốc - toàn quyền nghiệp vụ",
                     StaffPermission.values()));
-            staffRoleRepo.save(new StaffRole("Dược sĩ", "Duyệt đơn thuốc, tư vấn, xử lý đơn và bán tại quầy",
-                    StaffPermission.RX_REVIEW, StaffPermission.ORDER, StaffPermission.CONSULT, StaffPermission.POS));
-            staffRoleRepo.save(new StaffRole("Nhân viên kho", "Nhập hàng, soạn hàng, kiểm kê, chuyển kho",
-                    StaffPermission.INVENTORY, StaffPermission.ORDER));
-            staffRoleRepo.save(new StaffRole("Nhân viên CSKH", "Chat, hỏi đáp, yêu cầu gọi lại, theo dõi đơn",
-                    StaffPermission.CONSULT, StaffPermission.ORDER));
+            staffRoleRepo.save(new StaffRole("Dược sĩ", "Duyệt đơn thuốc, tư vấn khách hàng, xử lý đơn hàng, bán tại quầy, quản lý kho",
+                    StaffPermission.RX_REVIEW, StaffPermission.ORDER, StaffPermission.CONSULT, StaffPermission.POS, StaffPermission.INVENTORY));
             staffRoleRepo.save(new StaffRole("Biên tập viên", "Bài viết sức khỏe, thông tin sản phẩm, kiểm duyệt đánh giá",
                     StaffPermission.CONTENT));
+        }
+        if (workShiftRepo.count() == 0) {
+            workShiftRepo.save(new WorkShift("Ca sáng", java.time.LocalTime.of(7, 0), java.time.LocalTime.of(15, 0), 30, 0, "primary"));
+            workShiftRepo.save(new WorkShift("Ca chiều", java.time.LocalTime.of(14, 0), java.time.LocalTime.of(22, 0), 30, 30000, "warning"));
+            workShiftRepo.save(new WorkShift("Hành chính", java.time.LocalTime.of(8, 0), java.time.LocalTime.of(17, 0), 60, 0, "info"));
         }
         if (warehouseRepo.count() == 0) {
             warehouseRepo.save(new Warehouse("Kho chính - Nhà thuốc Thanh Xuân", "123 Nguyễn Trãi, Thanh Xuân, Hà Nội", true, true));
@@ -266,19 +270,20 @@ public class DataSeeder implements CommandLineRunner {
         User admin = user(Role.ADMIN, "Quản trị viên", "admin@hieuthuoc.vn", "0901000001", "admin123", null);
         User ds1 = user(Role.PHARMACIST, "DS. Nguyễn Thị Lan", "duocsi@hieuthuoc.vn", "0901000002", "duocsi123", "012345/HNO-CCHND");
         User ds2 = user(Role.PHARMACIST, "DS. Phạm Quốc Huy", "duocsi2@hieuthuoc.vn", "0901000003", "duocsi123", "023456/HNO-CCHND");
-        // DS. Lan là dược sĩ quản lý: đủ quyền; DS. Huy: dược sĩ bán hàng, cấp thêm quyền nội dung
+        // DS. Lan là dược sĩ quản lý (đủ quyền); các dược sĩ còn lại dùng chung vai trò "Dược sĩ"
         ds1.setStaffRole(role("Dược sĩ quản lý"));
         ds1.setDegree("Dược sĩ đại học - ĐH Dược Hà Nội");
         ds1.setShift("Ca sáng 7h - 15h");
         ds2.setStaffRole(role("Dược sĩ"));
-        ds2.setPermissions("CONTENT");
         ds2.setDegree("Dược sĩ cao đẳng");
         ds2.setShift("Ca chiều 14h - 22h");
-        User kho = user(Role.PHARMACIST, "Vũ Văn Kho", "kho@hieuthuoc.vn", "0901000004", "nhanvien123", null);
-        kho.setStaffRole(role("Nhân viên kho"));
+        User kho = user(Role.PHARMACIST, "DS. Vũ Văn Kiên", "duocsi3@hieuthuoc.vn", "0901000004", "duocsi123", "034567/HNO-CCHND");
+        kho.setStaffRole(role("Dược sĩ"));
+        kho.setDegree("Dược sĩ đại học - ĐH Y Dược Thái Bình");
         kho.setShift("Hành chính 8h - 17h");
-        User cskh = user(Role.PHARMACIST, "Đỗ Thu Hà", "cskh@hieuthuoc.vn", "0901000005", "nhanvien123", null);
-        cskh.setStaffRole(role("Nhân viên CSKH"));
+        User cskh = user(Role.PHARMACIST, "DS. Đỗ Thu Hà", "duocsi4@hieuthuoc.vn", "0901000005", "duocsi123", "045678/HNO-CCHND");
+        cskh.setStaffRole(role("Dược sĩ"));
+        cskh.setDegree("Dược sĩ cao đẳng");
         cskh.setShift("Ca chiều 14h - 22h");
         User kh1 = user(Role.CUSTOMER, "Trần Văn An", "khachhang@gmail.com", "0912345678", "123456", null);
         kh1.setAllergies("Dị ứng Aspirin");
@@ -635,6 +640,8 @@ public class DataSeeder implements CommandLineRunner {
         pay.setCreatedBy(admin);
         supplierPaymentRepo.save(pay);
 
+        seedSchedule(admin, ds1, ds2, kho, cskh, today);
+
         catalogService.syncMasters();
         log.info("Đã tạo dữ liệu mẫu. Tài khoản: admin@hieuthuoc.vn/admin123, duocsi@hieuthuoc.vn/duocsi123, khachhang@gmail.com/123456");
     }
@@ -726,6 +733,51 @@ public class DataSeeder implements CommandLineRunner {
         r.setRating(rating);
         r.setComment(comment);
         reviewRepo.save(r);
+    }
+
+    /** Lương, lịch làm và chấm công mẫu từ đầu tháng trước đến 2 tuần tới; bảng lương tháng trước đã trả. */
+    private void seedSchedule(User admin, User ds1, User ds2, User ds3, User ds4, LocalDate today) {
+        ds1.setSalaryType("MONTHLY");
+        ds1.setBaseSalary(15_000_000L);
+        ds1.setAllowance(2_000_000L);
+        ds2.setSalaryType("MONTHLY");
+        ds2.setBaseSalary(11_000_000L);
+        ds2.setAllowance(1_000_000L);
+        ds3.setSalaryType("HOURLY");
+        ds3.setHourlyRate(55_000L);
+        ds4.setSalaryType("MONTHLY");
+        ds4.setBaseSalary(10_000_000L);
+        ds4.setAllowance(500_000L);
+        Map<String, WorkShift> shifts = new HashMap<>();
+        workShiftRepo.findAll().forEach(sh -> shifts.put(sh.getName(), sh));
+        WorkShift morning = shifts.get("Ca sáng"), evening = shifts.get("Ca chiều"), office = shifts.get("Hành chính");
+        Random rnd = new Random(42);
+        LocalDateTime now = LocalDateTime.now();
+        LocalDate from = today.withDayOfMonth(1).minusMonths(1);
+        for (LocalDate d = from; !d.isAfter(today.plusDays(13)); d = d.plusDays(1)) {
+            int dow = d.getDayOfWeek().getValue();
+            List<Object[]> plan = new ArrayList<>();
+            if (dow <= 6) plan.add(new Object[]{ds1, morning});
+            if (dow <= 6) plan.add(new Object[]{ds2, evening});
+            if (dow <= 5) plan.add(new Object[]{ds3, office});
+            if (dow >= 2) plan.add(new Object[]{ds4, d.getDayOfMonth() % 2 == 0 ? morning : evening});
+            for (Object[] pl : plan) {
+                ShiftAssignment a = new ShiftAssignment((User) pl[0], d, (WorkShift) pl[1]);
+                a.setCreatedBy(ds1);
+                if (a.getEndAt().isBefore(now) && rnd.nextInt(100) >= 3) {          // ~3% vắng
+                    int late = rnd.nextInt(100) < 12 ? 6 + rnd.nextInt(20) : -rnd.nextInt(10); // ~12% đi muộn
+                    a.setCheckInAt(a.getStartAt().plusMinutes(late));
+                    a.setCheckOutAt(a.getEndAt().plusMinutes(rnd.nextInt(12)));
+                }
+                shiftAssignmentRepo.save(a);
+            }
+        }
+        shiftAssignmentRepo.flush();
+        // Dược sĩ quản lý lập & trình bảng lương tháng trước, admin duyệt rồi đánh dấu đã trả
+        com.hieuthuoc.entity.Payroll p = payrollService.generate(java.time.YearMonth.from(today).minusMonths(1), ds1);
+        payrollService.submit(p.getId(), ds1);
+        payrollService.approve(p.getId(), admin);
+        payrollService.markPaid(p.getId(), admin);
     }
 
     private void botMessage(Conversation c, String kind, String body, LocalDateTime at) {

@@ -81,6 +81,8 @@ public class AdminUserController {
                            @RequestParam(required = false) String licenseNo, @RequestParam(required = false) String degree,
                            @RequestParam(required = false) String shift, @RequestParam(required = false) String password,
                            @RequestParam(value = "perms", required = false) List<StaffPermission> perms,
+                           @RequestParam(defaultValue = "MONTHLY") String salaryType, @RequestParam(required = false) Long baseSalary,
+                           @RequestParam(required = false) Long hourlyRate, @RequestParam(required = false) Long salaryAllowance,
                            RedirectAttributes ra) {
         User me = currentUser.get();
         if (role == Role.CUSTOMER) throw new BusinessException("Vai trò không hợp lệ.");
@@ -109,6 +111,13 @@ public class AdminUserController {
         if (role == Role.PHARMACIST && u.hasPermission(StaffPermission.RX_REVIEW) && u.getLicenseNo() == null) {
             throw new BusinessException("Nhân viên có quyền duyệt đơn thuốc phải có số chứng chỉ hành nghề dược.");
         }
+        if ((baseSalary != null && baseSalary < 0) || (hourlyRate != null && hourlyRate < 0) || (salaryAllowance != null && salaryAllowance < 0)) {
+            throw new BusinessException("Lương / phụ cấp không được âm.");
+        }
+        u.setSalaryType("HOURLY".equals(salaryType) ? "HOURLY" : "MONTHLY");
+        u.setBaseSalary(baseSalary);
+        u.setHourlyRate(hourlyRate);
+        u.setAllowance(salaryAllowance);
         if (!Texts.isBlank(password)) u.setPasswordHash(accountService.encode(password));
         userRepo.save(u);
         notifications.log(me, id == null ? "user.create" : "user.update", u.getEmail() + " (" + u.getPositionLabel() + ")");

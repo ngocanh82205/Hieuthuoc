@@ -36,6 +36,7 @@ public class StaffController {
     private final CurrentUser currentUser;
     private final SafetyService safety;
     private final CatalogService catalogService;
+    private final WorkScheduleService workSchedule;
     private final UserRepository userRepo;
     private final NotificationService notifications;
     private final ProductQuestionRepository questionRepo;
@@ -44,6 +45,7 @@ public class StaffController {
     @GetMapping
     public String dashboard(Model model) {
         LocalDate today = LocalDate.now();
+        model.addAttribute("todayShifts", workSchedule.todayShifts(currentUser.get()));
         List<Product> products = stockService.fill(new ArrayList<>(productRepo.findByActiveTrueOrderByNameAsc()));
         model.addAttribute("pendingRx", prescriptionRepo.countByStatus(ApprovalStatus.PENDING));
         model.addAttribute("pendingOrders", orderRepo.countByStatusIn(EnumSet.of(OrderStatus.PENDING, OrderStatus.CONFIRMED)));

@@ -1,0 +1,50 @@
+@startuml sd-thanh-toan
+!include _style.iuml
+autonumber
+title Sơ đồ tuần tự - Thanh toán và giao hàng
+actor "Khách hàng" as C
+boundary "Trang đơn hàng /\nthanh toán" as UI
+control "AccountController" as AC
+control "OrderService" as OS
+participant "Cổng thanh toán\n(VNPay / MoMo)" as PG
+participant "Ngân hàng\n(VietQR)" as BANK
+actor "Dược sĩ" as P
+participant "Đơn vị vận chuyển" as SH
+database "CSDL" as DB
+
+== Thanh toán trước (sau khi đặt hàng và đơn thuốc đã được duyệt nếu có) ==
+alt Thanh toán online
+  C -> UI : Chọn "Thanh toán online"
+  UI -> AC : GET /account/orders/{code}/pay
+  AC -> OS : canPay(đơn)? (chưa thanh toán,\nkhông chờ duyệt đơn thuốc - BR22)
+  AC --> UI : Chuyển tới cổng thanh toán
+  UI -> PG : Yêu cầu thanh toán (mã đơn, số tiền)
+  C -> PG : Xác nhận thanh toán
+  PG --> AC : Kết quả giao dịch (thành công / thất bại - BR21)
+  alt Thành công
+    AC -> OS : pay(đơn, thành công)
+    OS -> DB : Trạng thái thanh toán = Đã thanh toán,\nghi lịch sử đơn
+    AC --> UI : "Thanh toán thành công"
+  else Thất bại / hủy
+    AC --> UI : Báo lỗi, cho thanh toán lại
+  end
+else Chuyển khoản VietQR
+  UI --> C : Mã QR (ngân hàng, số TK,\nsố tiền, nội dung = mã đơn)
+  C -> BANK : Chuyển khoản
+  P -> BANK : Đối soát sao kê (BR21)
+  P -> OS : markPaid(đơn)
+  OS -> DB : Đã thanh toán, thông báo khách
+end
+
+== Giao hàng ==
+P -> OS : Xác nhận đơn (đơn trả trước phải\nđã thanh toán - BR16)
+P -> OS : Soạn hàng: trừ kho theo FEFO
+P -> OS : setShipping(hãng, mã vận đơn)
+P -> OS : Chuyển "Đang giao" (bắt buộc đã chọn hãng - BR17)
+OS -> DB : Cập nhật trạng thái, thông báo khách\n(hãng + mã vận đơn)
+P -> SH : Bàn giao hàng
+SH -> C : Giao hàng, thu tiền (nếu COD)
+SH --> P : Báo giao thành công / đối soát COD
+P -> OS : Chuyển "Hoàn thành"
+OS -> DB : Đã thanh toán (COD), cộng điểm,\nthông báo cảm ơn
+@enduml
