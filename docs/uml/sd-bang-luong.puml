@@ -1,0 +1,42 @@
+@startuml sd-bang-luong
+!include _style.iuml
+autonumber
+title Sơ đồ tuần tự - Lập và duyệt bảng lương
+actor "Dược sĩ quản lý" as M
+actor "Quản trị viên" as A
+boundary "Cổng quản trị\n(Thymeleaf)" as UI
+control "StaffScheduleController" as SC
+control "AdminPayrollController" as AC
+control "PayrollService" as PS
+control "NotificationService" as NS
+database "CSDL" as DB
+
+M -> UI : Chọn tháng, bấm "Tính lương"
+UI -> SC : POST /staff/payroll/generate {month}
+SC -> PS : generate(tháng, người lập)
+PS -> DB : Đọc nhân viên, mức lương, phân ca và chấm công của tháng
+PS -> PS : calculate(): ngày công, giờ công, muộn, vắng,\nphụ cấp, bảo hiểm, thực lĩnh (BR34, BR36)
+PS -> DB : Lưu bảng lương = Nháp (giữ thưởng / khấu trừ đã nhập)
+SC --> UI : Bảng lương nháp
+M -> UI : Nhập thưởng, khấu trừ; bấm "Trình admin duyệt"
+UI -> SC : POST /staff/payroll/{id}/submit
+SC -> PS : submit(id, người trình)
+PS -> DB : Trạng thái = Chờ duyệt, khóa sửa (BR37)
+PS -> NS : Thông báo quản trị viên
+A -> UI : Mở bảng lương chờ duyệt
+alt Duyệt
+  UI -> AC : POST /admin/payroll/{id}/approve
+  AC -> PS : approve(id, admin)
+  PS -> DB : Trạng thái = Đã duyệt
+  PS -> NS : Gửi phiếu lương cho từng nhân viên
+else Trả lại
+  UI -> AC : POST /admin/payroll/{id}/reject {reason}
+  AC -> PS : reject(id, lý do, admin)
+  PS -> DB : Trạng thái = Nháp, lưu lý do
+  PS -> NS : Thông báo dược sĩ quản lý sửa và trình lại
+end
+A -> UI : Sau khi chuyển tiền, bấm "Đánh dấu đã trả"
+UI -> AC : POST /admin/payroll/{id}/paid
+AC -> PS : markPaid(id, admin)
+PS -> DB : Trạng thái = Đã trả
+@enduml

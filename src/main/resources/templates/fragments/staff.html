@@ -13,6 +13,7 @@
         <div class="sidebar-label">Dược sĩ / Nhân viên</div>
         <nav class="nav flex-column">
             <a class="nav-link" th:href="@{/staff}" th:classappend="${requestPath == '/staff'} ? 'active'"><i class="bi bi-speedometer2"></i>Tổng quan</a>
+            <a class="nav-link" th:href="@{/staff/my-schedule}" th:classappend="${#strings.startsWith(requestPath, '/staff/my-')} ? 'active'"><i class="bi bi-calendar-check"></i>Lịch làm & lương</a>
             <a th:if="${currentUser.can('RX_REVIEW')}" class="nav-link" th:href="@{/staff/prescriptions}" th:classappend="${#strings.startsWith(requestPath, '/staff/prescriptions')} ? 'active'"><i class="bi bi-file-earmark-medical"></i>Duyệt đơn thuốc</a>
             <a th:if="${currentUser.can('POS')}" class="nav-link" th:href="@{/staff/pos}" th:classappend="${#strings.startsWith(requestPath, '/staff/pos')} ? 'active'"><i class="bi bi-shop-window"></i>Bán tại quầy (POS)</a>
             <a th:if="${currentUser.can('ORDER')}" class="nav-link" th:href="@{/staff/orders}" th:classappend="${#strings.startsWith(requestPath, '/staff/orders')} ? 'active'"><i class="bi bi-receipt"></i>Đơn hàng</a>
@@ -30,6 +31,15 @@
             <a th:if="${currentUser.can('CONTENT')}" class="nav-link" th:href="@{/staff/products}" th:classappend="${#strings.startsWith(requestPath, '/staff/products')} ? 'active'"><i class="bi bi-capsule"></i>Thông tin sản phẩm</a>
             <a th:if="${currentUser.can('CONTENT')}" class="nav-link" th:href="@{/staff/posts}" th:classappend="${#strings.startsWith(requestPath, '/staff/posts')} ? 'active'"><i class="bi bi-newspaper"></i>Bài viết sức khỏe</a>
         </nav>
+        <th:block th:if="${currentUser.can('SCHEDULE')}">
+            <div class="sidebar-label">Nhân sự</div>
+            <nav class="nav flex-column">
+            <a class="nav-link" th:href="@{/staff/schedule}" th:classappend="${#strings.startsWith(requestPath, '/staff/schedule')} ? 'active'"><i class="bi bi-calendar-week"></i>Xếp lịch làm việc</a>
+            <a class="nav-link" th:href="@{/staff/attendance}" th:classappend="${#strings.startsWith(requestPath, '/staff/attendance')} ? 'active'"><i class="bi bi-fingerprint"></i>Chấm công</a>
+            <a class="nav-link" th:href="@{/staff/shifts}" th:classappend="${#strings.startsWith(requestPath, '/staff/shifts')} ? 'active'"><i class="bi bi-clock"></i>Ca làm</a>
+            <a class="nav-link" th:href="@{/staff/payroll}" th:classappend="${#strings.startsWith(requestPath, '/staff/payroll')} ? 'active'"><i class="bi bi-wallet2"></i><span th:text="${currentUser.role.name() == 'ADMIN'} ? 'Duyệt bảng lương' : 'Bảng lương'"></span></a>
+            </nav>
+        </th:block>
         <th:block th:if="${currentUser.role.name() == 'ADMIN'}">
             <div class="sidebar-label">Quản trị</div>
             <nav class="nav flex-column">

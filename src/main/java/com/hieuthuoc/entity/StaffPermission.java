@@ -9,7 +9,8 @@ public enum StaffPermission {
     APPROVE_STOCK("Duyệt phiếu kho", "Duyệt phiếu kho: nhập, hủy, điều chỉnh kiểm kê", "bi-check2-square"),
     POS("Bán tại quầy", "Bán hàng tại quầy (POS)", "bi-shop-window"),
     REFUND("Hoàn tiền", "Hủy đơn đã thanh toán, đổi trả & hoàn tiền", "bi-cash-coin"),
-    CONTENT("Nội dung", "Nội dung: bài viết, thông tin sản phẩm, đánh giá", "bi-newspaper");
+    CONTENT("Nội dung", "Nội dung: bài viết, thông tin sản phẩm, đánh giá", "bi-newspaper"),
+    SCHEDULE("Lịch làm & chấm công", "Xếp lịch làm việc, chấm công, lập bảng lương trình admin duyệt", "bi-calendar-week");
 
     private final String shortLabel;
     private final String label;

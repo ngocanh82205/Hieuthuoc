@@ -1,0 +1,50 @@
+@startuml sd-tu-van-ai
+!include _style.iuml
+autonumber
+title Sơ đồ tuần tự - Tư vấn: trợ lý AI tiếp nhận, chuyển dược sĩ
+actor "Khách hàng" as C
+boundary "Web Client\n(React)" as UI
+control "ChatApiController" as CA
+control "ChatService" as CH
+control "AiAssistantService" as AI
+control "SafetyService" as SF
+participant "ChatBot Service\n/chatbot/v1/replies" as BOT
+participant "Claude API" as LLM
+actor "Dược sĩ" as P
+database "CSDL" as DB
+
+C -> UI : Gửi tin nhắn
+UI -> CA : POST /api/v1/conversations/{id}/messages
+CA -> CH : gửi tin nhắn
+CH -> DB : Lưu tin nhắn của khách
+CH -> AI : Xử lý bất đồng bộ (hội thoại đang ở chế độ AI)
+CH --> CA : Tin nhắn đã lưu
+CA --> UI : 201 Created
+AI -> AI : Luật cứng: ảnh? dấu hiệu nguy hiểm?\nmuốn gặp người? đối tượng đặc biệt?\nthuốc kê đơn? (BR26, BR27)
+alt Thuộc trường hợp phải chuyển dược sĩ
+  AI -> DB : Tìm dược sĩ có CCHN, đang online,\nít hội thoại nhất (BR28)
+  AI -> DB : Chế độ = HUMAN, gán dược sĩ,\nlưu tin hệ thống + bản tóm tắt
+  AI -> P : Thông báo có hội thoại mới
+  AI -> DB : Lưu tin "Đã chuyển dược sĩ..."
+  P -> DB : Dược sĩ trả lời (cổng quản trị)
+else Câu hỏi thông thường
+  AI -> SF : Kiểm tra sản phẩm được nhắc tới\nvới hồ sơ sức khỏe (dị ứng, tương tác)
+  alt Có cảnh báo an toàn
+    SF --> AI : Cảnh báo
+    AI -> DB : Chuyển dược sĩ (như trên)
+  else An toàn
+    AI -> BOT : POST /chatbot/v1/replies\n(lịch sử hội thoại, ngữ cảnh sản phẩm;\nkhông gửi hồ sơ sức khỏe)
+    alt Đã cấu hình API key
+      BOT -> LLM : Lời nhắc hệ thống + hội thoại
+      LLM --> BOT : Câu trả lời
+    else Không có key / lỗi kết nối
+      BOT -> BOT : Trả lời theo kịch bản
+    end
+    BOT --> AI : {reply, handoff?, reason?}
+    AI -> DB : Lưu tin nhắn AI
+  end
+end
+UI -> CA : GET /api/v1/conversations/{id}/messages?after=...\n(thăm dò định kỳ)
+CA --> UI : 200 [tin nhắn mới]
+UI --> C : Hiển thị tin nhắn mới
+@enduml

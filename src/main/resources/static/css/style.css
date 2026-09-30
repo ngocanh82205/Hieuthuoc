@@ -1,4 +1,4 @@
-/* =========================================================
+/* ==================================================
    VinaPharma – giao diện tông xanh biển
    ========================================================= */
 :root {
@@ -484,3 +484,10 @@ a.stat-card:hover, .stat-card:hover { transform: translateY(-3px); box-shadow: v
     background-color: #f1f5f9;
     border-color: #94a3b8;
 }
+
+/* ===== Lịch làm việc ===== */
+.schedule-grid td { min-width: 120px; }
+.shift-chip { border-left: 3px solid; border-radius: .5rem; background: var(--surface, #fff); padding: .3rem .45rem; margin-bottom: .35rem; box-shadow: 0 1px 2px rgba(15, 23, 42, .06); }
+@media (min-width: 768px) { .week-grid.row-cols-md-7 > * { flex: 0 0 auto; width: 14.2857%; } }
+.payroll-adjust input[type=number] { flex: 1 1 90px; min-width: 0; }
+.payroll-adjust input[name=note] { flex: 1 1 140px; min-width: 0; }

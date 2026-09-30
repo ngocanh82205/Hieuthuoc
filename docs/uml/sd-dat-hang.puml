@@ -1,0 +1,52 @@
+@startuml sd-dat-hang
+!include _style.iuml
+autonumber
+title Sơ đồ tuần tự - Đặt hàng
+actor "Khách hàng" as C
+boundary "Web Client\n(React)" as UI
+control "JwtAuthFilter +\nOrderApiController" as CT
+control "CartService" as CS
+control "VoucherService /\nPromotionService" as VS
+control "OrderService" as OS
+control "FileStorageService" as FS
+control "NotificationService" as NS
+database "CSDL" as DB
+
+C -> UI : Bấm "Đặt hàng" (người nhận, SĐT, địa chỉ,\ntỉnh, thanh toán, mã giảm giá, ảnh đơn thuốc)
+UI -> CT : POST /api/v1/orders\n(Authorization: Bearer JWT, JSON / multipart)
+CT -> OS : placeOrder(user, cart, form, rxFile)
+activate OS
+OS -> CS : build(cart, hình thức giao, user)
+activate CS
+CS -> DB : Đọc sản phẩm, tồn khả dụng
+CS -> CS : Kiểm tra thuốc KSĐB, tồn kho,\ngiới hạn mua mỗi đơn (BR01, BR08)
+CS -> VS : Áp khuyến mãi, kiểm tra mã giảm giá\n(thời hạn, lượt, đối tượng, loại thuốc kê đơn)
+VS --> CS : Số tiền giảm / lỗi
+CS -> CS : Tính điểm dùng, phí giao theo khu vực
+CS --> OS : Giỏ hàng đã tính (tổng tiền, lỗi, cần đơn thuốc?)
+deactivate CS
+OS -> OS : Kiểm tra người nhận, SĐT, địa chỉ,\nkhu vực giao, phương thức thanh toán (BR14)
+
+alt Có lỗi
+  OS --> CT : CheckoutException(danh sách lỗi)
+  CT --> UI : 422 Unprocessable Entity\n{success:false, errors:[...]}
+  UI --> C : Thông báo lỗi
+else Hợp lệ
+  opt Giỏ có thuốc kê đơn
+    OS -> FS : Lưu ảnh đơn thuốc (thư mục riêng tư)
+    FS --> OS : Tên file
+  end
+  OS -> DB : Lưu đơn hàng, dòng đơn, đơn thuốc\n(trạng thái: Chờ duyệt đơn thuốc hoặc Chờ xác nhận)\n– giữ chỗ tồn kho
+  OS -> DB : Cập nhật lượt dùng voucher, trừ điểm,\nsuất flash sale; lịch sử đơn
+  OS -> NS : Thông báo cho dược sĩ / nhân viên
+  OS --> CT : Đơn hàng
+  CT --> UI : 201 Created\n{data:{code, status, total, paymentUrl?}}
+  deactivate OS
+  alt Thanh toán online / VietQR
+    UI -> UI : Chuyển tới trang thanh toán
+  else COD / Nhận tại nhà thuốc
+    UI -> UI : Hiển thị đặt hàng thành công
+  end
+  UI --> C : Mã đơn, trạng thái
+end
+@enduml

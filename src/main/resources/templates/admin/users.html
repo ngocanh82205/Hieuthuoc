@@ -23,7 +23,7 @@
             <div class="card">
                 <div class="table-responsive">
                     <table class="table align-middle mb-0">
-                        <thead><tr><th>Nhân viên</th><th>Vai trò</th><th>CCHN / bằng cấp</th><th>Ca làm</th><th>Quyền</th><th class="text-end">Đơn thuốc đã xử lý</th><th>Trạng thái</th><th></th></tr></thead>
+                        <thead><tr><th>Nhân viên</th><th>Vai trò</th><th>CCHN / bằng cấp</th><th>Ca làm / lương</th><th>Quyền</th><th class="text-end">Đơn thuốc đã xử lý</th><th>Trạng thái</th><th></th></tr></thead>
                         <tbody>
                         <tr th:each="u : ${staff}">
                             <td><div class="fw-semibold"><span th:text="${u.fullName}"></span>
@@ -31,7 +31,7 @@
                                 <div class="small text-muted" th:text="${u.email + (u.phone != null ? ' · ' + u.phone : '')}"></div></td>
                             <td><span class="badge" th:classappend="${u.role.name() == 'ADMIN'} ? 'text-bg-dark' : 'text-bg-primary'" th:text="${u.positionLabel}"></span></td>
                             <td class="small"><div th:text="${u.licenseNo}"></div><div class="text-muted" th:text="${u.degree}"></div></td>
-                            <td class="small" th:text="${u.shift}"></td>
+                            <td class="small"><div th:text="${u.shift}"></div><div class="text-muted" th:unless="${u.role.name() == 'ADMIN'}" th:text="${u.salaryLabel}"></div></td>
                             <td class="small" style="max-width: 280px"><span th:if="${u.role.name() == 'ADMIN'}" class="text-muted">Tất cả</span>
                                 <span th:each="p : ${u.permissionSet}" th:unless="${u.role.name() == 'ADMIN'}" class="badge border me-1 mb-1"
                                       th:classappend="${u.hasExtra(p) && (u.staffRole == null || !u.staffRole.has(p))} ? 'text-bg-warning' : 'text-bg-light'"

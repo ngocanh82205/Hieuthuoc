@@ -15,7 +15,7 @@ import java.util.Map;
 
 /**
  * Phân quyền theo chức năng (RBAC) cho khu vực nhân viên: mỗi nhóm đường dẫn /staff/... yêu cầu một quyền.
- * Vai trò (Dược sĩ, Nhân viên kho, CSKH, Biên tập viên...) do admin cấu hình tập quyền.
+ * Vai trò (Dược sĩ quản lý, Dược sĩ, Biên tập viên...) do admin cấu hình tập quyền.
  */
 @Component
 @RequiredArgsConstructor
@@ -39,6 +39,10 @@ public class StaffAccessInterceptor implements HandlerInterceptor {
         RULES.put("/staff/posts", StaffPermission.CONTENT);
         RULES.put("/staff/reviews", StaffPermission.CONTENT);
         RULES.put("/staff/products", StaffPermission.CONTENT);
+        RULES.put("/staff/schedule", StaffPermission.SCHEDULE);
+        RULES.put("/staff/attendance", StaffPermission.SCHEDULE);
+        RULES.put("/staff/shifts", StaffPermission.SCHEDULE);
+        RULES.put("/staff/payroll", StaffPermission.SCHEDULE);
     }
 
     private final CurrentUser currentUser;

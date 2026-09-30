@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="staff-body">
+<div class="staff-shell">
+    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
+    <div class="staff-main">
+        <header th:replace="~{fragments/staff :: topbar}"></header>
+        <main class="p-3 p-lg-4">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="row g-4">
+                <div class="col-lg-7">
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table class="table align-middle mb-0">
+                                <thead><tr><th>Ca</th><th>Giờ</th><th class="text-end">Giờ công</th><th class="text-end">Phụ cấp / ca</th><th class="text-end">Đã xếp</th><th></th></tr></thead>
+                                <tbody>
+                                <tr th:each="s : ${list}" th:classappend="${!s.active} ? 'text-muted'">
+                                    <td><span class="badge" th:classappend="'text-bg-' + ${s.color}" th:text="${s.name}"></span>
+                                        <span th:unless="${s.active}" class="small">(ngừng dùng)</span></td>
+                                    <td><span th:text="${s.timeRange}"></span> <span th:if="${s.overnight}" class="badge text-bg-dark">qua đêm</span>
+                                        <div class="small text-muted" th:text="'Nghỉ ' + ${s.breakMinutes} + ' phút'"></div></td>
+                                    <td class="text-end" th:text="${#numbers.formatDecimal(s.paidMinutes / 60.0, 1, 1)} + ' h'"></td>
+                                    <td class="text-end" th:text="${@fmt.money(s.allowance)}"></td>
+                                    <td class="text-end" th:text="${used[s.id]}"></td>
+                                    <td><a th:href="@{/staff/shifts(edit=${s.id})}" class="btn btn-sm btn-outline-primary">Sửa</a></td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-5">
+                    <form th:action="${edit.id == null} ? @{/staff/shifts} : @{/staff/shifts/{id}(id=${edit.id})}" method="post" class="card">
+                        <div class="card-header" th:text="${edit.id == null} ? 'Thêm ca làm' : 'Sửa ca làm'"></div>
+                        <div class="card-body row g-2">
+                            <div class="col-12"><label class="form-label small">Tên ca</label><input name="name" class="form-control" th:value="${edit.name}" required placeholder="VD: Ca sáng"></div>
+                            <div class="col-6"><label class="form-label small">Bắt đầu</label><input type="time" name="startTime" class="form-control" th:value="${edit.startTime}" required></div>
+                            <div class="col-6"><label class="form-label small">Kết thúc</label><input type="time" name="endTime" class="form-control" th:value="${edit.endTime}" required></div>
+                            <div class="col-6"><label class="form-label small">Nghỉ giữa ca (phút)</label><input type="number" min="0" name="breakMinutes" class="form-control" th:value="${edit.breakMinutes}"></div>
+                            <div class="col-6"><label class="form-label small">Phụ cấp / ca (đ)</label><input type="number" min="0" name="allowance" class="form-control" th:value="${edit.allowance}"></div>
+                            <div class="col-6"><label class="form-label small">Màu</label>
+                                <select name="color" class="form-select"><option th:each="c : ${colors}" th:value="${c.key}" th:text="${c.value}" th:selected="${edit.color == c.key}"></option></select></div>
+                            <div class="col-6 d-flex align-items-end" th:if="${edit.id != null}"><div class="form-check mb-2">
+                                <input type="checkbox" class="form-check-input" name="active" value="true" id="sActive" th:checked="${edit.active}">
+                                <label class="form-check-label" for="sActive">Đang dùng</label></div></div>
+                            <div class="col-12 small text-muted">Giờ kết thúc nhỏ hơn giờ bắt đầu = ca qua đêm.</div>
+                        </div>
+                        <div class="card-footer bg-white"><button class="btn btn-primary">Lưu</button>
+                            <a th:if="${edit.id != null}" th:href="@{/staff/shifts}" class="btn btn-link">Hủy</a></div>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

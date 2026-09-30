@@ -1,0 +1,46 @@
+@startuml ad-duyet-don-thuoc
+!include _style.iuml
+title Sơ đồ hoạt động - Mua thuốc kê đơn và duyệt đơn thuốc
+|Khách hàng|
+start
+:Thêm thuốc kê đơn vào giỏ;
+:Tải ảnh đơn thuốc, đặt hàng;
+repeat
+  |Hệ thống|
+  :Đơn ở trạng thái "Chờ dược sĩ duyệt",
+  thông báo dược sĩ;
+  |Dược sĩ|
+  :Mở đơn thuốc, xem ảnh
+  và cảnh báo dị ứng / tương tác;
+  backward:Khách tải lại ảnh đơn thuốc;
+repeat while (Đơn hợp lệ?\n(đủ 4 mục kiểm tra, còn hiệu lực)) is (không: từ chối, ghi lý do;\nkhách được thông báo)
+->có;
+:Ghi sổ thuốc kê đơn
+(bệnh nhân, bác sĩ, ngày kê);
+if (Cần điều chỉnh?\n(giảm số lượng / thay thuốc\ncùng hoạt chất, hàm lượng)) then (có)
+  :Điều chỉnh đơn;
+  |Hệ thống|
+  :Tính lại tiền,
+  trạng thái "Chờ khách xác nhận";
+  |Khách hàng|
+  if (Đồng ý?) then (không)
+    :Hủy đơn;
+    |Hệ thống|
+    :Hoàn tồn kho, điểm;
+    stop
+  else (có)
+  endif
+else (không)
+endif
+|Hệ thống|
+:Đơn "Chờ xác nhận";
+if (Thanh toán trả trước?) then (có)
+  |Khách hàng|
+  :Thanh toán online / chuyển khoản;
+  |Hệ thống|
+else (COD)
+endif
+:Xử lý đơn hàng
+(xác nhận → soạn hàng theo FEFO → giao);
+stop
+@enduml

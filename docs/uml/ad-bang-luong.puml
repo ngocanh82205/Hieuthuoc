@@ -1,0 +1,44 @@
+@startuml ad-bang-luong
+!include _style.iuml
+title Sơ đồ hoạt động - Xếp lịch, chấm công, lập và duyệt bảng lương
+|Dược sĩ quản lý|
+start
+:Xếp ca cho dược sĩ theo tuần;
+|Hệ thống|
+if (Trùng giờ với ca khác?) then (có)
+  :Báo lỗi, không lưu;
+  stop
+else (không)
+  :Lưu lịch, thông báo nhân viên;
+endif
+|Dược sĩ|
+:Vào ca / kết thúc ca;
+|Hệ thống|
+:Ghi giờ vào/ra, tính muộn, vắng;
+|Dược sĩ quản lý|
+:Điều chỉnh chấm công nếu sai
+(bắt buộc ghi lý do);
+:Tính lương tháng (bảng nháp);
+|Hệ thống|
+:Tính ngày công, giờ công, phụ cấp,
+phạt muộn, bảo hiểm, thực lĩnh;
+|Dược sĩ quản lý|
+repeat
+  :Nhập thưởng / khấu trừ, kiểm tra;
+  :Trình admin duyệt;
+  |Hệ thống|
+  :Khóa sửa, trạng thái "Chờ duyệt",
+  thông báo admin;
+  |Quản trị viên|
+  :Xem bảng lương;
+repeat while (Duyệt?) is (trả lại kèm lý do)
+->duyệt;
+|Hệ thống|
+:Trạng thái "Đã duyệt";
+:Gửi phiếu lương cho từng nhân viên;
+|Quản trị viên|
+:Chuyển lương, đánh dấu "Đã trả";
+|Dược sĩ|
+:Xem phiếu lương;
+stop
+@enduml

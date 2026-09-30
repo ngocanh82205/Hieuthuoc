@@ -39,6 +39,14 @@
                     <div class="col-md-6"><label class="form-label">Ca làm việc</label>
                         <input name="shift" class="form-control" th:value="${user.shift}" list="shiftList" placeholder="Chọn hoặc nhập ca">
                         <datalist id="shiftList"><option th:each="s : ${shifts}" th:value="${s}"></option></datalist></div>
+                    <div class="col-12"><hr class="my-1"><div class="small fw-semibold text-primary">Lương</div></div>
+                    <div class="col-md-3"><label class="form-label">Hình thức</label>
+                        <select name="salaryType" class="form-select">
+                            <option value="MONTHLY" th:selected="${!user.hourly}">Theo tháng (ngày công)</option>
+                            <option value="HOURLY" th:selected="${user.hourly}">Theo giờ</option></select></div>
+                    <div class="col-md-3"><label class="form-label">Lương cơ bản / tháng</label><input type="number" min="0" step="1000" name="baseSalary" class="form-control" th:value="${user.baseSalary}"></div>
+                    <div class="col-md-3"><label class="form-label">Đơn giá / giờ</label><input type="number" min="0" step="1000" name="hourlyRate" class="form-control" th:value="${user.hourlyRate}"></div>
+                    <div class="col-md-3"><label class="form-label">Phụ cấp cố định / tháng</label><input type="number" min="0" step="1000" name="salaryAllowance" class="form-control" th:value="${user.allowance}"></div>
                     <div class="col-12" id="permBox">
                         <label class="form-label">Quyền của nhân viên</label>
                         <div class="form-text mb-2">Quyền có dấu <i class="bi bi-lock-fill"></i> đến từ vai trò. Tích thêm để cấp quyền riêng cho người này.</div>

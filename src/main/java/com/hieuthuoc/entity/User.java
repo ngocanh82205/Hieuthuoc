@@ -76,6 +76,30 @@ public class User {
     @Column(length = 100)
     private String shift;
 
+    /* ---- Lương (nhân viên) ---- */
+
+    /** MONTHLY = lương tháng theo ngày công; HOURLY = lương theo giờ làm thực tế. */
+    @Column(length = 10)
+    private String salaryType;
+
+    /** Lương cơ bản / tháng (MONTHLY). */
+    private Long baseSalary;
+
+    /** Đơn giá / giờ (HOURLY). */
+    private Long hourlyRate;
+
+    /** Phụ cấp cố định / tháng (trách nhiệm, xăng xe, ăn trưa...). */
+    private Long allowance;
+
+    public boolean isHourly() {
+        return "HOURLY".equals(salaryType);
+    }
+
+    public String getSalaryLabel() {
+        if (isHourly()) return hourlyRate == null ? "Chưa cấu hình" : String.format("%,d", hourlyRate).replace(',', '.') + " đ/giờ";
+        return baseSalary == null ? "Chưa cấu hình" : String.format("%,d", baseSalary).replace(',', '.') + " đ/tháng";
+    }
+
     /** Lần hoạt động gần nhất (để biết dược sĩ đang online). */
     private LocalDateTime lastSeenAt;
 
