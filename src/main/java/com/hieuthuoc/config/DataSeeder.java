@@ -195,6 +195,11 @@ public class DataSeeder implements CommandLineRunner {
                     StaffPermission.RX_REVIEW, StaffPermission.ORDER, StaffPermission.CONSULT, StaffPermission.POS, StaffPermission.INVENTORY));
             staffRoleRepo.save(new StaffRole("Biên tập viên", "Bài viết sức khỏe, thông tin sản phẩm, kiểm duyệt đánh giá",
                     StaffPermission.CONTENT));
+        } else {
+            staffRoleRepo.findByNameIgnoreCase("Dược sĩ quản lý").ifPresent(r -> {
+                r.setPermissionSet(Arrays.asList(StaffPermission.values()));
+                staffRoleRepo.save(r);
+            });
         }
         if (workShiftRepo.count() == 0) {
             workShiftRepo.save(new WorkShift("Ca sáng", java.time.LocalTime.of(7, 0), java.time.LocalTime.of(15, 0), 30, 0, "primary"));
@@ -262,7 +267,21 @@ public class DataSeeder implements CommandLineRunner {
     @Transactional
     public void run(String... args) {
         seedReferenceData();
-        if (userRepo.count() > 0) return;
+        if (userRepo.count() > 0) {
+            if (shiftAssignmentRepo.count() == 0) {
+                User admin = userRepo.findByEmailIgnoreCase("admin@hieuthuoc.vn").orElse(null);
+                User ds1 = userRepo.findByEmailIgnoreCase("duocsi@hieuthuoc.vn").orElse(null);
+                User ds2 = userRepo.findByEmailIgnoreCase("duocsi2@hieuthuoc.vn").orElse(null);
+                User ds3 = userRepo.findByEmailIgnoreCase("duocsi3@hieuthuoc.vn").orElse(null);
+                if (ds3 == null) ds3 = userRepo.findByEmailIgnoreCase("kho@hieuthuoc.vn").orElse(null);
+                User ds4 = userRepo.findByEmailIgnoreCase("duocsi4@hieuthuoc.vn").orElse(null);
+                if (ds4 == null) ds4 = userRepo.findByEmailIgnoreCase("cskh@hieuthuoc.vn").orElse(null);
+                if (admin != null && ds1 != null && ds2 != null && ds3 != null && ds4 != null) {
+                    seedSchedule(admin, ds1, ds2, ds3, ds4, LocalDate.now());
+                }
+            }
+            return;
+        }
         log.info("Database trống - đang tạo dữ liệu mẫu...");
         LocalDate today = LocalDate.now();
         LocalDateTime now = LocalDateTime.now();
@@ -748,6 +767,10 @@ public class DataSeeder implements CommandLineRunner {
         ds4.setSalaryType("MONTHLY");
         ds4.setBaseSalary(10_000_000L);
         ds4.setAllowance(500_000L);
+        userRepo.save(ds1);
+        userRepo.save(ds2);
+        userRepo.save(ds3);
+        userRepo.save(ds4);
         Map<String, WorkShift> shifts = new HashMap<>();
         workShiftRepo.findAll().forEach(sh -> shifts.put(sh.getName(), sh));
         WorkShift morning = shifts.get("Ca sáng"), evening = shifts.get("Ca chiều"), office = shifts.get("Hành chính");
