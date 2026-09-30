@@ -1,0 +1,44 @@
+@startuml sd-xu-ly-don
+!include _style.iuml
+autonumber
+title Sơ đồ tuần tự - Xử lý đơn hàng
+actor "Dược sĩ" as P
+boundary "Cổng quản trị\n(Thymeleaf)" as UI
+control "StaffController" as SC
+control "OrderService" as OS
+control "StockService" as SS
+control "NotificationService" as NS
+participant "Đơn vị vận chuyển" as SH
+database "CSDL" as DB
+
+P -> UI : Mở đơn "Chờ xác nhận"
+opt Đơn COD giá trị lớn
+  P -> UI : Gọi xác minh, nhập kết quả
+  UI -> SC : POST /staff/orders/{id}/verify
+  SC -> OS : verifyCall(id, dược sĩ, ghi chú)
+end
+P -> UI : Bấm "Xác nhận đơn"
+UI -> SC : Đổi trạng thái -> Đã xác nhận
+SC -> OS : changeStatus(id, CONFIRMED)
+OS -> OS : Kiểm tra trình tự trạng thái (BR15);\nđơn trả trước phải đã thanh toán (BR16)
+OS -> DB : Cập nhật trạng thái, ghi lịch sử
+P -> UI : Soạn hàng (quét / chọn số lô)
+UI -> SC : POST /staff/orders/{id}/pick
+SC -> OS : prepare(id, dược sĩ, số lô)
+OS -> SS : allocate(đơn, lô chọn) - mặc định FEFO
+SS -> DB : Trừ tồn từng lô, bỏ qua lô hết hạn / bị khóa;\nlưu order_item_batches (BR09, BR10)
+OS -> DB : Trạng thái = Đang chuẩn bị
+P -> UI : Chọn hãng vận chuyển, nhập mã vận đơn
+UI -> SC : POST /staff/orders/{id}/ship
+SC -> OS : setShipping(id, hãng, mã vận đơn)
+SC -> OS : changeStatus(id, SHIPPING)
+OS -> DB : Trạng thái = Đang giao (BR17)
+OS -> NS : Thông báo khách (hãng + mã vận đơn)
+P -> SH : Bàn giao hàng
+SH --> P : Giao thành công, đối soát COD
+P -> UI : Bấm "Hoàn thành"
+UI -> SC : Đổi trạng thái -> Hoàn thành
+SC -> OS : changeStatus(id, COMPLETED)
+OS -> DB : Đã thanh toán (COD); cộng điểm theo hạng (BR25)
+OS -> NS : Thông báo cảm ơn
+@enduml

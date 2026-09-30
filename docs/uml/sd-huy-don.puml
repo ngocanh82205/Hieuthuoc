@@ -1,0 +1,37 @@
+@startuml sd-huy-don
+!include _style.iuml
+autonumber
+title Sơ đồ tuần tự - Theo dõi và hủy đơn hàng
+actor "Khách hàng" as C
+boundary "Web Client\n(React)" as UI
+control "OrderApiController" as OC
+control "OrderService" as OS
+control "StockService" as SS
+control "NotificationService" as NS
+database "CSDL" as DB
+
+C -> UI : Mở "Đơn hàng của tôi", chọn một đơn
+UI -> OC : GET /api/v1/orders/{code}\n(Bearer JWT)
+OC -> DB : Tìm đơn theo mã và chủ đơn (BR29)
+DB --> OC : Đơn hàng, dòng đơn, lịch sử, mã vận đơn
+OC --> UI : 200 OK {order}
+UI --> C : Hiển thị trạng thái, nút "Hủy đơn"
+C -> UI : Bấm "Hủy đơn", nhập lý do
+UI -> OC : POST /api/v1/orders/{code}/cancellation\n{reason}
+OC -> OS : cancelByCustomer(đơn, khách, lý do)
+alt Đơn đang giao / đã hoàn thành, hoặc thiếu lý do
+  OS --> OC : BusinessException (BR18)
+  OC --> UI : 409 Conflict / 422
+  UI --> C : "Đơn đang giao hoặc đã hoàn tất, không thể hủy"
+else Được hủy
+  OS -> SS : restore(đơn) - hoàn tồn kho về đúng lô
+  OS -> DB : Hoàn điểm đã dùng, lượt voucher;\ntrạng thái = Đã hủy; ghi lịch sử
+  opt Đơn đã thanh toán
+    OS -> DB : Trạng thái thanh toán = Chờ hoàn tiền
+  end
+  OS -> NS : Thông báo nhà thuốc
+  OS --> OC : Đơn đã hủy
+  OC --> UI : 200 OK {status: CANCELLED}
+  UI --> C : "Đã hủy đơn hàng"
+end
+@enduml

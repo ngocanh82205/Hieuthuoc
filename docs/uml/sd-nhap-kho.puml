@@ -1,0 +1,42 @@
+@startuml sd-nhap-kho
+!include _style.iuml
+autonumber
+title Sơ đồ tuần tự - Nhập kho và duyệt phiếu nhập
+actor "Dược sĩ" as P
+actor "Dược sĩ quản lý" as M
+boundary "Cổng quản trị\n(Thymeleaf)" as UI
+control "StaffAccessInterceptor" as SA
+control "StaffInventoryController" as IC
+control "InventoryService" as IS
+control "NotificationService" as NS
+database "CSDL" as DB
+
+P -> UI : Tạo phiếu nhập: nhà cung cấp, kho,\nsố lô, hạn dùng, số lượng, giá nhập
+UI -> SA : POST /staff/receipts
+SA -> SA : Kiểm tra quyền INVENTORY
+SA -> IC : Cho phép
+IC -> IS : createReceipt(form, dược sĩ)
+IS -> IS : Kiểm tra có sản phẩm, số lượng > 0,\nhạn dùng hợp lệ
+alt Dữ liệu không hợp lệ
+  IS --> IC : BusinessException
+  IC --> UI : Hiển thị lỗi
+else Hợp lệ
+  IS -> DB : Lưu phiếu nhập, trạng thái = Chờ duyệt (BR11)
+  IS -> NS : Thông báo người có quyền duyệt
+  IC --> UI : "Đã tạo phiếu, chờ duyệt"
+end
+M -> UI : Mở phiếu chờ duyệt, bấm "Duyệt"
+UI -> SA : POST /staff/receipts/{id}/decide
+SA -> SA : Kiểm tra quyền APPROVE_STOCK
+SA -> IC : Cho phép
+IC -> IS : decideReceipt(id, người duyệt, approve)
+alt Phiếu đã xử lý
+  IS --> IC : BusinessException "Phiếu đã được xử lý"
+else Duyệt
+  IS -> DB : Tạo lô thuốc (batches) trong kho;\ncộng công nợ nhà cung cấp; ghi nhật ký
+  IS -> NS : Báo người lập phiếu
+else Từ chối
+  IS -> DB : Phiếu = Từ chối, không cộng kho
+end
+IC --> UI : Kết quả
+@enduml

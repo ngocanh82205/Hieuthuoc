@@ -1,0 +1,37 @@
+@startuml sd-phan-quyen
+!include _style.iuml
+autonumber
+title Sơ đồ tuần tự - Phân quyền và kiểm soát truy cập
+actor "Quản trị viên" as A
+actor "Nhân viên" as S
+boundary "Cổng quản trị\n(Thymeleaf)" as UI
+control "AdminUserController" as UC
+control "StaffAccessInterceptor" as SA
+control "NotificationService" as NS
+database "CSDL" as DB
+
+A -> UI : Tạo vai trò, chọn tập quyền\n(RX_REVIEW, ORDER, INVENTORY...)
+UI -> UC : POST /admin/roles
+UC -> DB : Lưu vai trò (staff_roles)
+UC -> NS : Ghi nhật ký
+A -> UI : Sửa nhân viên: gán vai trò, quyền riêng, CCHN
+UI -> UC : POST /admin/users/{id}
+UC -> UC : Kiểm tra: quyền duyệt đơn thuốc cần số CCHN
+alt Thiếu CCHN / dữ liệu sai
+  UC --> UI : Hiển thị lỗi
+else Hợp lệ
+  UC -> DB : Cập nhật users.staff_role_id, permissions
+  UC -> NS : Ghi nhật ký
+  UC --> UI : "Đã lưu"
+end
+== Nhân viên truy cập chức năng ==
+S -> UI : Mở một chức năng, VD /staff/receipts
+UI -> SA : Yêu cầu /staff/receipts/...
+SA -> DB : Lấy vai trò và quyền của nhân viên
+SA -> SA : required(đường dẫn) = INVENTORY;\nuser.hasPermission(INVENTORY)?
+alt Không có quyền
+  SA --> UI : 403 "Vai trò của bạn chưa được cấp quyền..."
+else Có quyền
+  SA --> UI : Cho phép, hiển thị trang
+end
+@enduml

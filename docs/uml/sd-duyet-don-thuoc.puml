@@ -1,0 +1,43 @@
+@startuml sd-duyet-don-thuoc
+!include _style.iuml
+autonumber
+title Sơ đồ tuần tự - Duyệt đơn thuốc
+actor "Dược sĩ" as P
+boundary "Cổng quản trị\n(Thymeleaf)" as UI
+control "StaffAccessInterceptor" as SA
+control "StaffController" as SC
+control "SafetyService" as SF
+control "OrderService" as OS
+control "NotificationService" as NS
+database "CSDL" as DB
+
+P -> UI : Mở "Duyệt đơn thuốc", chọn một đơn
+UI -> SA : GET /staff/prescriptions/{id}
+SA -> SA : Kiểm tra quyền RX_REVIEW
+SA -> SC : Cho phép
+SC -> DB : Đọc đơn thuốc, đơn hàng, hồ sơ sức khỏe khách
+SC -> SF : check(khách, danh sách thuốc)
+SF --> SC : Cảnh báo dị ứng, tương tác, đối tượng đặc biệt (BR07)
+SC --> UI : Ảnh đơn thuốc + danh sách thuốc + cảnh báo
+P -> UI : Đánh dấu 4 mục kiểm tra; nhập bệnh nhân,\nbác sĩ, ngày kê; bấm "Duyệt"
+UI -> SC : POST /staff/prescriptions/{id}/approve
+SC -> OS : approvePrescription(id, dược sĩ, form)
+OS -> OS : Kiểm tra CCHN, đủ 4 mục, còn hiệu lực 5 ngày\n(BR03 - BR05)
+alt Không hợp lệ
+  OS --> SC : BusinessException
+  SC --> UI : Hiển thị lỗi
+else Có điều chỉnh / thay thuốc cùng hoạt chất
+  OS -> DB : Ghi sổ thuốc kê đơn; cập nhật dòng đơn;\ntrạng thái = Chờ khách xác nhận (BR06)
+  OS -> NS : Thông báo khách xác nhận lại
+else Duyệt nguyên đơn
+  OS -> DB : Ghi sổ thuốc kê đơn;\ntrạng thái = Chờ xác nhận
+  OS -> NS : Thông báo khách (thanh toán nếu trả trước)
+end
+SC --> UI : Kết quả duyệt
+== Từ chối đơn thuốc ==
+P -> UI : Bấm "Từ chối", nhập lý do
+UI -> SC : POST /staff/prescriptions/{id}/reject
+SC -> OS : rejectPrescription(id, dược sĩ, lý do)
+OS -> DB : Đơn thuốc = Từ chối; đơn hàng = Đơn thuốc bị từ chối
+OS -> NS : Thông báo khách tải lại đơn thuốc
+@enduml
