@@ -1,24 +1,25 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head}"></head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/app :: layout(~{::content}, ~{})}">
 <body>
-<header th:replace="~{fragments/layout :: navbar}"></header>
-<main class="container py-5">
-    <div class="card mx-auto" style="max-width: 480px">
+<th:block th:fragment="content">
+    <div class="card mx-auto" style="max-width: 560px">
         <div class="card-body p-4 text-center">
-            <div class="badge text-bg-warning mb-3">CỔNG THANH TOÁN MÔ PHỎNG (DEMO)</div>
-            <h1 class="h5">Thanh toán đơn hàng <span th:text="${order.code}"></span></h1>
-            <p class="display-6 fw-bold price my-3" th:text="${@fmt.money(order.total)}"></p>
-            <p class="small text-muted">Đây là màn hình giả lập cổng VNPay/MoMo. Khi triển khai thật, thay bằng tích hợp API của cổng thanh toán.</p>
-            <form th:action="@{/account/orders/{c}/pay(c=${order.code})}" method="post" class="d-grid gap-2">
-                <button class="btn btn-primary btn-lg" name="result" value="success"><i class="bi bi-check-circle"></i> Thanh toán thành công</button>
-                <button class="btn btn-outline-danger" name="result" value="fail">Hủy / thanh toán thất bại</button>
+            <i th:class="'bi ' + ${order.paymentMethod.icon} + ' display-5 text-primary'"></i>
+            <h1 class="h4 fw-bold mt-2" th:text="'Thanh toán đơn hàng ' + ${order.code}"></h1>
+            <p class="text-muted" th:text="'Phương thức: ' + ${order.paymentMethod.label}"></p>
+            <div class="display-6 fw-bold price mb-3" th:text="${@h.money(order.total)}"></div>
+            <th:block th:unless="${gatewayReady}">
+                <div th:if="${local}" class="alert alert-warning small text-start"><i class="bi bi-info-circle"></i> Cổng <th:block th:text="${order.paymentMethod.shortLabel}"/> chưa được cấu hình khóa
+                    (môi trường demo) - bạn sẽ được chuyển tới trang thanh toán thử nghiệm.</div>
+                <div th:unless="${local}" class="alert alert-danger small text-start"><i class="bi bi-exclamation-triangle"></i> Cổng thanh toán <th:block th:text="${order.paymentMethod.shortLabel}"/> hiện chưa sẵn sàng. Quý khách vui lòng chọn hình thức Thanh toán khi nhận hàng (COD) hoặc Chuyển khoản ngân hàng.</div>
+            </th:block>
+            <form th:if="${gatewayReady or local}" th:action="@{/account/orders/{c}/pay(c=${order.code})}" method="post">
+                <button class="btn btn-primary btn-lg w-100"><i class="bi bi-shield-lock"></i> Thanh toán qua <th:block th:text="${order.paymentMethod.shortLabel}"/></button>
             </form>
-            <a th:href="@{/account/orders/{c}(c=${order.code})}" class="d-inline-block mt-3">Thanh toán sau</a>
+            <a th:href="@{/account/orders/{c}(c=${order.code})}" class="btn btn-link mt-2">Để sau - xem đơn hàng</a>
+            <p class="small text-muted mb-0 mt-2">Giao dịch được bảo mật bởi cổng thanh toán. Nhà thuốc không lưu thông tin thẻ của bạn.</p>
         </div>
     </div>
-</main>
-<footer th:replace="~{fragments/layout :: footer}"></footer>
-<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</th:block>
 </body>
 </html>

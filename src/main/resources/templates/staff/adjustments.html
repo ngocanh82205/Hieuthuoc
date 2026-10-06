@@ -1,55 +1,13 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head}"></head>
-<body class="staff-body">
-<div class="staff-shell">
-    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
-    <div class="staff-main">
-        <header th:replace="~{fragments/staff :: topbar}"></header>
-        <main class="p-3 p-lg-4">
-            <div th:replace="~{fragments/layout :: flash}"></div>
-            <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
-                <a th:href="@{/staff/adjustments}" class="btn btn-sm" th:classappend="${status == null} ? 'btn-primary' : 'btn-outline-primary'">Tất cả</a>
-                <a th:each="st : ${statuses}" th:href="@{/staff/adjustments(status=${st})}" class="btn btn-sm"
-                   th:classappend="${status == st} ? 'btn-primary' : 'btn-outline-primary'">
-                    <span th:text="${st.label}"></span><span th:if="${st.name() == 'PENDING' && pendingCount > 0}" class="badge text-bg-danger ms-1" th:text="${pendingCount}"></span></a>
-                <span class="small text-muted ms-auto">Lập phiếu hủy tại trang lô hàng của sản phẩm; phiếu kiểm kê tại <a th:href="@{/staff/stocktake}">Kiểm kê</a>.</span>
-            </div>
-            <div class="card">
-                <div class="table-responsive">
-                    <table class="table align-middle mb-0">
-                        <thead><tr><th>#</th><th>Loại</th><th>Sản phẩm / lô</th><th class="text-end">SL</th><th>Lý do</th><th>Người lập</th><th>Trạng thái</th><th></th></tr></thead>
-                        <tbody>
-                        <tr th:if="${list.isEmpty()}"><td colspan="8" class="text-center text-muted py-4">Không có phiếu.</td></tr>
-                        <tr th:each="a : ${list}">
-                            <td class="small text-muted" th:text="${a.id}"></td>
-                            <td><span class="badge text-bg-light border" th:text="${a.typeLabel}"></span></td>
-                            <td><a th:href="@{/staff/inventory/{id}(id=${a.batch.product.id})}" th:text="${a.batch.product.name}"></a>
-                                <div class="small text-muted" th:text="'Lô ' + ${a.batch.batchNo} + ' · tồn hiện tại ' + ${a.batch.quantity}"></div></td>
-                            <td class="text-end fw-semibold" th:classappend="${a.quantity < 0} ? 'text-danger' : 'text-success'" th:text="${a.quantity > 0 ? '+' + a.quantity : a.quantity}"></td>
-                            <td class="small" th:text="${a.reason}"></td>
-                            <td class="small"><div th:text="${a.user != null ? a.user.fullName : ''}"></div><div class="text-muted" th:text="${@fmt.dateTime(a.createdAt)}"></div></td>
-                            <td class="small"><span class="badge" th:classappend="'text-bg-' + ${a.statusValue.color}" th:text="${a.statusValue.label}"></span>
-                                <div th:if="${a.approvedBy != null}" class="text-muted" th:text="${a.approvedBy.fullName} + ' · ' + ${@fmt.dateTime(a.approvedAt)}"></div>
-                                <div th:if="${a.rejectReason != null}" class="text-danger" th:text="${a.rejectReason}"></div></td>
-                            <td class="text-nowrap">
-                                <th:block th:if="${a.statusValue.name() == 'PENDING' && currentUser.can('APPROVE_STOCK')}">
-                                    <form th:action="@{/staff/adjustments/{id}/decide(id=${a.id})}" method="post" class="d-inline">
-                                        <input type="hidden" name="back" th:value="${requestPath}"><button name="decision" value="approve" class="btn btn-sm btn-success">Duyệt</button></form>
-                                    <form th:action="@{/staff/adjustments/{id}/decide(id=${a.id})}" method="post" class="d-inline-flex gap-1 mt-1">
-                                        <input type="hidden" name="back" th:value="${requestPath}">
-                                        <input name="reason" class="form-control form-control-sm" placeholder="Lý do từ chối" style="width: 130px" required>
-                                        <button name="decision" value="reject" class="btn btn-sm btn-outline-danger">Từ chối</button></form>
-                                </th:block>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </main>
-    </div>
-</div>
-<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/admin :: layout(~{::content}, ~{})}">
+<body>
+<th:block th:fragment="content">
+    <ul class="nav nav-pills mb-3">
+        <li class="nav-item"><a th:class="'nav-link ' + (${status == null} ? 'active' : '')" th:href="@{/staff/adjustments}">Tất cả</a></li>
+        <li class="nav-item" th:each="s : ${statuses}"><a th:class="'nav-link ' + (${status == s} ? 'active' : '')" th:href="@{/staff/adjustments(status=${s.name()})}"><th:block th:text="${s.label}"/>
+            <span th:if="${s.name() == 'PENDING' and pendingCount > 0}" class="badge text-bg-danger" th:text="${pendingCount}"></span></a></li>
+    </ul>
+    <th:block th:replace="~{staff/_parts :: adjustmentTable(${list}, ${back})}"/>
+</th:block>
 </body>
 </html>

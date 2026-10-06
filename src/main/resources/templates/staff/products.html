@@ -1,36 +1,34 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head}"></head>
-<body class="staff-body">
-<div class="staff-shell">
-    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
-    <div class="staff-main">
-        <header th:replace="~{fragments/staff :: topbar}"></header>
-        <main class="p-3 p-lg-4">
-            <div th:replace="~{fragments/layout :: flash}"></div>
-            <form class="card card-body mb-3 d-flex flex-row gap-2" method="get" th:action="@{/staff/products}">
-                <input name="q" class="form-control" th:value="${q}" placeholder="Tìm tên thuốc hoặc hoạt chất">
-                <button class="btn btn-primary">Tìm</button>
-            </form>
-            <div class="card">
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead><tr><th>Sản phẩm</th><th>Hoạt chất / hàm lượng</th><th>Loại</th><th></th></tr></thead>
-                        <tbody>
-                        <tr th:each="p : ${products}">
-                            <td class="fw-semibold" th:text="${p.name}"></td>
-                            <td class="small" th:text="(${p.activeIngredient} ?: '-') + ' ' + (${p.strength} ?: '')"></td>
-                            <td><span class="badge" th:classappend="'text-bg-' + ${p.drugType.color}" th:text="${p.drugType.shortLabel}"></span></td>
-                            <td class="text-end"><a th:if="${currentUser.can('CONTENT')}"
-                                                    th:href="@{/staff/products/{id}/info(id=${p.id})}" class="btn btn-sm btn-outline-primary">Cập nhật thông tin</a></td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </main>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/admin :: layout(~{::content}, ~{})}">
+<body>
+<th:block th:fragment="content">
+    <form class="d-flex gap-2 mb-3" method="get" th:action="@{/staff/products}" style="max-width: 480px">
+        <input name="q" th:value="${q}" class="form-control" placeholder="Tên sản phẩm / hoạt chất" aria-label="Tìm sản phẩm">
+        <button class="btn btn-primary"><i class="bi bi-search"></i></button>
+    </form>
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead><tr><th>Sản phẩm</th><th>Loại</th><th>Hoạt chất / hàm lượng</th><th>Danh mục</th><th>Thông tin</th><th></th></tr></thead>
+                <tbody>
+                <tr th:each="p : ${products.items}" th:class="${p.active} ? '' : 'text-muted'">
+                    <td class="fw-semibold"><th:block th:text="${p.name}"/><span th:unless="${p.active}" class="badge text-bg-secondary ms-1">Ngừng bán</span></td>
+                    <td><span th:class="'badge text-bg-' + (${p.drugType.isPrescription()} ? 'danger' : 'light border')" th:text="${p.drugType.shortLabel}"></span></td>
+                    <td class="small" th:text="(${p.activeIngredient} ?: '-') + ' ' + (${p.strength} ?: '')"></td>
+                    <td class="small" th:text="${p.category != null} ? ${p.category.name} : ''"></td>
+                    <td class="small">
+                        <span th:class="'badge ' + (${p.usageInstruction != null} ? 'text-bg-success' : 'text-bg-warning')">Cách dùng</span>
+                        <span th:class="'badge ' + (${p.contraindications != null} ? 'text-bg-success' : 'text-bg-warning')">Chống chỉ định</span>
+                        <span th:class="'badge ' + (${p.sideEffects != null} ? 'text-bg-success' : 'text-bg-warning')">Tác dụng phụ</span>
+                    </td>
+                    <td><a th:if="${currentUser.can('CONTENT')}" th:href="@{/staff/products/{id}/info(id=${p.id})}" class="btn btn-sm btn-outline-primary">Cập nhật</a></td>
+                </tr>
+                <tr th:if="${products.isEmpty()}"><td colspan="6" class="text-center text-muted py-4">Không tìm thấy sản phẩm.</td></tr>
+                </tbody>
+            </table>
+        </div>
     </div>
-</div>
-<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+    <div class="mt-3"><th:block th:replace="~{partials/pagination :: links(${products})}"/></div>
+</th:block>
 </body>
 </html>

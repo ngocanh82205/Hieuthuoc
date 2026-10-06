@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head}"></head>
-<body class="bg-white">
-<main class="container py-4" style="max-width: 800px" th:with="o=${order}">
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/print :: layout(~{::content})}">
+<body>
+<th:block th:fragment="content">
+<th:block th:with="o=${order}">
     <div class="d-flex justify-content-between mb-4">
         <div>
             <h1 class="h5 fw-bold mb-0" th:text="${settings['store_name']}"></h1>
@@ -13,44 +13,37 @@
         <div class="text-end">
             <h2 class="h5 fw-bold mb-0">HÓA ĐƠN BÁN HÀNG</h2>
             <div class="small" th:text="'Số: ' + ${o.code}"></div>
-            <div class="small" th:text="'Ngày: ' + ${@fmt.dateTime(o.createdAt)}"></div>
+            <div class="small" th:text="'Ngày: ' + ${@h.dt(o.createdAt)}"></div>
         </div>
     </div>
-    <p class="mb-1"><strong>Khách hàng:</strong> <span th:text="${o.recipient}"></span> · <span th:text="${o.phone}"></span></p>
-    <p class="mb-1" th:if="${o.address != null}"><strong>Địa chỉ:</strong> <span th:text="${o.address}"></span></p>
-    <div class="mb-3 small border rounded p-2" th:if="${o.vatRequested}"><strong>Đơn vị mua hàng:</strong> <span th:text="${o.vatCompany}"></span> ·
-        MST <span th:text="${o.vatTaxCode}"></span> · <span th:text="${o.vatAddress}"></span>
-        <span th:if="${o.einvoiceNo != null}" th:text="' · Số HĐĐT: ' + ${o.einvoiceNo}"></span></div>
+    <p class="mb-1"><strong>Khách hàng:</strong> <th:block th:text="${o.recipient} + ' · ' + ${o.phone}"/></p>
+    <p th:if="${o.address != null}" class="mb-1"><strong>Địa chỉ:</strong> <th:block th:text="${o.address}"/></p>
+    <div th:if="${o.isVatRequested()}" class="mb-3 small border rounded p-2"><strong>Đơn vị mua hàng:</strong>
+        <th:block th:text="${o.vatCompany} + ' · MST ' + ${o.vatTaxCode} + ' · ' + ${o.vatAddress} + (${o.einvoiceNo != null} ? ' · Số HĐĐT: ' + ${o.einvoiceNo} : '')"/></div>
     <table class="table table-bordered table-sm">
         <thead><tr><th>#</th><th>Tên hàng</th><th>ĐVT</th><th>Số lô / HSD</th><th class="text-end">SL</th><th class="text-end">Đơn giá</th><th class="text-end">Thành tiền</th></tr></thead>
         <tbody>
-        <tr th:each="it, st : ${o.items}">
-            <td th:text="${st.count}"></td>
-            <td th:text="${it.productName}"></td>
-            <td th:text="${it.unit}"></td>
-            <td class="small"><div th:each="a : ${it.allocations}" th:text="${a.batch.batchNo} + ' / ' + ${@fmt.date(a.batch.expDate)}"></div></td>
-            <td class="text-end" th:text="${it.quantity}"></td>
-            <td class="text-end" th:text="${@fmt.money(it.price)}"></td>
-            <td class="text-end" th:text="${@fmt.money(it.lineTotal)}"></td>
-        </tr>
+        <tr th:each="it, s : ${o.items}"><td th:text="${s.count}"></td><td th:text="${it.productName}"></td><td th:text="${it.unit}"></td>
+            <td class="small"><div th:each="a : ${it.allocations}" th:text="${a.batch.batchNo} + ' / ' + ${@h.date(a.batch.expDate)}"></div></td>
+            <td class="text-end" th:text="${it.quantity}"></td><td class="text-end" th:text="${@h.money(it.price)}"></td><td class="text-end" th:text="${@h.money(it.lineTotal())}"></td></tr>
         </tbody>
         <tfoot>
-        <tr><td colspan="6" class="text-end">Tạm tính</td><td class="text-end" th:text="${@fmt.money(o.subtotal)}"></td></tr>
-        <tr th:if="${o.promoDiscountValue > 0}"><td colspan="6" class="text-end">Khuyến mãi</td><td class="text-end" th:text="'-' + ${@fmt.money(o.promoDiscountValue)}"></td></tr>
-        <tr th:if="${o.pointsDiscountValue > 0}"><td colspan="6" class="text-end">Dùng điểm</td><td class="text-end" th:text="'-' + ${@fmt.money(o.pointsDiscountValue)}"></td></tr>
-        <tr th:if="${o.discount > 0}"><td colspan="6" class="text-end">Giảm giá</td><td class="text-end" th:text="'-' + ${@fmt.money(o.discount)}"></td></tr>
-        <tr><td colspan="6" class="text-end">Phí giao hàng</td><td class="text-end" th:text="${@fmt.money(o.shippingFee)}"></td></tr>
-        <tr class="fw-bold"><td colspan="6" class="text-end">Tổng thanh toán</td><td class="text-end" th:text="${@fmt.money(o.total)}"></td></tr>
+        <tr><td colspan="6" class="text-end">Tạm tính</td><td class="text-end" th:text="${@h.money(o.subtotal)}"></td></tr>
+        <tr th:if="${o.promoDiscount > 0}"><td colspan="6" class="text-end">Khuyến mãi</td><td class="text-end" th:text="'-' + ${@h.money(o.promoDiscount)}"></td></tr>
+        <tr th:if="${o.pointsDiscount > 0}"><td colspan="6" class="text-end">Dùng điểm</td><td class="text-end" th:text="'-' + ${@h.money(o.pointsDiscount)}"></td></tr>
+        <tr th:if="${o.discount > 0}"><td colspan="6" class="text-end">Giảm giá</td><td class="text-end" th:text="'-' + ${@h.money(o.discount)}"></td></tr>
+        <tr><td colspan="6" class="text-end">Phí giao hàng</td><td class="text-end" th:text="${@h.money(o.shippingFee)}"></td></tr>
+        <tr class="fw-bold"><td colspan="6" class="text-end">Tổng thanh toán</td><td class="text-end" th:text="${@h.money(o.total)}"></td></tr>
         <tr class="small text-muted"><td colspan="6" class="text-end" th:text="'Trong đó: tiền hàng chưa VAT / thuế GTGT ' + ${vatRate} + '%'"></td>
-            <td class="text-end"><span th:text="${@fmt.money(preVat)}"></span> / <span th:text="${@fmt.money(vatAmount)}"></span></td></tr>
+            <td class="text-end" th:text="${@h.money(preVat)} + ' / ' + ${@h.money(vatAmount)}"></td></tr>
         </tfoot>
     </table>
     <p class="small" th:text="'Hình thức thanh toán: ' + ${o.paymentMethod.label} + ' - ' + ${o.paymentStatus.label}"></p>
     <div class="row text-center mt-5 small">
         <div class="col">Người mua hàng<br><em>(Ký, ghi rõ họ tên)</em></div>
-        <div class="col">Dược sĩ bán hàng<br><em>(Ký, ghi rõ họ tên)</em></div>
+        <div class="col">Dược sĩ bán hàng<br><em>(Ký, ghi rõ họ tên)</em><br><br><br><th:block th:text="${o.handler != null} ? ${o.handler.fullName} : ''"/></div>
     </div>
-    <div class="text-center mt-4 no-print"><button class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer"></i> In</button></div>
-</main>
+</th:block>
+</th:block>
 </body>
 </html>

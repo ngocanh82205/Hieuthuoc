@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="staff-body">
+<div class="staff-shell">
+    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
+    <div class="staff-main">
+        <header th:replace="~{fragments/staff :: topbar}"></header>
+        <main class="p-3 p-lg-4">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="row g-4">
+                <div class="col-lg-7">
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table class="table mb-0">
+                                <thead><tr><th>Thứ tự</th><th>Danh mục (cây đa cấp)</th><th>Slug</th><th class="text-end">Sản phẩm</th><th></th></tr></thead>
+                                <tbody>
+                                <tr th:each="c : ${categories}">
+                                    <td th:text="${c.sortOrder}"></td>
+                                    <td th:style="|padding-left: ${0.5 + c.depth * 1.5}rem|"><span th:if="${c.depth > 0}" class="text-muted">└ </span><i class="bi me-1 text-primary" th:classappend="${c.icon}"></i><span th:text="${c.name}" th:classappend="${c.depth == 0} ? 'fw-semibold'"></span></td>
+                                    <td class="small text-muted" th:text="${c.slug}"></td>
+                                    <td class="text-end" th:text="${counts[c.id]}"></td>
+                                    <td class="text-nowrap">
+                                        <a th:href="@{/admin/categories(edit=${c.id})}" class="btn btn-sm btn-outline-primary">Sửa</a>
+                                        <form th:action="@{/admin/categories/{id}/delete(id=${c.id})}" method="post" class="d-inline" data-confirm="Xóa danh mục?">
+                                            <button class="btn btn-sm btn-outline-danger" th:disabled="${counts[c.id] > 0 || c.hasChildren}"><i class="bi bi-trash"></i></button></form>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-5">
+                    <form th:action="${edit.id == null} ? @{/admin/categories} : @{/admin/categories/{id}(id=${edit.id})}" method="post" class="card">
+                        <div class="card-header" th:text="${edit.id == null} ? 'Thêm danh mục' : 'Sửa danh mục'"></div>
+                        <div class="card-body">
+                            <div class="mb-3"><label class="form-label">Tên danh mục</label><input name="name" class="form-control" th:value="${edit.name}" required></div>
+                            <div class="mb-3"><label class="form-label">Danh mục cha</label>
+                                <select name="parentId" class="form-select">
+                                    <option value="">-- Danh mục gốc --</option>
+                                    <option th:each="c : ${categories}" th:if="${c.id != edit.id}" th:value="${c.id}" th:text="${#strings.repeat('— ', c.depth) + c.name}"
+                                            th:selected="${edit.parent != null && edit.parent.id == c.id}"></option>
+                                </select></div>
+                            <div class="mb-3"><label class="form-label">Icon (Bootstrap Icons)</label><input name="icon" class="form-control" th:value="${edit.icon}" placeholder="bi-capsule">
+                                <div class="form-text">Xem tại icons.getbootstrap.com, VD: bi-heart-pulse, bi-capsule</div></div>
+                            <div class="mb-3"><label class="form-label">Thứ tự hiển thị</label><input type="number" name="sortOrder" class="form-control" th:value="${edit.sortOrder}"></div>
+                            <div class="mb-3"><label class="form-label">Mô tả SEO</label><textarea name="metaDescription" class="form-control" rows="2" maxlength="300" th:text="${edit.metaDescription}"></textarea></div>
+                            <button class="btn btn-primary">Lưu</button>
+                            <a th:if="${edit.id != null}" th:href="@{/admin/categories}" class="btn btn-link">Hủy</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

@@ -2,30 +2,31 @@ package com.hieuthuoc.entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-
+/** Tin nhắn tư vấn. kind: null (người gửi), AI (trợ lý AI), SYSTEM (thông báo hệ thống). */
 @Entity
-@Table(name = "messages", indexes = @Index(columnList = "conversation_id"))
+@Table(name = "messages")
 @Getter
 @Setter
 @NoArgsConstructor
-public class Message {
+public class Message extends Timestamped {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "conversation_id")
     private Conversation conversation;
 
-    /** Người gửi; null với tin nhắn của trợ lý AI / hệ thống. */
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sender_id")
     private User sender;
 
-    /** null = tin người gửi; AI = trợ lý AI trả lời; SYSTEM = thông báo hệ thống (chuyển dược sĩ...). */
+    @Column(name = "sender_id", insertable = false, updatable = false)
+    private Long senderId;
+
     @Column(length = 10)
     private String kind;
 
@@ -35,12 +36,9 @@ public class Message {
     @Column(length = 200)
     private String image;
 
-    /** Giỏ hàng tư vấn dược sĩ gửi kèm tin nhắn. */
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "suggested_cart_id")
     private SuggestedCart suggestedCart;
-
-    @Column(nullable = false)
-    private LocalDateTime createdAt;
 
     public boolean isAi() {
         return "AI".equals(kind);
@@ -48,10 +46,5 @@ public class Message {
 
     public boolean isSystem() {
         return "SYSTEM".equals(kind);
-    }
-
-    @PrePersist
-    void prePersist() {
-        if (createdAt == null) createdAt = LocalDateTime.now();
     }
 }

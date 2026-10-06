@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>VinaPharma App</title>
+    <link rel="icon" href="../favicon.svg">
+    <link rel="stylesheet" href="../vendor/bootstrap/bootstrap.min.css">
+    <link rel="stylesheet" href="../vendor/bootstrap-icons/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="app.css">
+</head>
+<body>
+<!-- Ứng dụng client (SPA) tiêu thụ REST API /api/v1 - không dùng phiên/cookie, xác thực bằng Bearer token -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="#/"><i class="bi bi-capsule-pill"></i> VinaPharma <small class="fw-normal opacity-75">App</small></a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav" aria-label="Menu"><span class="navbar-toggler-icon"></span></button>
+        <div class="collapse navbar-collapse" id="nav">
+            <ul class="navbar-nav me-auto" id="navMain"></ul>
+            <ul class="navbar-nav" id="navUser"></ul>
+        </div>
+    </div>
+</nav>
+<div id="loading" class="loading-bar d-none" role="progressbar" aria-label="Đang tải"></div>
+<main class="container py-4" id="view" aria-live="polite"></main>
+<div class="toast-container position-fixed bottom-0 end-0 p-3" id="toasts"></div>
+<script src="../vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

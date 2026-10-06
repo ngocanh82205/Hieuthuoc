@@ -1,78 +1,60 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head}"></head>
-<body class="staff-body">
-<div class="staff-shell">
-    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
-    <div class="staff-main">
-        <header th:replace="~{fragments/staff :: topbar}"></header>
-        <main class="p-3 p-lg-4">
-            <div th:replace="~{fragments/layout :: flash}"></div>
-            <div class="card mb-4">
-                <div class="card-body d-flex flex-wrap gap-4">
-                    <div><div class="small text-muted">Sản phẩm</div><div class="fw-semibold" th:text="${product.name}"></div></div>
-                    <div><div class="small text-muted">Tồn thực tế</div><div class="fw-semibold" th:text="${product.onHand} + ' ' + ${product.unit}"></div></div>
-                    <div><div class="small text-muted">Giữ chỗ</div><div class="fw-semibold" th:text="${product.reserved}"></div></div>
-                    <div><div class="small text-muted">Khả dụng</div><div class="fw-semibold" th:text="${product.available}"></div></div>
-                    <div><div class="small text-muted">Định mức</div><div class="fw-semibold" th:text="${product.minStock}"></div></div>
-                </div>
-            </div>
-            <div class="card mb-4">
-                <div class="card-header">Danh sách lô (xếp theo hạn dùng - FEFO)</div>
-                <div class="table-responsive">
-                    <table class="table mb-0">
-                        <thead><tr><th>Số lô</th><th>NSX</th><th>HSD</th><th class="text-end">Tồn</th><th class="text-end">Đã bán</th><th class="text-end">Giá nhập</th><th>Kho</th><th>Nhà cung cấp</th><th>Trạng thái</th><th style="min-width: 260px">Thao tác</th></tr></thead>
-                        <tbody>
-                        <tr th:if="${batches.isEmpty()}"><td colspan="10" class="text-center text-muted py-4">Chưa có lô hàng.</td></tr>
-                        <tr th:each="b : ${batches}" th:classappend="${b.expired} ? 'table-danger' : (${b.locked} ? 'table-secondary' : '')">
-                            <td class="fw-semibold" th:text="${b.batchNo}"></td>
-                            <td class="small" th:text="${@fmt.date(b.mfgDate)}"></td>
-                            <td class="small" th:text="${@fmt.date(b.expDate)}"></td>
-                            <td class="text-end" th:text="${b.quantity}"></td>
-                            <td class="text-end" th:text="${sold[b.id]}"></td>
-                            <td class="text-end small" th:text="${@fmt.money(b.importPrice)}"></td>
-                            <td class="small" th:text="${b.warehouse != null ? b.warehouse.name : 'Kho chính'}"
-                                th:classappend="${b.warehouse != null && !b.warehouse.sellable} ? 'text-warning-emphasis'"></td>
-                            <td class="small" th:text="${b.supplier != null ? b.supplier.name : ''}"></td>
-                            <td class="small">
-                                <span th:if="${b.expired}" class="badge text-bg-danger">Hết hạn</span>
-                                <span th:if="${!b.expired && @fmt.daysUntil(b.expDate) <= 90}" class="badge text-bg-warning">Cận hạn</span>
-                                <span th:if="${b.locked}" class="badge text-bg-dark" th:title="${b.lockReason}">Đã khóa</span>
-                            </td>
-                            <td>
-                                <div class="d-flex flex-wrap gap-1">
-                                    <a th:href="@{/staff/batches/{id}/buyers(id=${b.id})}" class="btn btn-sm btn-outline-secondary" title="Truy vết khách đã mua"><i class="bi bi-people"></i></a>
-                                    <form th:action="@{/staff/batches/{id}/lock(id=${b.id})}" method="post" class="d-flex gap-1">
-                                        <input th:unless="${b.locked}" name="reason" class="form-control form-control-sm" placeholder="Lý do khóa" style="width: 110px">
-                                        <button class="btn btn-sm" th:classappend="${b.locked} ? 'btn-outline-success' : 'btn-outline-dark'" th:text="${b.locked} ? 'Mở khóa' : 'Khóa'"></button>
-                                    </form>
-                                </div>
-                                <form th:if="${b.quantity > 0}" th:action="@{/staff/batches/{id}/adjust(id=${b.id})}" method="post" class="d-flex gap-1 mt-1" data-confirm="Xác nhận điều chỉnh tồn kho lô này?">
-                                    <input type="number" name="quantity" class="form-control form-control-sm" style="width: 80px" th:value="${b.expired ? -b.quantity : ''}" placeholder="-SL" required>
-                                    <input name="reason" class="form-control form-control-sm" th:value="${b.expired ? 'Hủy thuốc hết hạn' : ''}" placeholder="Lý do (hủy/kiểm kê)" required>
-                                    <button class="btn btn-sm btn-outline-danger text-nowrap">Hủy/điều chỉnh</button>
-                                </form>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div class="card-footer bg-white small text-muted">Nhập số âm để hủy thuốc (hết hạn, hư hỏng) hoặc giảm khi kiểm kê. Điều chỉnh tăng cần quyền "Điều chỉnh tăng tồn kho".</div>
-            </div>
-            <div class="card" th:if="${!adjustments.isEmpty()}">
-                <div class="card-header">Lịch sử hủy / điều chỉnh</div>
-                <ul class="list-group list-group-flush small">
-                    <li class="list-group-item" th:each="a : ${adjustments}">
-                        <span th:text="${@fmt.dateTime(a.createdAt)}"></span> · Lô <strong th:text="${a.batch.batchNo}"></strong>:
-                        <strong th:text="${a.quantity > 0 ? '+' + a.quantity : a.quantity}"></strong> · <span th:text="${a.reason}"></span>
-                        <span class="text-muted" th:if="${a.user != null}" th:text="'(' + ${a.user.fullName} + ')'"></span>
-                        <span class="badge" th:classappend="'text-bg-' + ${a.statusValue.color}" th:text="${a.statusValue.label}"></span>
-                    </li>
-                </ul>
-            </div>
-        </main>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/admin :: layout(~{::content}, ~{})}">
+<body>
+<th:block th:fragment="content">
+    <div class="d-flex flex-wrap gap-3 mb-3 small">
+        <span>Tồn thực: <strong th:text="${@h.num(product.onHand)}"></strong> <th:block th:text="${product.unit}"/></span>
+        <span>Có thể bán: <strong th:text="${@h.num(product.available)}"></strong></span>
+        <span th:text="'Định mức: ' + ${@h.num(product.minStock)}"></span>
+        <a th:href="@{/staff/inventory}" class="ms-auto">← Tồn kho</a>
     </div>
-</div>
-<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+    <div class="card mb-4">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead><tr><th>Số lô</th><th>NSX / HSD</th><th class="text-end">Tồn</th><th class="text-end">Đã bán</th><th class="text-end">Giá nhập</th><th>Trạng thái</th><th style="min-width: 360px">Thao tác</th></tr></thead>
+                <tbody>
+                <tr th:each="b : ${batches}" th:id="'batch-' + ${b.id}" class="batch-row">
+                    <td class="fw-semibold"><th:block th:text="${b.batchNo}"/><div class="small text-muted"
+                        th:text="(${b.supplier != null} ? ${b.supplier.name} : '') + (${b.receipt != null} ? ' · ' + ${b.receipt.code} : '')"></div></td>
+                    <td class="small"><th:block th:text="${@h.date(b.mfgDate)}"/><div th:text="${@h.date(b.expDate)}"></div></td>
+                    <td class="text-end" th:text="${@h.num(b.quantity)}"></td>
+                    <td class="text-end" th:text="${@h.num(sold.getOrDefault(b.id, 0L))}"></td>
+                    <td class="text-end" th:text="${@h.money(b.importPrice)}"></td>
+                    <td><th:block th:replace="~{staff/_parts :: batchStatus(${b}, ${nearDays})}"/><div th:if="${b.locked and b.lockReason != null}" class="small text-muted" th:text="${b.lockReason}"></div></td>
+                    <td>
+                        <div class="d-flex flex-wrap gap-1">
+                            <form th:action="@{/staff/batches/{id}/adjust(id=${b.id})}" method="post" class="d-flex gap-1">
+                                <input type="number" name="quantity" class="form-control form-control-sm" style="width: 80px" placeholder="±SL" required aria-label="Số lượng điều chỉnh">
+                                <input name="reason" class="form-control form-control-sm" style="width: 130px" placeholder="Lý do (hủy, vỡ...)" required aria-label="Lý do">
+                                <button class="btn btn-sm btn-outline-danger text-nowrap">Hủy / chỉnh</button></form>
+                            <form th:action="@{/staff/batches/{id}/lock(id=${b.id})}" method="post" class="d-flex gap-1">
+                                <input th:unless="${b.locked}" name="reason" class="form-control form-control-sm" style="width: 130px" placeholder="Lý do khóa" aria-label="Lý do khóa">
+                                <button th:class="'btn btn-sm text-nowrap ' + (${b.locked} ? 'btn-outline-success' : 'btn-outline-dark')" th:text="${b.locked} ? 'Mở khóa' : 'Khóa lô'"></button></form>
+                            <a th:href="@{/staff/batches/{id}/buyers(id=${b.id})}" class="btn btn-sm btn-light text-nowrap"><i class="bi bi-people"></i> Truy vết</a>
+                        </div>
+                    </td>
+                </tr>
+                <tr th:if="${batches.isEmpty()}"><td colspan="7" class="text-center text-muted py-4">Chưa có lô hàng. <a th:href="@{/staff/receipts/new}">Tạo phiếu nhập</a>.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <p class="small text-muted">Số âm = hủy / giảm (VD: -5), số dương = tăng. Người không có quyền duyệt phiếu kho: phiếu chờ duyệt, tồn chưa đổi.</p>
+    <div class="card">
+        <div class="card-header">Lịch sử hủy / điều chỉnh</div>
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <thead><tr><th>Thời gian</th><th>Lô</th><th>Loại</th><th class="text-end">SL</th><th>Lý do</th><th>Người lập</th><th>Trạng thái</th></tr></thead>
+                <tbody>
+                <tr th:each="a : ${adjustments}"><td class="small" th:text="${@h.dt(a.createdAt)}"></td><td th:text="${a.batch.batchNo}"></td><td class="small" th:text="${a.typeLabel()}"></td>
+                    <td th:class="'text-end ' + (${a.quantity < 0} ? 'text-danger' : 'text-success')" th:text="(${a.quantity > 0} ? '+' : '') + ${a.quantity}"></td>
+                    <td class="small" th:text="${a.reason}"></td><td class="small" th:text="${a.user != null} ? ${a.user.fullName} : ''"></td>
+                    <td><span th:class="'badge text-bg-' + ${a.status.color}" th:text="${a.status.label}"></span></td></tr>
+                <tr th:if="${adjustments.isEmpty()}"><td colspan="7" class="text-center text-muted py-3">Chưa có.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</th:block>
 </body>
 </html>

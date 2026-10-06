@@ -1,56 +1,38 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head}"></head>
-<body class="staff-body">
-<div class="staff-shell">
-    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
-    <div class="staff-main">
-        <header th:replace="~{fragments/staff :: topbar}"></header>
-        <main class="p-3 p-lg-4">
-            <div th:replace="~{fragments/layout :: flash}"></div>
-            <div class="row g-4">
-                <div class="col-lg-7">
-                    <div class="card">
-                        <div class="table-responsive">
-                            <table class="table mb-0">
-                                <thead><tr><th>Nhà cung cấp</th><th>Liên hệ</th><th class="text-end">Tổng nhập</th><th class="text-end">Công nợ</th><th></th></tr></thead>
-                                <tbody>
-                                <tr th:if="${suppliers.isEmpty()}"><td colspan="5" class="text-center text-muted py-4">Chưa có nhà cung cấp.</td></tr>
-                                <tr th:each="s : ${suppliers}">
-                                    <td><div class="fw-semibold" th:text="${s.name}"></div><small class="text-muted" th:text="${s.address}"></small></td>
-                                    <td class="small"><div th:text="${s.phone}"></div><div th:text="${s.email}"></div></td>
-                                    <td class="text-end" th:text="${@fmt.money(value[s.id])}"></td>
-                                    <td class="text-end"><div class="fw-semibold" th:text="${@fmt.money(debts[s.id].balance())}"></div>
-                                        <span th:if="${debts[s.id].overdue() > 0}" class="badge text-bg-danger" th:text="'Quá hạn ' + ${@fmt.money(debts[s.id].overdue())}"></span></td>
-                                    <td class="text-nowrap"><a th:href="@{/admin/suppliers/{id}(id=${s.id})}" class="btn btn-sm btn-primary">Công nợ</a>
-                                        <a th:href="@{/admin/suppliers(edit=${s.id})}" class="btn btn-sm btn-outline-primary">Sửa</a></td>
-                                </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-5">
-                    <form th:action="${edit.id == null} ? @{/admin/suppliers} : @{/admin/suppliers/{id}(id=${edit.id})}" method="post" class="card">
-                        <div class="card-header" th:text="${edit.id == null} ? 'Thêm nhà cung cấp' : 'Sửa nhà cung cấp'"></div>
-                        <div class="card-body">
-                            <div class="mb-3"><label class="form-label">Tên</label><input name="name" class="form-control" th:value="${edit.name}" required></div>
-                            <div class="mb-3"><label class="form-label">Điện thoại</label><input name="phone" class="form-control" th:value="${edit.phone}"></div>
-                            <div class="mb-3"><label class="form-label">Email</label><input type="email" name="email" class="form-control" th:value="${edit.email}"></div>
-                            <div class="mb-3"><label class="form-label">Địa chỉ</label><input name="address" class="form-control" th:value="${edit.address}"></div>
-                            <div class="row g-2 mb-3">
-                                <div class="col-6"><label class="form-label">Mã số thuế</label><input name="taxCode" class="form-control" th:value="${edit.taxCode}"></div>
-                                <div class="col-6"><label class="form-label">Hạn thanh toán (ngày)</label><input type="number" min="0" name="paymentTermDays" class="form-control" th:value="${edit.termDays}"></div>
-                            </div>
-                            <button class="btn btn-primary">Lưu</button>
-                            <a th:if="${edit.id != null}" th:href="@{/admin/suppliers}" class="btn btn-link">Hủy</a>
-                        </div>
-                    </form>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/admin :: layout(~{::content}, ~{})}">
+<body>
+<th:block th:fragment="content">
+    <div class="row g-4">
+        <div class="col-xl-8">
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead><tr><th>Nhà cung cấp</th><th>Liên hệ</th><th class="text-end">Phiếu nhập</th><th></th></tr></thead>
+                        <tbody>
+                        <tr th:each="s : ${list}"><td><div class="fw-semibold" th:text="${s.name}"></div><div class="small text-muted" th:text="'MST ' + (${s.taxCode} ?: '-')"></div></td>
+                            <td class="small"><th:block th:text="${s.phone}"/><div th:text="${s.email}"></div></td>
+                            <td class="text-end" th:text="${receipts.getOrDefault(s.id, 0L)}"></td>
+                            <td class="text-nowrap"><a th:href="@{/admin/suppliers(edit=${s.id})}" class="btn btn-sm btn-light">Sửa</a></td></tr>
+                        <tr th:if="${list.isEmpty()}"><td colspan="4" class="text-center text-muted py-4">Chưa có nhà cung cấp.</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
-        </main>
+        </div>
+        <div class="col-xl-4">
+            <form th:action="${edit != null} ? @{/admin/suppliers-save/{id}(id=${edit.id})} : @{/admin/suppliers-save}" method="post" class="card">
+                <div class="card-header" th:text="${edit != null} ? 'Sửa nhà cung cấp' : 'Thêm nhà cung cấp'"></div>
+                <div class="card-body row g-2">
+                    <div class="col-12"><label class="form-label small" for="sName">Tên</label><input id="sName" name="name" class="form-control" required maxlength="200" th:value="${edit != null} ? ${edit.name} : ''"></div>
+                    <div class="col-6"><label class="form-label small" for="sPhone">Điện thoại</label><input id="sPhone" name="phone" class="form-control" maxlength="20" th:value="${edit != null} ? ${edit.phone} : ''"></div>
+                    <div class="col-6"><label class="form-label small" for="sTax">Mã số thuế</label><input id="sTax" name="tax_code" class="form-control" maxlength="20" th:value="${edit != null} ? ${edit.taxCode} : ''"></div>
+                    <div class="col-12"><label class="form-label small" for="sEmail">Email</label><input id="sEmail" type="email" name="email" class="form-control" maxlength="150" th:value="${edit != null} ? ${edit.email} : ''"></div>
+                    <div class="col-12"><label class="form-label small" for="sAddr">Địa chỉ</label><input id="sAddr" name="address" class="form-control" maxlength="300" th:value="${edit != null} ? ${edit.address} : ''"></div>
+                </div>
+                <div class="card-footer bg-white"><button class="btn btn-primary">Lưu</button><a th:if="${edit != null}" th:href="@{/admin/suppliers}" class="btn btn-link">Hủy</a></div>
+            </form>
+        </div>
     </div>
-</div>
-<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</th:block>
 </body>
 </html>

@@ -1,46 +1,48 @@
 package com.hieuthuoc.entity;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-/** Đơn thuốc khách tải lên - dược sĩ duyệt/từ chối và ghi sổ bán thuốc kê đơn. */
+/** Đơn thuốc khách tải lên (kèm đơn hàng hoặc gửi riêng để dược sĩ lên đơn). */
 @Entity
 @Table(name = "prescriptions")
 @Getter
 @Setter
 @NoArgsConstructor
-public class Prescription {
+public class Prescription extends Timestamped {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** Đơn hàng gắn với đơn thuốc. Null khi khách gửi đơn thuốc chưa chọn sản phẩm (chờ dược sĩ lên đơn). */
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id")
     private Order order;
 
-    /** true = khách gửi đơn thuốc không kèm sản phẩm, nhờ dược sĩ lên đơn. */
-    private Boolean standalone;
+    @Column(name = "order_id", insertable = false, updatable = false)
+    private Long orderId;
+
+    /** Gửi riêng (chưa chọn sản phẩm) - dược sĩ lên đơn từ đơn thuốc. */
+    @Column(nullable = false)
+    private boolean standalone;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id")
     private User user;
 
-    /** Tên file ảnh (lưu ngoài thư mục public). */
-    /** Ảnh đơn thuốc (null khi bán tại quầy - dược sĩ xem đơn giấy trực tiếp). */
     @Column(length = 200)
     private String image;
 
-    /** Các mục dược sĩ đã kiểm tra khi duyệt (hợp lệ, hiệu lực, chữ ký, khớp thuốc/liều). */
     @Column(length = 300)
     private String checklist;
 
-    @Column(length = 500)
+    @Column(name = "customer_note", length = 500)
     private String customerNote;
 
     @Enumerated(EnumType.STRING)
@@ -49,36 +51,31 @@ public class Prescription {
     private ApprovalStatus status = ApprovalStatus.PENDING;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "pharmacist_id")
     private User pharmacist;
 
-    @Column(length = 100)
+    @Column(name = "patient_name", length = 100)
     private String patientName;
 
-    @Column(length = 100)
+    @Column(name = "doctor_name", length = 100)
     private String doctorName;
 
     @Column(length = 200)
     private String clinic;
 
+    @Column(name = "rx_date")
     private LocalDate rxDate;
 
-    @Column(length = 1000)
+    @Column(name = "pharmacist_note", length = 1000)
     private String pharmacistNote;
 
-    @Column(length = 500)
+    @Column(name = "reject_reason", length = 500)
     private String rejectReason;
 
+    @Column(name = "reviewed_at")
     private LocalDateTime reviewedAt;
 
-    @Column(nullable = false)
-    private LocalDateTime createdAt;
-
-    public boolean isStandalone() {
-        return Boolean.TRUE.equals(standalone);
-    }
-
-    @PrePersist
-    void prePersist() {
-        if (createdAt == null) createdAt = LocalDateTime.now();
+    public boolean hasCheck(String key) {
+        return checklist != null && java.util.Arrays.asList(checklist.split(",")).contains(key);
     }
 }

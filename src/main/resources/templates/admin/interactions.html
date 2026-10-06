@@ -1,58 +1,43 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head}"></head>
-<body class="staff-body">
-<div class="staff-shell">
-    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
-    <div class="staff-main">
-        <header th:replace="~{fragments/staff :: topbar}"></header>
-        <main class="p-3 p-lg-4">
-            <div th:replace="~{fragments/layout :: flash}"></div>
-            <p class="small text-muted">Hệ thống cảnh báo cho dược sĩ khi tư vấn / duyệt đơn nếu khách mua (hoặc đã mua trong 90 ngày) hai thuốc có thành phần chứa từ khóa A và B.
-                Đây là công cụ hỗ trợ, không thay thế tra cứu chuyên môn.</p>
-            <div class="row g-4">
-                <div class="col-lg-8">
-                    <div class="card">
-                        <div class="table-responsive">
-                            <table class="table align-middle mb-0">
-                                <thead><tr><th>Hoạt chất A</th><th>Hoạt chất B</th><th>Mức độ</th><th>Cảnh báo / khuyến cáo</th><th></th></tr></thead>
-                                <tbody>
-                                <tr th:each="d : ${list}">
-                                    <td class="fw-semibold" th:text="${d.ingredientA}"></td>
-                                    <td class="fw-semibold" th:text="${d.ingredientB}"></td>
-                                    <td><span class="badge" th:classappend="${d.level == 'danger'} ? 'text-bg-danger' : (${d.level == 'info'} ? 'text-bg-info' : 'text-bg-warning')" th:text="${d.levelLabel}"></span></td>
-                                    <td class="small" th:text="${d.message}"></td>
-                                    <td class="text-nowrap"><a th:href="@{/admin/interactions(edit=${d.id})}" class="btn btn-sm btn-outline-primary">Sửa</a>
-                                        <form th:action="@{/admin/interactions/{id}/delete(id=${d.id})}" method="post" class="d-inline" data-confirm="Xóa quy tắc?">
-                                            <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form></td>
-                                </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-4">
-                    <form th:action="${edit.id == null} ? @{/admin/interactions} : @{/admin/interactions/{id}(id=${edit.id})}" method="post" class="card">
-                        <div class="card-header" th:text="${edit.id == null} ? 'Thêm quy tắc tương tác' : 'Sửa quy tắc'"></div>
-                        <div class="card-body">
-                            <div class="mb-3"><label class="form-label">Hoạt chất A (từ khóa)</label><input name="ingredientA" class="form-control" list="ingList" th:value="${edit.ingredientA}" required></div>
-                            <div class="mb-3"><label class="form-label">Hoạt chất B (từ khóa)</label><input name="ingredientB" class="form-control" list="ingList" th:value="${edit.ingredientB}" required></div>
-                            <div class="mb-3"><label class="form-label">Mức độ</label>
-                                <select name="level" class="form-select">
-                                    <option value="danger" th:selected="${edit.level == 'danger'}">Nghiêm trọng</option>
-                                    <option value="warning" th:selected="${edit.level == null || edit.level == 'warning'}">Thận trọng</option>
-                                    <option value="info" th:selected="${edit.level == 'info'}">Lưu ý</option>
-                                </select></div>
-                            <div class="mb-3"><label class="form-label">Nội dung cảnh báo</label><textarea name="message" class="form-control" rows="3" th:text="${edit.message}" required></textarea></div>
-                            <button class="btn btn-primary">Lưu</button> <a th:if="${edit.id != null}" th:href="@{/admin/interactions}" class="btn btn-link">Hủy</a>
-                            <datalist id="ingList"><option th:each="i : ${ingredients}" th:value="${i.name.toLowerCase()}"></option></datalist>
-                        </div>
-                    </form>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/admin :: layout(~{::content}, ~{})}">
+<body>
+<th:block th:fragment="content">
+    <p class="small text-muted">Hệ thống cảnh báo cho dược sĩ khi tư vấn / duyệt đơn / bán tại quầy nếu khách mua (hoặc đã mua trong 90 ngày) hai thuốc có thành phần chứa từ khóa A và B.
+        Đây là công cụ hỗ trợ, không thay thế tra cứu chuyên môn.</p>
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead><tr><th>Hoạt chất A</th><th>Hoạt chất B</th><th>Mức độ</th><th>Cảnh báo / khuyến cáo</th><th></th></tr></thead>
+                        <tbody>
+                        <tr th:each="d : ${list}"><td class="fw-semibold" th:text="${d.ingredientA}"></td><td class="fw-semibold" th:text="${d.ingredientB}"></td>
+                            <td><span th:class="'badge text-bg-' + (${d.level == 'danger'} ? 'danger' : (${d.level == 'info'} ? 'info' : 'warning'))" th:text="${levels[d.level]} ?: ${d.level}"></span></td>
+                            <td class="small" th:text="${d.message}"></td>
+                            <td class="text-nowrap"><a th:href="@{/admin/interactions(edit=${d.id})}" class="btn btn-sm btn-outline-primary">Sửa</a>
+                                <form th:action="@{/admin/interactions/{id}/delete(id=${d.id})}" method="post" class="d-inline" data-confirm="Xóa quy tắc?">
+                                    <button class="btn btn-sm btn-outline-danger" aria-label="Xóa"><i class="bi bi-trash"></i></button></form></td></tr>
+                        <tr th:if="${list.isEmpty()}"><td colspan="5" class="text-center text-muted py-4">Chưa có quy tắc.</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
-        </main>
+        </div>
+        <div class="col-lg-4">
+            <form th:action="${edit != null} ? @{/admin/interactions/{id}(id=${edit.id})} : @{/admin/interactions}" method="post" class="card">
+                <div class="card-header" th:text="${edit != null} ? 'Sửa quy tắc' : 'Thêm quy tắc tương tác'"></div>
+                <div class="card-body">
+                    <div class="mb-3"><label class="form-label" for="dA">Hoạt chất A (từ khóa)</label><input id="dA" name="ingredient_a" class="form-control" list="ingList" th:value="${edit != null} ? ${edit.ingredientA} : ''" required></div>
+                    <div class="mb-3"><label class="form-label" for="dB">Hoạt chất B (từ khóa)</label><input id="dB" name="ingredient_b" class="form-control" list="ingList" th:value="${edit != null} ? ${edit.ingredientB} : ''" required></div>
+                    <div class="mb-3"><label class="form-label" for="dL">Mức độ</label>
+                        <select id="dL" name="level" class="form-select"><option th:each="e : ${levels}" th:value="${e.key}" th:selected="${(edit != null ? edit.level : 'warning') == e.key}" th:text="${e.value}"></option></select></div>
+                    <div class="mb-3"><label class="form-label" for="dM">Nội dung cảnh báo</label><textarea id="dM" name="message" class="form-control" rows="3" required maxlength="500" th:text="${edit != null} ? ${edit.message} : ''"></textarea></div>
+                    <button class="btn btn-primary">Lưu</button> <a th:if="${edit != null}" th:href="@{/admin/interactions}" class="btn btn-link">Hủy</a>
+                    <datalist id="ingList"><option th:each="i : ${ingredients}" th:value="${i}"></option></datalist>
+                </div>
+            </form>
+        </div>
     </div>
-</div>
-<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</th:block>
 </body>
 </html>

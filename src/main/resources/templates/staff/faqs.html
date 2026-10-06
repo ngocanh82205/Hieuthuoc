@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/admin :: layout(~{::content}, ~{})}">
+<body>
+<th:block th:fragment="content">
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="card mb-3" th:each="g : ${grouped}">
+                <div class="card-header fw-semibold" th:text="${g.key}"></div>
+                <ul class="list-group list-group-flush">
+                    <li th:each="f : ${g.value}" th:class="'list-group-item ' + (${f.active} ? '' : 'text-muted')">
+                        <div class="d-flex justify-content-between gap-2">
+                            <div><div class="fw-semibold"><th:block th:text="${f.question}"/> <span th:unless="${f.active}" class="badge text-bg-secondary">Ẩn</span></div>
+                                <div class="small" th:text="${@h.limit(f.answer, 160)}"></div></div>
+                            <div class="text-nowrap">
+                                <a th:href="@{/staff/faqs(edit=${f.id})}" class="btn btn-sm btn-outline-primary">Sửa</a>
+                                <form th:action="@{/staff/faqs/{id}/delete(id=${f.id})}" method="post" class="d-inline" data-confirm="Xóa câu hỏi này?">
+                                    <button class="btn btn-sm btn-outline-danger" aria-label="Xóa"><i class="bi bi-trash"></i></button></form>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+            <div th:if="${grouped.isEmpty()}" class="card card-body text-muted">Chưa có câu hỏi.</div>
+        </div>
+        <div class="col-lg-5">
+            <form th:action="${edit != null} ? @{/staff/faqs/{id}(id=${edit.id})} : @{/staff/faqs}" method="post" class="card">
+                <div class="card-header" th:text="${edit != null} ? 'Sửa câu hỏi' : 'Thêm câu hỏi'"></div>
+                <div class="card-body">
+                    <div class="mb-2"><label class="form-label small" for="fGroup">Nhóm</label>
+                        <input id="fGroup" name="group" class="form-control" list="faqGroups" th:value="${edit != null} ? ${edit.group} : 'Chung'" maxlength="100">
+                        <datalist id="faqGroups"><option th:each="g : ${groups}" th:value="${g}"></option></datalist></div>
+                    <div class="mb-2"><label class="form-label small" for="fQ">Câu hỏi</label>
+                        <input id="fQ" name="question" class="form-control" required maxlength="300" th:value="${edit != null} ? ${edit.question} : ''"></div>
+                    <div class="mb-2"><label class="form-label small" for="fA">Trả lời</label>
+                        <textarea id="fA" name="answer" class="form-control" rows="5" required th:text="${edit != null} ? ${edit.answer} : ''"></textarea></div>
+                    <div class="row g-2 align-items-end">
+                        <div class="col-6"><label class="form-label small" for="fSort">Thứ tự</label>
+                            <input id="fSort" type="number" name="sort_order" class="form-control" th:value="${edit != null} ? ${edit.sortOrder} : 0"></div>
+                        <div class="col-6" th:if="${edit != null}"><div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="active" value="1" id="fAct" th:checked="${edit.active}">
+                            <label class="form-check-label" for="fAct">Hiển thị</label></div></div>
+                    </div>
+                </div>
+                <div class="card-footer bg-white"><button class="btn btn-primary">Lưu</button>
+                    <a th:if="${edit != null}" th:href="@{/staff/faqs}" class="btn btn-link">Hủy</a></div>
+            </form>
+        </div>
+    </div>
+</th:block>
+</body>
+</html>

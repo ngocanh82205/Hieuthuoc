@@ -5,17 +5,16 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 
-/** Trang tĩnh: giới thiệu, chính sách đổi trả, bảo mật, giao hàng... */
+/** Trang tĩnh (chính sách, giới thiệu...) hiển thị ở chân trang. */
 @Entity
 @Table(name = "static_pages")
 @Getter
 @Setter
 @NoArgsConstructor
-public class StaticPage {
+public class StaticPage extends Timestamped {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -26,36 +25,23 @@ public class StaticPage {
     @Column(nullable = false, length = 200)
     private String title;
 
-    @Column(columnDefinition = "LONGTEXT")
+    @Column(columnDefinition = "longtext")
     private String content;
 
-    @Column(length = 300)
+    @Column(name = "meta_description", length = 300)
     private String metaDescription;
 
+    @Column(nullable = false)
     private boolean published = true;
 
-    /** Hiện link ở chân trang. */
+    @Column(name = "show_in_footer", nullable = false)
     private boolean showInFooter = true;
 
+    @Column(name = "sort_order", nullable = false)
     private int sortOrder;
 
-    private LocalDateTime updatedAt;
-
-    @PrePersist
-    @PreUpdate
-    void touch() {
-        updatedAt = LocalDateTime.now();
-    }
-
-    public StaticPage(String slug, String title, String content, int sortOrder) {
-        this.slug = slug;
-        this.title = title;
-        this.content = content;
-        this.sortOrder = sortOrder;
-    }
-
-    /** Đoạn văn (cách nhau dòng trống); dòng bắt đầu bằng "## " là tiêu đề mục. */
-    public List<String> getParagraphs() {
-        return content == null ? List.of() : Arrays.stream(content.split("\\r?\\n\\s*\\r?\\n")).map(String::trim).filter(s -> !s.isEmpty()).toList();
+    public List<String> paragraphs() {
+        if (content == null) return List.of();
+        return Arrays.stream(content.split("\\r?\\n")).map(String::trim).filter(s -> !s.isEmpty()).toList();
     }
 }

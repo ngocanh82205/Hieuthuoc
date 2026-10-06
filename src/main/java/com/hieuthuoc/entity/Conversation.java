@@ -2,62 +2,58 @@ package com.hieuthuoc.entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
+/** Cuộc tư vấn giữa khách và nhà thuốc: trợ lý AI tiếp nhận trước (mode AI), chuyển dược sĩ khi cần (mode PHARMACIST). */
 @Entity
 @Table(name = "conversations")
 @Getter
 @Setter
 @NoArgsConstructor
-public class Conversation {
+public class Conversation extends Timestamped {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "customer_id")
     private User customer;
 
-    /** Dược sĩ nhận tư vấn (gán khi dược sĩ trả lời lần đầu). */
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "pharmacist_id")
     private User pharmacist;
 
+    @Column(nullable = false)
     private boolean closed;
 
-    /** AI = trợ lý AI đang hỗ trợ; HUMAN (hoặc null) = dược sĩ / nhân viên tư vấn. */
-    @Column(length = 10)
-    private String mode;
+    @Column(nullable = false, length = 10)
+    private String mode = "AI";
 
-    /** Tóm tắt của trợ lý AI khi chuyển cho dược sĩ, và lý do chuyển. */
-    @Column(length = 1500)
+    @Column(name = "ai_summary", length = 1500)
     private String aiSummary;
 
-    @Column(length = 200)
+    @Column(name = "handoff_reason", length = 200)
     private String handoffReason;
 
+    @Column(name = "handed_off_at")
     private LocalDateTime handedOffAt;
 
-    /** Trợ lý đã hỏi sàng lọc triệu chứng (chế độ trả lời tự động). */
-    private Boolean triageAsked;
+    @Column(name = "triage_asked", nullable = false)
+    private boolean triageAsked;
 
-    /** Số lần trợ lý không hiểu câu hỏi liên tiếp. */
-    private Integer aiMisses;
+    @Column(name = "ai_misses", nullable = false)
+    private int aiMisses;
+
+    @OneToMany(mappedBy = "conversation")
+    @OrderBy("id ASC")
+    private List<Message> messages = new ArrayList<>();
 
     public boolean isAiMode() {
         return "AI".equals(mode);
-    }
-
-    @Column(nullable = false)
-    private LocalDateTime createdAt;
-
-    private LocalDateTime updatedAt;
-
-    @PrePersist
-    void prePersist() {
-        if (createdAt == null) createdAt = LocalDateTime.now();
-        if (updatedAt == null) updatedAt = createdAt;
     }
 }

@@ -20,7 +20,7 @@ public class AppUserDetails implements UserDetails {
     public AppUserDetails(User u) {
         this.id = u.getId();
         this.email = u.getEmail() != null ? u.getEmail() : u.getPhone();
-        this.passwordHash = u.getPasswordHash();
+        this.passwordHash = u.getPassword();
         this.role = u.getRole().name();
         this.locked = u.isLocked();
     }

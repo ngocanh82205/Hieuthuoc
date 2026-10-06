@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="staff-body">
+<div class="staff-shell">
+    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
+    <div class="staff-main">
+        <header th:replace="~{fragments/staff :: topbar}"></header>
+        <main class="p-3 p-lg-4">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <ul class="nav nav-pills mb-3">
+                <li class="nav-item"><a class="nav-link" th:classappend="${status.name() == 'PENDING'} ? 'active'" th:href="@{/staff/prescriptions(status='PENDING')}">Chờ duyệt</a></li>
+                <li class="nav-item"><a class="nav-link" th:classappend="${status.name() == 'APPROVED'} ? 'active'" th:href="@{/staff/prescriptions(status='APPROVED')}">Đã duyệt</a></li>
+                <li class="nav-item"><a class="nav-link" th:classappend="${status.name() == 'REJECTED'} ? 'active'" th:href="@{/staff/prescriptions(status='REJECTED')}">Từ chối</a></li>
+            </ul>
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead><tr><th>#</th><th>Khách hàng</th><th>Đơn hàng</th><th>Gửi lúc</th><th>Dược sĩ</th><th>Ghi chú</th><th></th></tr></thead>
+                        <tbody>
+                        <tr th:if="${list.isEmpty()}"><td colspan="7" class="text-center text-muted py-4">Không có đơn thuốc.</td></tr>
+                        <tr th:each="rx : ${list}">
+                            <td th:text="${rx.id}"></td>
+                            <td><div class="fw-semibold" th:text="${rx.user.fullName}"></div><small class="text-muted" th:text="${rx.user.phone}"></small></td>
+                            <td th:if="${rx.order != null}"><a th:href="@{/staff/orders/{id}(id=${rx.order.id})}" th:text="${rx.order.code}"></a>
+                                <div class="small" th:text="${@fmt.money(rx.order.total)}"></div></td>
+                            <td th:if="${rx.order == null}"><span class="badge text-bg-info">Nhờ lên đơn</span></td>
+                            <td class="small" th:text="${@fmt.dateTime(rx.createdAt)}"></td>
+                            <td class="small" th:text="${rx.pharmacist != null ? rx.pharmacist.fullName : '-'}"></td>
+                            <td class="small" th:text="${rx.status.name() == 'REJECTED' ? rx.rejectReason : rx.customerNote}"></td>
+                            <td><a th:href="@{/staff/prescriptions/{id}(id=${rx.id})}" class="btn btn-sm" th:classappend="${rx.status.name() == 'PENDING'} ? 'btn-primary' : 'btn-outline-secondary'"
+                                   th:text="${rx.status.name() == 'PENDING'} ? 'Duyệt' : 'Xem'"></a></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

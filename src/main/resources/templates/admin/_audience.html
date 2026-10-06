@@ -1,0 +1,15 @@
+<!--/* Chọn nhóm khách nhận (voucher / email marketing): prefix = tiền tố id; cần audiences, tiers trong model */-->
+<th:block xmlns:th="http://www.thymeleaf.org" th:fragment="audience(prefix)">
+    <div class="mb-2"><label class="form-label small" th:for="${prefix} + 'Aud'">Nhóm khách nhận</label>
+        <select th:id="${prefix} + 'Aud'" name="audience" class="form-select form-select-sm" th:data-audience="${prefix}">
+            <option th:each="a : ${audiences}" th:value="${a.key}" th:text="${a.value}"></option>
+        </select></div>
+    <div class="mb-2 d-none" th:data-for="${prefix}" data-when="TIER"><label class="form-label small" th:for="${prefix} + 'Tier'">Hạng từ</label>
+        <select th:id="${prefix} + 'Tier'" name="tier" class="form-select form-select-sm">
+            <option th:each="t : ${tiers}" th:value="${t.name()}" th:text="${t.label}"></option>
+        </select></div>
+    <div class="mb-2 d-none" th:data-for="${prefix}" data-when="INACTIVE"><label class="form-label small" th:for="${prefix} + 'Days'">Không mua hàng trong (ngày)</label>
+        <input th:id="${prefix} + 'Days'" type="number" min="1" name="inactive_days" value="60" class="form-control form-control-sm"></div>
+    <div class="mb-2 d-none" th:data-for="${prefix}" data-when="PHONES"><label class="form-label small" th:for="${prefix} + 'Phones'">Số điện thoại / email (cách nhau dấu phẩy hoặc xuống dòng)</label>
+        <textarea th:id="${prefix} + 'Phones'" name="phones" rows="2" class="form-control form-control-sm"></textarea></div>
+</th:block>

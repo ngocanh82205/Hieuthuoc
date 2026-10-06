@@ -18,6 +18,18 @@ public class BusinessException extends RuntimeException {
     }
 
     public static BusinessException notFound(String message) {
-        return new BusinessException(message, 404);
+        return new BusinessException(message == null ? "Không tìm thấy dữ liệu." : message, 404);
+    }
+
+    public static BusinessException notFound() {
+        return notFound(null);
+    }
+
+    public static BusinessException forbidden(String message) {
+        return new BusinessException(message == null ? "Bạn không có quyền thực hiện thao tác này." : message, 403);
+    }
+
+    public static BusinessException forbidden() {
+        return forbidden(null);
     }
 }

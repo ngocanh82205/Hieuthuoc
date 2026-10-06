@@ -1,24 +1,23 @@
 package com.hieuthuoc.entity;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 
 @Entity
-@Table(name = "orders", indexes = {@Index(columnList = "status"), @Index(columnList = "user_id")})
+@Table(name = "orders")
 @Getter
 @Setter
 @NoArgsConstructor
-public class Order {
+public class Order extends Timestamped {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -27,7 +26,11 @@ public class Order {
     private String code;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id")
     private User user;
+
+    @Column(name = "user_id", insertable = false, updatable = false)
+    private Long userId;
 
     @Column(nullable = false, length = 100)
     private String recipient;
@@ -38,186 +41,208 @@ public class Order {
     @Column(length = 300)
     private String address;
 
+    @Column(length = 60)
+    private String province;
+
+    @Column(name = "ghn_district_id")
+    private Integer ghnDistrictId;
+
+    @Column(name = "ghn_ward_code", length = 20)
+    private String ghnWardCode;
+
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
-    @Column(nullable = false, length = 20)
+    @Column(name = "shipping_method", nullable = false, length = 20)
     private ShippingMethod shippingMethod = ShippingMethod.DELIVERY;
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
-    @Column(nullable = false, length = 20)
+    @Column(name = "payment_method", nullable = false, length = 20)
     private PaymentMethod paymentMethod = PaymentMethod.COD;
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
-    @Column(nullable = false, length = 20)
+    @Column(name = "payment_status", nullable = false, length = 20)
     private PaymentStatus paymentStatus = PaymentStatus.UNPAID;
 
+    @Column(nullable = false)
     private long subtotal;
 
+    @Column(nullable = false)
     private long discount;
 
+    @Column(name = "shipping_fee", nullable = false)
     private long shippingFee;
 
+    @Column(nullable = false)
     private long total;
 
-    @Column(length = 30)
+    /** Giá vốn chốt lúc hoàn thành đơn (lô xuất bị xóa khi nhận trả hàng nên không tính lại được về sau). */
+    @Column(name = "cost_amount", nullable = false)
+    private long costAmount;
+
+    @Column(name = "voucher_code", length = 30)
     private String voucherCode;
 
-    /** Điểm tích lũy khách dùng để trừ tiền. */
-    private Integer pointsUsed;
+    @Column(name = "points_used", nullable = false)
+    private int pointsUsed;
 
-    private Long pointsDiscount;
+    @Column(name = "points_discount", nullable = false)
+    private long pointsDiscount;
 
-    /** Điểm khách được cộng khi đơn hoàn thành. */
-    private Integer pointsEarned;
+    @Column(name = "points_earned", nullable = false)
+    private int pointsEarned;
+
+    @Column(name = "promo_discount", nullable = false)
+    private long promoDiscount;
+
+    @Column(name = "promo_note", length = 500)
+    private String promoNote;
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(nullable = false, length = 20)
     private OrderStatus status;
 
+    @Column(name = "needs_prescription", nullable = false)
     private boolean needsPrescription;
 
     @Column(length = 500)
     private String note;
 
-    @Column(length = 500)
+    @Column(name = "cancel_reason", length = 500)
     private String cancelReason;
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
-    @Column(length = 20)
+    @Column(name = "return_status", length = 20)
     private ReturnStatus returnStatus;
 
-    @Column(length = 1000)
+    @Column(name = "return_reason", length = 1000)
     private String returnReason;
 
-    /** Nhân viên phụ trách xử lý đơn. */
-    @ManyToOne(fetch = FetchType.LAZY)
-    private User handledBy;
+    /** Kênh bán: ONLINE hoặc POS (bán tại quầy). */
+    @Column(nullable = false, length = 10)
+    private String channel = "ONLINE";
 
+    /** Nhân viên xử lý đơn. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "handled_by")
+    private User handler;
+
+    @Column(name = "handled_by", insertable = false, updatable = false)
+    private Long handledBy;
+
+    @Column(name = "completed_at")
     private LocalDateTime completedAt;
 
-    /** Kênh bán: ONLINE (mặc định) hoặc POS (bán tại quầy). */
-    @Column(length = 10)
-    private String channel;
+    /** Ngày nhận hàng trả (báo cáo ghi giảm doanh thu vào ngày này). */
+    @Column(name = "returned_at")
+    private LocalDateTime returnedAt;
 
-    /** Đơn vị vận chuyển và mã vận đơn khi giao cho bên vận chuyển. */
+    /** Giá vốn hoàn lại khi hàng trả được nhập lại kho. */
+    @Column(name = "return_cost", nullable = false)
+    private long returnCost;
+
     @Column(length = 50)
     private String carrier;
 
-    @Column(length = 60)
+    @Column(name = "tracking_code", length = 60)
     private String trackingCode;
 
-    /** Gọi điện xác minh đơn COD giá trị lớn. */
-    private LocalDateTime verifiedAt;
+    /** Trạng thái vận đơn bên GHN (ready_to_pick, delivering, delivered, cancel...). */
+    @Column(name = "shipping_status", length = 40)
+    private String shippingStatus;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    private User verifiedBy;
-
-    @Column(length = 300)
-    private String verifyNote;
-
-    /** Tỉnh/thành giao hàng (tính phí ship theo khu vực). */
-    @Column(length = 50)
-    private String province;
-
-    /** Nhân viên / dược sĩ được admin phân công xử lý đơn. */
-    @ManyToOne(fetch = FetchType.LAZY)
-    private User assignedTo;
-
-    /** Hoàn tiền: số tiền, người duyệt, thời điểm, ghi chú (mã giao dịch...). */
+    @Column(name = "refund_amount")
     private Long refundAmount;
 
+    @Column(name = "refunded_at")
     private LocalDateTime refundedAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "refunded_by")
     private User refundedBy;
 
-    @Column(length = 300)
+    @Column(name = "refund_note", length = 300)
     private String refundNote;
 
-    /** Yêu cầu xuất hóa đơn VAT (hóa đơn điện tử). */
-    @Column(length = 200)
+    @Column(name = "vat_company", length = 200)
     private String vatCompany;
 
-    @Column(length = 20)
+    @Column(name = "vat_tax_code", length = 20)
     private String vatTaxCode;
 
-    @Column(length = 300)
+    @Column(name = "vat_address", length = 300)
     private String vatAddress;
 
-    @Column(length = 150)
+    @Column(name = "vat_email", length = 150)
     private String vatEmail;
 
-    /** Số hóa đơn điện tử đã phát hành. */
-    @Column(length = 50)
+    @Column(name = "einvoice_no", length = 50)
     private String einvoiceNo;
 
-    /** Giảm giá từ chương trình khuyến mãi (flash sale / combo). */
-    private Long promoDiscount;
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("id ASC")
+    private List<OrderItem> items = new ArrayList<>();
 
-    @Column(length = 500)
-    private String promoNote;
+    @OneToMany(mappedBy = "order")
+    @OrderBy("id ASC")
+    private List<OrderHistory> history = new ArrayList<>();
 
-    public long getPromoDiscountValue() {
-        return promoDiscount == null ? 0 : promoDiscount;
-    }
+    @OneToMany(mappedBy = "order")
+    @OrderBy("id DESC")
+    private List<Prescription> prescriptions = new ArrayList<>();
 
-    public boolean isVatRequested() {
-        return vatTaxCode != null;
-    }
+    @OneToMany(mappedBy = "order")
+    @OrderBy("id DESC")
+    private List<PaymentTransaction> paymentTransactions = new ArrayList<>();
+
+    @OneToMany(mappedBy = "order")
+    @OrderBy("id DESC")
+    private List<BillCancelRequest> cancelRequests = new ArrayList<>();
 
     public boolean isPos() {
         return "POS".equals(channel);
     }
 
-    @Column(nullable = false)
-    private LocalDateTime createdAt;
-
-    private LocalDateTime updatedAt;
-
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderBy("id")
-    private List<OrderItem> items = new ArrayList<>();
-
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderBy("id")
-    private List<OrderHistory> history = new ArrayList<>();
-
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderBy("id DESC")
-    private List<Prescription> prescriptions = new ArrayList<>();
-
-    @PrePersist
-    void prePersist() {
-        if (createdAt == null) createdAt = LocalDateTime.now();
-        updatedAt = createdAt;
+    public boolean isVatRequested() {
+        return vatTaxCode != null && !vatTaxCode.isEmpty();
     }
 
-    @PreUpdate
-    void preUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
-
-    public int getPointsUsedValue() {
-        return pointsUsed == null ? 0 : pointsUsed;
-    }
-
-    public long getPointsDiscountValue() {
-        return pointsDiscount == null ? 0 : pointsDiscount;
-    }
-
-    public int getPointsEarnedValue() {
-        return pointsEarned == null ? 0 : pointsEarned;
-    }
-
-    public int getItemCount() {
+    public int itemCount() {
         return items.stream().mapToInt(OrderItem::getQuantity).sum();
     }
 
-    public Prescription getLatestPrescription() {
+    /** Đã giao thành công -> khách được đánh giá. */
+    public boolean isCompleted() {
+        return status == OrderStatus.COMPLETED;
+    }
+
+    public Prescription latestPrescription() {
         return prescriptions.isEmpty() ? null : prescriptions.get(0);
+    }
+
+    /** Hạn cuối lập phiếu hủy hóa đơn bán tại quầy (null = không giới hạn). */
+    public LocalDateTime posCancelDeadline(int days) {
+        if (days <= 0) return null;
+        LocalDateTime base = completedAt != null ? completedAt : getCreatedAt();
+        return base.toLocalDate().plusDays(days).atTime(23, 59, 59);
+    }
+
+    public boolean isPosCancelExpired(int days) {
+        LocalDateTime d = posCancelDeadline(days);
+        return d != null && d.isBefore(LocalDateTime.now());
+    }
+
+    /** Nhân viên được ghi nhận đã thu tiền: chưa thu, giá đã chốt (sau bước duyệt / khách xác nhận) và đơn còn hiệu lực. */
+    public boolean canMarkPaid() {
+        return paymentStatus == PaymentStatus.UNPAID && EnumSet.of(OrderStatus.PENDING, OrderStatus.CONFIRMED,
+                OrderStatus.PREPARING, OrderStatus.PACKED, OrderStatus.SHIPPING).contains(status);
+    }
+
+    public boolean canPayOnline() {
+        return paymentStatus == PaymentStatus.UNPAID && paymentMethod != null && paymentMethod.isPrepaid()
+                && (status == OrderStatus.PENDING || status == OrderStatus.CONFIRMED);
     }
 }

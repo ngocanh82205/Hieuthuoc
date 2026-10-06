@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/admin :: layout(~{::content}, ~{::scripts})}">
+<body>
+<th:block th:fragment="content">
+    <form method="get" class="card card-body mb-3 d-flex flex-row flex-wrap gap-2 align-items-end" th:action="@{/staff/pos/history}">
+        <div><label class="form-label small" for="hFrom">Từ ngày</label><input id="hFrom" type="date" name="from" class="form-control form-control-sm" th:value="${from}"></div>
+        <div><label class="form-label small" for="hTo">Đến ngày</label><input id="hTo" type="date" name="to" class="form-control form-control-sm" th:value="${to}"></div>
+        <div><label class="form-label small" for="hPay">Thanh toán</label>
+            <select id="hPay" name="payment" class="form-select form-select-sm"><option value="">Tất cả</option>
+                <option th:each="m : ${payments}" th:value="${m.name()}" th:selected="${payment == m}" th:text="${m.label}"></option>
+            </select></div>
+        <button class="btn btn-primary btn-sm">Xem</button>
+    </form>
+
+    <div class="card mb-3 border-warning" th:if="${!pending.isEmpty()}" th:with="canDecide=${currentUser.can('REFUND')}">
+        <div class="card-header bg-warning-subtle fw-semibold"><i class="bi bi-hourglass-split me-1"></i>Phiếu hủy hóa đơn chờ duyệt (<th:block th:text="${pending.size()}"/>)</div>
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead><tr><th>Hóa đơn</th><th>Người lập</th><th>Lý do</th><th>SĐT khách</th><th>Hoàn tiền vào tài khoản</th><th style="min-width: 260px" th:text="${canDecide} ? 'Duyệt' : ''"></th></tr></thead>
+                <tbody>
+                <tr th:each="r : ${pending}">
+                    <td><a th:href="@{/staff/pos/bills/{id}(id=${r.order.id})}" class="fw-semibold" th:text="${r.order.code}"></a><div class="small" th:text="${@h.money(r.order.total)}"></div></td>
+                    <td class="small"><th:block th:text="${r.requester != null} ? ${r.requester.fullName} : ''"/><div class="text-muted" th:text="${@h.dt(r.createdAt)}"></div></td>
+                    <td class="small" th:text="${r.reason}"></td>
+                    <td class="small text-nowrap"><a th:href="'tel:' + ${r.customerPhone}" th:text="${r.customerPhone}"></a></td>
+                    <td class="small"><div class="fw-semibold" th:text="${r.bankAccount}"></div><th:block th:text="${r.bankName} + ' · ' + ${r.accountHolder}"/></td>
+                    <td>
+                        <form th:if="${canDecide}" th:action="@{/staff/pos/cancel-requests/{id}/approve(id=${r.id})}" method="post" class="d-flex flex-wrap gap-1">
+                            <input name="note" class="form-control form-control-sm" style="max-width: 190px" maxlength="300" placeholder="Mã GD hoàn tiền (nếu có)" aria-label="Mã giao dịch hoàn tiền">
+                            <button class="btn btn-sm btn-success" th:data-confirm="'Xác nhận hủy hóa đơn ' + ${r.order.code} + '? Hàng được hoàn về kho và ghi nhận hoàn tiền cho khách.'">Duyệt hủy</button>
+                        </form>
+                        <span th:unless="${canDecide}" class="small text-muted">Chờ quản trị viên duyệt</span>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-6 col-xl-3"><div class="stat-card"><div class="icon icon-blue"><i class="bi bi-receipt"></i></div>
+            <div><div class="value fs-6" th:text="${@h.num(count)}"></div><div class="label">Hóa đơn</div></div></div></div>
+        <div class="col-6 col-xl-3"><div class="stat-card"><div class="icon icon-green"><i class="bi bi-cash-stack"></i></div>
+            <div><div class="value fs-6" th:text="${@h.money(revenue)}"></div><div class="label">Doanh thu</div></div></div></div>
+        <div class="col-6 col-xl-3"><div class="stat-card"><div class="icon icon-amber"><i class="bi bi-wallet2"></i></div>
+            <div><div class="value fs-6" th:text="${@h.money(cash)}"></div><div class="label">Tiền mặt</div></div></div></div>
+        <div class="col-6 col-xl-3"><div class="stat-card"><div class="icon icon-violet"><i class="bi bi-bank"></i></div>
+            <div><div class="value fs-6" th:text="${@h.money(bank)}"></div><div class="label">Chuyển khoản</div></div></div></div>
+    </div>
+
+    <div class="card">
+        <div class="card-header d-flex flex-wrap justify-content-between gap-2">
+            <span th:text="'Hóa đơn bán tại quầy ' + (${from.equals(to)} ? 'ngày ' + ${@h.date(from)} : 'từ ' + ${@h.date(from)} + ' đến ' + ${@h.date(to)})"></span>
+            <span th:if="${cancelled > 0}" class="small text-muted" th:text="${cancelled} + ' hóa đơn đã hủy (không tính vào doanh thu)'"></span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead><tr><th>Mã hóa đơn</th><th>Thời gian</th><th>Khách hàng</th><th class="text-end">Số mặt hàng</th><th>Thanh toán</th><th class="text-end">Tổng tiền</th><th>Nhân viên</th><th>Trạng thái</th><th></th></tr></thead>
+                <tbody>
+                <tr th:each="o : ${orders.items}" th:with="req=${o.cancelRequests.isEmpty() ? null : o.cancelRequests[0]}, off=${o.status.name() == 'CANCELLED'},
+                        reqPending=${req != null and req.status.name() == 'PENDING'}" th:class="${off} ? 'text-muted' : ''">
+                    <td><a th:href="@{/staff/pos/bills/{id}(id=${o.id})}" class="fw-semibold" th:text="${o.code}"></a>
+                        <i th:if="${o.needsPrescription}" class="bi bi-file-earmark-medical text-danger" title="Có thuốc kê đơn"></i></td>
+                    <td class="small text-nowrap" th:text="${@h.dt(o.createdAt)}"></td>
+                    <td class="small"><th:block th:text="${o.recipient}"/><div th:if="${o.phone != null}" class="text-muted" th:text="${o.phone}"></div></td>
+                    <td class="text-end" th:text="${@h.num(o.items.size())}"></td>
+                    <td class="small" th:text="${o.paymentMethod.label}"></td>
+                    <td class="text-end fw-semibold text-nowrap"><del th:if="${off}" th:text="${@h.money(o.total)}"></del><th:block th:unless="${off}" th:text="${@h.money(o.total)}"/></td>
+                    <td class="small" th:text="${o.handler != null} ? ${o.handler.fullName} : ''"></td>
+                    <td class="small">
+                        <th:block th:if="${off}"><span class="badge text-bg-secondary">Đã hủy</span>
+                            <div th:if="${req != null and req.status.name() == 'APPROVED'}" class="text-muted" th:text="'Hoàn vào TK ' + ${req.bankAccount}"></div></th:block>
+                        <span th:if="${!off and reqPending}" class="badge text-bg-warning">Chờ duyệt hủy</span>
+                        <span th:if="${!off and !reqPending}" class="badge text-bg-success">Hoàn thành</span>
+                    </td>
+                    <td class="text-nowrap">
+                        <a th:href="@{/staff/orders/{id}/invoice(id=${o.id})}" target="_blank" class="btn btn-sm btn-outline-secondary" title="In lại hóa đơn" th:aria-label="'In lại hóa đơn ' + ${o.code}"><i class="bi bi-printer"></i></a>
+                        <th:block th:if="${!off and !reqPending}">
+                            <span th:if="${o.isPosCancelExpired(cancelDays)}" class="small text-muted" title="Quá thời hạn hủy hóa đơn">Hết hạn hủy</span>
+                            <button th:unless="${o.isPosCancelExpired(cancelDays)}" type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#cancelBillModal"
+                                    th:with="act=@{/staff/pos/orders/{id}/cancel-request(id=${o.id})}, tot=${@h.money(o.total)}"
+                                    th:attr="data-action=${act},data-code=${o.code},data-total=${tot},data-phone=${o.phone}">Hủy</button>
+                        </th:block>
+                    </td>
+                </tr>
+                <tr th:if="${orders.isEmpty()}"><td colspan="9" class="text-center text-muted py-4">Chưa có hóa đơn bán tại quầy trong khoảng này.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="mt-3"><th:block th:replace="~{partials/pagination :: links(${orders})}"/></div>
+
+    <!--/* Phiếu yêu cầu hủy hóa đơn: lý do + tài khoản ngân hàng của khách để hoàn tiền */-->
+    <div class="modal fade" id="cancelBillModal" tabindex="-1" aria-labelledby="cancelBillTitle" aria-hidden="true">
+        <div class="modal-dialog">
+            <form method="post" class="modal-content" id="cancelBillForm" th:action="@{/staff/pos/history}">
+                <div class="modal-header"><h2 class="modal-title h6" id="cancelBillTitle">Phiếu hủy hóa đơn <span class="js-code"></span></h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
+                <div class="modal-body">
+                    <p class="small text-muted">Số tiền hoàn cho khách: <strong class="js-total text-dark"></strong>. Hãy kiểm tra và nhận lại thuốc trước khi gửi phiếu; quản trị viên duyệt thì hóa đơn mới bị hủy.</p>
+                    <div class="mb-2"><label class="form-label" for="cbReason">Lý do hủy <span class="text-danger">*</span></label>
+                        <textarea id="cbReason" name="reason" class="form-control" rows="2" maxlength="300" required placeholder="VD: Khách đổi ý, bán nhầm thuốc..."></textarea></div>
+                    <div class="mb-2"><label class="form-label" for="cbPhone">Số điện thoại khách <span class="text-danger">*</span></label>
+                        <input id="cbPhone" name="customer_phone" type="tel" class="form-control" inputmode="tel" pattern="0[0-9 .\-]{9,13}" maxlength="15" required placeholder="VD: 0912345678"></div>
+                    <div class="fw-semibold small mt-3 mb-2">Tài khoản nhận hoàn tiền của khách</div>
+                    <div class="mb-2"><label class="form-label" for="cbBank">Ngân hàng <span class="text-danger">*</span></label>
+                        <input id="cbBank" name="bank_name" class="form-control" maxlength="100" required placeholder="VD: Vietcombank"></div>
+                    <div class="mb-2"><label class="form-label" for="cbAcc">Số tài khoản <span class="text-danger">*</span></label>
+                        <input id="cbAcc" name="bank_account" class="form-control" inputmode="numeric" pattern="[0-9 ]{6,24}" maxlength="24" required></div>
+                    <div><label class="form-label" for="cbHolder">Tên chủ tài khoản <span class="text-danger">*</span></label>
+                        <input id="cbHolder" name="account_holder" class="form-control text-uppercase" maxlength="100" required placeholder="VD: NGUYEN VAN A"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-link" data-bs-dismiss="modal">Đóng</button>
+                    <button class="btn btn-danger">Gửi phiếu hủy</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</th:block>
+<th:block th:fragment="scripts">
+<script>
+document.getElementById('cancelBillModal').addEventListener('show.bs.modal', function (e) {
+    var b = e.relatedTarget;
+    var form = document.getElementById('cancelBillForm');
+    form.action = b.dataset.action;
+    var token = form.querySelector('input[name=_token]');
+    var t = token ? token.value : null;
+    form.reset();
+    if (token) token.value = t;
+    this.querySelector('.js-code').textContent = b.dataset.code;
+    this.querySelector('.js-total').textContent = b.dataset.total;
+    document.getElementById('cbPhone').value = b.dataset.phone || '';
+});
+</script>
+</th:block>
+</body>
+</html>

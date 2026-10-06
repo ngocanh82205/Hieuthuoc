@@ -2,12 +2,10 @@ package com.hieuthuoc.entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-
+/** Phân bổ xuất kho của một dòng đơn theo lô (FEFO). */
 @Entity
 @Table(name = "order_item_batches")
 @Getter
@@ -19,10 +17,16 @@ public class OrderItemBatch {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "order_item_id")
     private OrderItem orderItem;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "batch_id")
     private Batch batch;
 
+    @Column(name = "batch_id", insertable = false, updatable = false)
+    private Long batchId;
+
+    @Column(nullable = false)
     private int quantity;
 }

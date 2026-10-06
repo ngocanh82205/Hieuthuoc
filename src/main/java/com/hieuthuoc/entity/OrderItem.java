@@ -1,20 +1,17 @@
 package com.hieuthuoc.entity;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "order_items", indexes = @Index(columnList = "product_id"))
+@Table(name = "order_items")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -24,13 +21,17 @@ public class OrderItem {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "order_id")
     private Order order;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "product_id")
     private Product product;
 
-    /** Lưu lại tên, đơn vị, loại thuốc, giá tại thời điểm đặt hàng. */
-    @Column(nullable = false, length = 200)
+    @Column(name = "product_id", insertable = false, updatable = false)
+    private Long productId;
+
+    @Column(name = "product_name", nullable = false, length = 200)
     private String productName;
 
     @Column(length = 30)
@@ -38,31 +39,46 @@ public class OrderItem {
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
-    @Column(length = 20)
+    @Column(name = "drug_type", length = 20)
     private DrugType drugType;
 
+    @Column(nullable = false)
     private long price;
 
-    /** Số lượng theo đơn vị đã chọn (unit). */
+    @Column(nullable = false)
     private int quantity;
 
-    /** Hệ số quy đổi của đơn vị đã chọn ra đơn vị gốc (VD: 1 Hộp = 10 Vỉ -> 10). */
-    private Integer unitFactor;
+    @Column(name = "unit_factor", nullable = false)
+    private int unitFactor = 1;
 
-    public int getFactor() {
-        return unitFactor == null ? 1 : unitFactor;
-    }
+    @Column(name = "is_gift", nullable = false)
+    private boolean gift;
 
-    /** Số lượng quy về đơn vị gốc (dùng cho tồn kho). */
-    public int getBaseQuantity() {
-        return quantity * getFactor();
-    }
+    /** Suất flash sale đã giữ cho dòng này (trả lại khi hủy / giảm số lượng). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "flash_promotion_id")
+    private Promotion flashPromotion;
 
-    /** Các lô đã xuất cho dòng hàng này (FEFO) - phục vụ truy vết thu hồi. */
+    @Column(name = "flash_promotion_id", insertable = false, updatable = false)
+    private Long flashPromotionId;
+
     @OneToMany(mappedBy = "orderItem", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("id ASC")
     private List<OrderItemBatch> allocations = new ArrayList<>();
 
-    public long getLineTotal() {
+    public int factor() {
+        return Math.max(1, unitFactor);
+    }
+
+    public int baseQuantity() {
+        return quantity * factor();
+    }
+
+    public long lineTotal() {
         return price * quantity;
+    }
+
+    public boolean isPrescription() {
+        return drugType != null && drugType.isPrescription();
     }
 }

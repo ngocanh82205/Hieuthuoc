@@ -1,28 +1,22 @@
 package com.hieuthuoc.entity;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import lombok.Setter;
 
 @Entity
 @Table(name = "settings")
 @Getter
 @Setter
 @NoArgsConstructor
+@AllArgsConstructor
 public class Setting {
     @Id
     @Column(name = "setting_key", length = 50)
-    private String key;
+    private String settingKey;
 
-    @Column(name = "setting_value", length = 500)
-    private String value;
-
-    public Setting(String key, String value) {
-        this.key = key;
-        this.value = value;
-    }
+    @Column(name = "setting_value", columnDefinition = "text")
+    private String settingValue;
 }

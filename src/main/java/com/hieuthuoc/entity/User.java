@@ -1,21 +1,26 @@
 package com.hieuthuoc.entity;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
 
 @Entity
 @Table(name = "users")
 @Getter
 @Setter
 @NoArgsConstructor
-public class User {
+public class User extends Timestamped {
+    /** Chi tiêu của 1 đơn: tiền hàng khách trả, không gồm phí giao hàng (khớp cách tính điểm tích lũy). */
+    public static final String SPENT_SQL = "o.total - o.shippingFee";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -23,120 +28,97 @@ public class User {
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(nullable = false, length = 20)
-    private Role role;
+    private Role role = Role.CUSTOMER;
 
-    @Column(nullable = false, length = 100)
+    @Column(name = "full_name", nullable = false, length = 100)
     private String fullName;
 
-    /** Email (không bắt buộc - khách có thể đăng ký chỉ bằng số điện thoại). */
+    /** Email không bắt buộc - khách có thể đăng ký chỉ bằng số điện thoại. */
     @Column(unique = true, length = 150)
     private String email;
 
-    @Column(length = 20)
+    @Column(unique = true, length = 20)
     private String phone;
 
+    @Column(name = "email_verified_at")
+    private LocalDateTime emailVerifiedAt;
+
+    /** Bcrypt dạng $2y$ (dùng chung với Laravel). */
     @Column(nullable = false)
-    private String passwordHash;
+    private String password;
+
+    @Column(name = "google_id", unique = true, length = 100)
+    private String googleId;
+
+    @Column(length = 300)
+    private String avatar;
 
     @Column(length = 10)
     private String gender;
 
     private LocalDate birthday;
 
-    /** Số chứng chỉ hành nghề dược (với dược sĩ). */
-    @Column(length = 50)
-    private String licenseNo;
-
-    /** Hồ sơ sức khỏe - chỉ dược sĩ được xem khi tư vấn/duyệt đơn. */
+    /** Hồ sơ sức khỏe - chỉ dược sĩ xem khi tư vấn / duyệt đơn. */
     @Column(length = 500)
     private String allergies;
 
-    @Column(length = 500)
+    @Column(name = "chronic_conditions", length = 500)
     private String chronicConditions;
 
+    @Column(nullable = false)
     private boolean pregnancy;
 
+    @Column(nullable = false)
     private int points;
 
+    @Column(nullable = false)
     private boolean locked;
 
-    /** Vai trò nhân viên (RBAC) - quyết định nhóm quyền chính. */
-    @ManyToOne(fetch = FetchType.EAGER)
-    private StaffRole staffRole;
+    /** Số chứng chỉ hành nghề dược (bắt buộc với dược sĩ duyệt đơn thuốc). */
+    @Column(name = "license_no", length = 50)
+    private String licenseNo;
 
-    /** Quyền cấp thêm ngoài vai trò, cách nhau dấu phẩy (xem {@link StaffPermission}). */
-    @Column(length = 200)
-    private String permissions;
-
-    /** Bằng cấp chuyên môn (VD: Dược sĩ đại học - ĐH Dược Hà Nội). */
     @Column(length = 200)
     private String degree;
 
-    /** Ca làm việc (VD: Ca sáng 7h-15h). */
-    @Column(length = 100)
-    private String shift;
-
-    /* ---- Lương (nhân viên) ---- */
-
-    /** MONTHLY = lương tháng theo ngày công; HOURLY = lương theo giờ làm thực tế. */
-    @Column(length = 10)
-    private String salaryType;
-
-    /** Lương cơ bản / tháng (MONTHLY). */
-    private Long baseSalary;
-
-    /** Đơn giá / giờ (HOURLY). */
-    private Long hourlyRate;
-
-    /** Phụ cấp cố định / tháng (trách nhiệm, xăng xe, ăn trưa...). */
-    private Long allowance;
-
-    public boolean isHourly() {
-        return "HOURLY".equals(salaryType);
-    }
-
-    public String getSalaryLabel() {
-        if (isHourly()) return hourlyRate == null ? "Chưa cấu hình" : String.format("%,d", hourlyRate).replace(',', '.') + " đ/giờ";
-        return baseSalary == null ? "Chưa cấu hình" : String.format("%,d", baseSalary).replace(',', '.') + " đ/tháng";
-    }
-
-    /** Lần hoạt động gần nhất (để biết dược sĩ đang online). */
+    @Column(name = "last_seen_at")
     private LocalDateTime lastSeenAt;
 
-    @Column(nullable = false)
-    private LocalDateTime createdAt;
+    @Column(name = "remember_token", length = 100)
+    private String rememberToken;
 
-    @PrePersist
-    void prePersist() {
-        if (createdAt == null) createdAt = LocalDateTime.now();
+    public boolean isAdmin() {
+        return role == Role.ADMIN;
     }
 
+    public boolean isCustomer() {
+        return role == Role.CUSTOMER;
+    }
+
+    public boolean isStaff() {
+        return role == Role.PHARMACIST || role == Role.ADMIN;
+    }
+
+    /** Admin luôn có toàn quyền; dược sĩ có bộ quyền cố định. */
     public boolean hasPermission(StaffPermission p) {
-        if (role == Role.ADMIN) return true;
-        if (role != Role.PHARMACIST) return false;
-        if (staffRole != null && staffRole.has(p)) return true;
-        return permissions != null && java.util.Arrays.asList(permissions.split(",")).contains(p.name());
+        return switch (role) {
+            case ADMIN -> true;
+            case PHARMACIST -> StaffPermission.FOR_PHARMACIST.contains(p);
+            default -> false;
+        };
     }
 
-    /** Dùng trong template: ${currentUser.can('CONTENT')} */
+    /** Dùng trong template: ${user.can('CONTENT')} */
     public boolean can(String permission) {
         return hasPermission(StaffPermission.valueOf(permission));
     }
 
-    public java.util.Set<StaffPermission> getPermissionSet() {
-        java.util.Set<StaffPermission> set = java.util.EnumSet.noneOf(StaffPermission.class);
-        for (StaffPermission p : StaffPermission.values()) if (hasPermission(p)) set.add(p);
-        return set;
+    public List<StaffPermission> permissionSet() {
+        return Arrays.stream(StaffPermission.values()).filter(this::hasPermission).toList();
     }
 
-    /** Quyền cấp thêm riêng cho người này (ngoài vai trò). */
-    public boolean hasExtra(StaffPermission p) {
-        return permissions != null && java.util.Arrays.asList(permissions.split(",")).contains(p.name());
-    }
-
-    public String getPositionLabel() {
-        if (role == Role.ADMIN) return "Quản trị viên";
-        return staffRole != null ? staffRole.getName() : role.getLabel();
+    public String positionLabel() {
+        return role == Role.ADMIN ? "Quản trị viên" : role.getLabel();
     }
 
     /** Online nếu có hoạt động trong 5 phút gần nhất. */
@@ -144,7 +126,7 @@ public class User {
         return lastSeenAt != null && lastSeenAt.isAfter(LocalDateTime.now().minusMinutes(5));
     }
 
-    public boolean isStaff() {
-        return role == Role.PHARMACIST || role == Role.ADMIN;
+    public String contact() {
+        return phone != null && !phone.isEmpty() ? phone : (email != null ? email : "");
     }
 }

@@ -1,0 +1,17 @@
+<!--/* Phân trang (giống $paginator->links() Bootstrap 5 của Laravel): page = com.hieuthuoc.service.Page */-->
+<nav xmlns:th="http://www.thymeleaf.org" th:fragment="links(page)" th:if="${page != null and page.hasPages()}" class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <p class="small text-muted mb-0">Hiển thị <span class="fw-semibold" th:text="${page.firstItem}"></span> - <span class="fw-semibold" th:text="${page.lastItem}"></span>
+        trong <span class="fw-semibold" th:text="${page.total}"></span> kết quả</p>
+    <ul class="pagination mb-0">
+        <li th:class="'page-item ' + (${page.page <= 1} ? 'disabled' : '')" th:with="u=${page.page <= 1 ? '#' : @h.query('page', page.page - 1)}">
+            <a class="page-link" th:href="${u}" aria-label="Trước">&lsaquo;</a>
+        </li>
+        <li th:each="n : ${page.pageNumbers}" th:class="'page-item ' + (${n == page.page} ? 'active' : '') + (${n == -1} ? ' disabled' : '')">
+            <span th:if="${n == -1}" class="page-link">…</span>
+            <a th:unless="${n == -1}" class="page-link" th:with="u=${@h.query('page', n)}" th:href="${u}" th:text="${n}"></a>
+        </li>
+        <li th:class="'page-item ' + (${page.page >= page.lastPage} ? 'disabled' : '')" th:with="u=${page.page >= page.lastPage ? '#' : @h.query('page', page.page + 1)}">
+            <a class="page-link" th:href="${u}" aria-label="Sau">&rsaquo;</a>
+        </li>
+    </ul>
+</nav>

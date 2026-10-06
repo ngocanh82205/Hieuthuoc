@@ -2,23 +2,21 @@ package com.hieuthuoc.entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import lombok.Setter;
 
 @Entity
 @Table(name = "addresses")
 @Getter
 @Setter
 @NoArgsConstructor
-public class Address {
+public class Address extends Timestamped {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id")
     private User user;
 
     @Column(nullable = false, length = 100)
@@ -27,8 +25,33 @@ public class Address {
     @Column(nullable = false, length = 20)
     private String phone;
 
-    @Column(nullable = false, length = 300)
+    @Column(name = "address_line", nullable = false, length = 300)
     private String addressLine;
 
-    private boolean defaultAddress;
+    @Column(length = 60)
+    private String province;
+
+    @Column(name = "ghn_province_id")
+    private Integer ghnProvinceId;
+
+    @Column(name = "ghn_district_id")
+    private Integer ghnDistrictId;
+
+    @Column(name = "ghn_ward_code", length = 20)
+    private String ghnWardCode;
+
+    @Column(name = "is_default", nullable = false)
+    private boolean isDefault;
+
+    public boolean isDefault() {
+        return isDefault;
+    }
+
+    public void setDefault(boolean d) {
+        this.isDefault = d;
+    }
+
+    public String fullText() {
+        return addressLine + (province != null && !province.isEmpty() && !addressLine.contains(province) ? ", " + province : "");
+    }
 }

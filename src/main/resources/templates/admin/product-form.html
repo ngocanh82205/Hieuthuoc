@@ -1,119 +1,104 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head}"></head>
-<body class="staff-body">
-<div class="staff-shell">
-    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
-    <div class="staff-main">
-        <header th:replace="~{fragments/staff :: topbar}"></header>
-        <main class="p-3 p-lg-4">
-            <div th:replace="~{fragments/layout :: flash}"></div>
-            <form th:action="${product.id == null} ? @{/admin/products} : @{/admin/products/{id}(id=${product.id})}" method="post" enctype="multipart/form-data" th:object="${product}">
-                <div class="row g-4">
-                    <div class="col-xl-8">
-                        <div class="card mb-4">
-                            <div class="card-header">Thông tin cơ bản</div>
-                            <div class="card-body row g-3">
-                                <div class="col-md-8"><label class="form-label">Tên sản phẩm *</label><input name="name" class="form-control" th:value="*{name}" required></div>
-                                <div class="col-md-4"><label class="form-label">Danh mục</label>
-                                    <select name="categoryId" class="form-select">
-                                        <option value="">-- Không --</option>
-                                        <option th:each="c : ${categories}" th:value="${c.id}" th:text="${#strings.repeat('— ', c.depth) + c.name}" th:selected="${product.category != null && product.category.id == c.id}"></option>
-                                    </select></div>
-                                <div class="col-md-6"><label class="form-label">Loại sản phẩm *</label>
-                                    <select name="drugType" class="form-select">
-                                        <option th:each="t : ${drugTypes}" th:value="${t}" th:text="${t.label}" th:selected="${product.drugType == t}"></option>
-                                    </select>
-                                    <div class="form-text">Thuốc kê đơn: bắt buộc đơn thuốc. Kiểm soát đặc biệt: không bán online.</div></div>
-                                <div class="col-md-6"><label class="form-label">Hoạt chất</label><input name="activeIngredient" class="form-control" list="ingList" placeholder="VD: Paracetamol, Caffeine" th:value="*{activeIngredient}"></div>
-                                <div class="col-md-4"><label class="form-label">Hàm lượng</label><input name="strength" class="form-control" th:value="*{strength}"></div>
-                                <div class="col-md-4"><label class="form-label">Dạng bào chế</label><input name="dosageForm" class="form-control" th:value="*{dosageForm}"></div>
-                                <div class="col-md-4"><label class="form-label">Quy cách đóng gói</label><input name="packaging" class="form-control" th:value="*{packaging}" placeholder="Hộp 10 vỉ x 10 viên"></div>
-                                <div class="col-md-4"><label class="form-label">Số đăng ký</label><input name="registrationNo" class="form-control" th:value="*{registrationNo}"></div>
-                                <div class="col-md-4"><label class="form-label">Thương hiệu / NSX</label><input name="manufacturer" class="form-control" list="manList" th:value="*{manufacturer}"></div>
-                                <div class="col-md-4"><label class="form-label">Nước sản xuất</label><input name="country" class="form-control" list="countryList" th:value="*{country}"></div>
-                            </div>
-                        </div>
-                        <div class="card">
-                            <div class="card-header">Thông tin dược</div>
-                            <div class="card-body row g-3">
-                                <div class="col-12"><label class="form-label">Công dụng / mô tả</label><textarea name="description" class="form-control" rows="3" maxlength="2000" th:text="*{description}"></textarea></div>
-                                <div class="col-12"><label class="form-label">Liều dùng - cách dùng</label><textarea name="usageInstruction" class="form-control" rows="3" maxlength="2000" th:text="*{usageInstruction}"></textarea></div>
-                                <div class="col-md-6"><label class="form-label">Chống chỉ định</label><textarea name="contraindications" class="form-control" rows="3" maxlength="1000" th:text="*{contraindications}"></textarea></div>
-                                <div class="col-md-6"><label class="form-label">Tác dụng phụ</label><textarea name="sideEffects" class="form-control" rows="3" maxlength="1000" th:text="*{sideEffects}"></textarea></div>
-                            </div>
-                        </div>
-                        <div class="card mb-4">
-                            <div class="card-header"><i class="bi bi-arrow-left-right me-1"></i>Thuốc thay thế / tương đương</div>
-                            <div class="card-body">
-                                <p class="small text-muted">Hệ thống tự coi thuốc <strong>cùng hoạt chất và cùng hàm lượng</strong> là tương đương. Chọn thêm các thuốc khác được phép thay thế
-                                    (VD: biệt dược gốc - thuốc generic có tên hoạt chất ghi khác). Quan hệ áp dụng hai chiều khi dược sĩ duyệt đơn.</p>
-                                <select name="equivalentIds" class="form-select" multiple size="6">
-                                    <option th:each="o : ${allProducts}" th:if="${o.id != product.id}" th:value="${o.id}"
-                                            th:text="${o.name + (o.activeIngredient != null ? ' - ' + o.activeIngredient : '') + (o.strength != null ? ' ' + o.strength : '')}"
-                                            th:selected="${equivalentIds.contains(o.id)}"></option>
-                                </select>
-                                <div class="form-text">Giữ Ctrl (Cmd) để chọn nhiều.</div>
-                            </div>
-                        </div>
-                        <div class="card mb-4">
-                            <div class="card-header"><i class="bi bi-google me-1"></i>SEO</div>
-                            <div class="card-body row g-3">
-                                <div class="col-md-6"><label class="form-label">Đường dẫn (slug)</label>
-                                    <div class="input-group"><span class="input-group-text small">/products/</span><input name="slug" class="form-control" th:value="*{slug}" placeholder="tự tạo từ tên"></div></div>
-                                <div class="col-md-6"><label class="form-label">Tiêu đề SEO</label><input name="metaTitle" class="form-control" maxlength="150" th:value="*{metaTitle}" placeholder="Để trống = tên sản phẩm"></div>
-                                <div class="col-12"><label class="form-label">Mô tả SEO</label><textarea name="metaDescription" class="form-control" rows="2" maxlength="300" th:text="*{metaDescription}" placeholder="~160 ký tự hiển thị trên kết quả tìm kiếm"></textarea></div>
-                            </div>
-                        </div>
-                        <datalist id="ingList"><option th:each="i : ${ingredients}" th:value="${i.name}"></option></datalist>
-                        <datalist id="manList"><option th:each="m : ${manufacturers}" th:value="${m.name}"></option></datalist>
-                        <datalist id="countryList"><option th:each="c : ${countries}" th:value="${c}"></option></datalist>
-                    </div>
-                    <div class="col-xl-4">
-                        <div class="card mb-4">
-                            <div class="card-header">Giá & bán hàng</div>
-                            <div class="card-body row g-3">
-                                <div class="col-6"><label class="form-label">Đơn vị tính *</label><input name="unit" class="form-control" th:value="*{unit}" required></div>
-                                <div class="col-6"><label class="form-label">Giá bán (đ) *</label><input type="number" name="price" min="1" class="form-control" th:value="*{id != null ? price : ''}" required></div>
-                                <div class="col-6"><label class="form-label">Giá gốc (đ)</label><input type="number" name="oldPrice" min="0" class="form-control" th:value="*{oldPrice}">
-                                    <div class="form-text">Để hiện giảm giá. Không áp dụng cho thuốc kê đơn.</div></div>
-                                <div class="col-6"><label class="form-label">Tối đa/đơn</label><input type="number" name="maxPerOrder" min="0" class="form-control" th:value="*{maxPerOrder}"></div>
-                                <div class="col-12">
-                                    <label class="form-label">Đơn vị quy đổi <span class="text-muted small">(tồn kho & giới hạn tính theo đơn vị gốc)</span></label>
-                                    <div class="row g-1 mb-1" th:each="i : ${#numbers.sequence(0, 2)}" th:with="u=${i < product.units.size() ? product.units[i] : null}">
-                                        <div class="col-4"><input name="unitNames" class="form-control form-control-sm" placeholder="VD: Hộp" th:value="${u != null ? u.name : ''}"></div>
-                                        <div class="col-4"><input type="number" min="2" name="unitFactors" class="form-control form-control-sm" placeholder="= ? đv gốc" th:value="${u != null ? u.factor : ''}"></div>
-                                        <div class="col-4"><input type="number" min="1" name="unitPrices" class="form-control form-control-sm" placeholder="Giá (đ)" th:value="${u != null ? u.price : ''}"></div>
-                                    </div>
-                                    <div class="form-text">VD: đơn vị gốc "Vỉ", thêm "Hộp" = 10 (vỉ), giá 85.000.</div>
-                                </div>
-                                <div class="col-6"><label class="form-label">Định mức tồn</label><input type="number" name="minStock" min="0" class="form-control" th:value="*{minStock}"></div>
-                                <div class="col-12 form-check ms-2">
-                                    <input type="checkbox" class="form-check-input" name="active" value="true" id="active" th:checked="*{active}">
-                                    <label for="active" class="form-check-label">Đang kinh doanh</label>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="card mb-4">
-                            <div class="card-header">Hình ảnh</div>
-                            <div class="card-body">
-                                <img th:if="*{image != null}" th:src="@{*{image}}" class="img-thumbnail mb-2" style="max-height: 160px" alt="Ảnh sản phẩm">
-                                <input type="file" name="imageFile" class="form-control" accept="image/jpeg,image/png,image/webp,image/gif" data-preview="imgPreview">
-                                <img id="imgPreview" class="img-thumbnail mt-2 d-none" style="max-height: 160px" alt="Xem trước">
-                                <div class="form-check mt-2" th:if="*{image != null}">
-                                    <input type="checkbox" class="form-check-input" name="removeImage" value="true" id="removeImage">
-                                    <label for="removeImage" class="form-check-label">Xóa ảnh hiện tại</label>
-                                </div>
-                            </div>
-                        </div>
-                        <button class="btn btn-primary w-100">Lưu sản phẩm</button>
-                        <a th:href="@{/admin/products}" class="btn btn-link w-100">Hủy</a>
-                    </div>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/admin :: layout(~{::content}, ~{})}">
+<body>
+<th:block th:fragment="content">
+<th:block th:with="p=${product}, isNew=${product.id == null}">
+    <form th:action="${isNew} ? @{/admin/products} : @{/admin/products/{id}(id=${p.id})}" method="post" enctype="multipart/form-data" class="row g-4">
+        <div class="col-xl-8">
+            <div class="card mb-4">
+                <div class="card-header">Thông tin chung</div>
+                <div class="card-body row g-3">
+                    <div class="col-md-8"><label class="form-label" for="pName">Tên sản phẩm</label><input id="pName" name="name" class="form-control" required maxlength="200" th:value="${old['name']} ?: ${p.name}"></div>
+                    <div class="col-md-4"><label class="form-label" for="pType">Loại</label>
+                        <select id="pType" name="drug_type" class="form-select"><option th:each="t : ${drugTypes}" th:value="${t.name()}" th:selected="${p.drugType == t}" th:text="${t.label}"></option></select></div>
+                    <div class="col-md-6"><label class="form-label" for="pCat">Danh mục</label>
+                        <select id="pCat" name="category_id" class="form-select"><option value="">-- Chọn --</option>
+                            <option th:each="c : ${categories}" th:value="${c.id}" th:selected="${p.categoryId == c.id}" th:text="${#strings.repeat('— ', c.depth)} + ${c.name}"></option></select></div>
+                    <div class="col-md-6"><label class="form-label" for="pIng">Hoạt chất (cách nhau dấu phẩy)</label>
+                        <input id="pIng" name="active_ingredient" class="form-control" list="ingList" maxlength="200" th:value="${old['active_ingredient']} ?: ${p.activeIngredient}">
+                        <datalist id="ingList"><option th:each="i : ${ingredients}" th:value="${i}"></option></datalist></div>
+                    <div class="col-md-3"><label class="form-label" for="pStr">Hàm lượng</label><input id="pStr" name="strength" class="form-control" maxlength="100" th:value="${old['strength']} ?: ${p.strength}"></div>
+                    <div class="col-md-3"><label class="form-label" for="pForm">Dạng bào chế</label><input id="pForm" name="dosage_form" class="form-control" maxlength="100" th:value="${old['dosage_form']} ?: ${p.dosageForm}"></div>
+                    <div class="col-md-3"><label class="form-label" for="pPack">Quy cách</label><input id="pPack" name="packaging" class="form-control" maxlength="150" th:value="${old['packaging']} ?: ${p.packaging}"></div>
+                    <div class="col-md-3"><label class="form-label" for="pReg">Số đăng ký</label><input id="pReg" name="registration_no" class="form-control" maxlength="100" th:value="${old['registration_no']} ?: ${p.registrationNo}"></div>
+                    <div class="col-md-6"><label class="form-label" for="pMfr">Thương hiệu / nhà sản xuất</label>
+                        <input id="pMfr" name="manufacturer" class="form-control" list="mfrList" maxlength="150" th:value="${old['manufacturer']} ?: ${p.manufacturer}">
+                        <datalist id="mfrList"><option th:each="m : ${manufacturers}" th:value="${m}"></option></datalist></div>
+                    <div class="col-md-6"><label class="form-label" for="pCountry">Xuất xứ</label>
+                        <input id="pCountry" name="country" class="form-control" list="countryList" maxlength="80" th:value="${old['country']} ?: ${p.country}">
+                        <datalist id="countryList"><option th:each="c : ${countries}" th:value="${c}"></option></datalist></div>
                 </div>
-            </form>
-        </main>
-    </div>
-</div>
-<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+            </div>
+            <div class="card mb-4">
+                <div class="card-header">Giá &amp; đơn vị</div>
+                <div class="card-body row g-3">
+                    <div class="col-md-3"><label class="form-label" for="pUnit">Đơn vị gốc</label><input id="pUnit" name="unit" class="form-control" required maxlength="30" th:value="${old['unit']} ?: ${p.unit}"></div>
+                    <div class="col-md-3"><label class="form-label" for="pPrice">Giá bán (đ)</label><input id="pPrice" type="number" min="1" name="price" class="form-control" required th:value="${old['price']} ?: (${isNew} ? '' : ${p.price})"></div>
+                    <div class="col-md-3"><label class="form-label" for="pOld">Giá gốc (nếu giảm)</label><input id="pOld" type="number" min="0" name="old_price" class="form-control" th:value="${old['old_price']} ?: ${p.oldPrice}"></div>
+                    <div class="col-md-3"><label class="form-label" for="pMax">Tối đa / đơn</label><input id="pMax" type="number" min="0" name="max_per_order" class="form-control" th:value="${p.maxPerOrder}"></div>
+                    <div class="col-md-3"><label class="form-label" for="pMin">Định mức tồn</label><input id="pMin" type="number" min="0" name="min_stock" class="form-control" th:value="${p.minStock}"></div>
+                    <div class="col-md-3"><label class="form-label" for="pWeight">Khối lượng (g) - tính phí GHN</label><input id="pWeight" type="number" min="1" name="weight_gram" class="form-control" th:value="${p.weightGram}"></div>
+                    <div class="col-12"><div class="small fw-semibold">Đơn vị quy đổi (VD: Hộp = 10 Vỉ)</div></div>
+                    <th:block th:each="un, s : ${unitRows}">
+                        <div class="col-md-4"><input name="unit_names[]" class="form-control form-control-sm" placeholder="Tên đơn vị" th:value="${un != null} ? ${un.name} : ''" th:aria-label="'Tên đơn vị ' + ${s.count}"></div>
+                        <div class="col-md-4"><input type="number" min="2" name="unit_factors[]" class="form-control form-control-sm" placeholder="Số đơn vị gốc" th:value="${un != null} ? ${un.factor} : ''" th:aria-label="'Hệ số ' + ${s.count}"></div>
+                        <div class="col-md-4"><input type="number" min="1" name="unit_prices[]" class="form-control form-control-sm" placeholder="Giá bán" th:value="${un != null} ? ${un.price} : ''" th:aria-label="'Giá ' + ${s.count}"></div>
+                    </th:block>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">Thông tin chuyên môn</div>
+                <div class="card-body row g-3">
+                    <div class="col-12"><label class="form-label" for="pdescription">Mô tả / công dụng</label><textarea id="pdescription" name="description" rows="3" maxlength="2000" class="form-control" th:text="${old['description']} ?: ${p.description}"></textarea></div>
+                    <div class="col-12"><label class="form-label" for="pusage">Cách dùng, liều dùng</label><textarea id="pusage" name="usage_instruction" rows="3" maxlength="2000" class="form-control" th:text="${old['usage_instruction']} ?: ${p.usageInstruction}"></textarea></div>
+                    <div class="col-12"><label class="form-label" for="pcontra">Chống chỉ định</label><textarea id="pcontra" name="contraindications" rows="3" maxlength="1000" class="form-control" th:text="${old['contraindications']} ?: ${p.contraindications}"></textarea></div>
+                    <div class="col-12"><label class="form-label" for="pside">Tác dụng phụ</label><textarea id="pside" name="side_effects" rows="3" maxlength="1000" class="form-control" th:text="${old['side_effects']} ?: ${p.sideEffects}"></textarea></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-4">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="form-check form-switch mb-3"><input class="form-check-input" type="checkbox" name="active" value="1" id="pActive" th:checked="${p.active}"><label class="form-check-label" for="pActive">Đang kinh doanh</label></div>
+                    <button class="btn btn-primary w-100">Lưu sản phẩm</button>
+                    <a th:href="@{/admin/products}" class="btn btn-link w-100">Quay lại</a>
+                    <th:block th:unless="${isNew}">
+                        <button form="deleteProductForm" class="btn btn-outline-danger w-100 mt-2" th:data-confirm="'Xóa vĩnh viễn sản phẩm ' + ${p.name} + '?'"><i class="bi bi-trash"></i> Xóa sản phẩm</button>
+                        <div class="small text-muted mt-1">Chỉ xóa được sản phẩm chưa có lô kho, phiếu nhập hay đơn hàng.</div>
+                    </th:block>
+                </div>
+            </div>
+            <div class="card mb-3">
+                <div class="card-header">Ảnh sản phẩm</div>
+                <div class="card-body" th:with="img=${p.imageUrl()}">
+                    <th:block th:if="${p.image != null}"><img th:src="${img}" alt="" class="img-fluid rounded mb-2">
+                        <div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="remove_image" value="1" id="pRm"><label class="form-check-label small" for="pRm">Xóa ảnh</label></div></th:block>
+                    <input type="file" name="image" class="form-control" accept="image/jpeg,image/png,image/webp,image/gif" data-preview="pPrev" aria-label="Ảnh">
+                    <img id="pPrev" class="img-fluid rounded d-none mt-2" alt="Xem trước">
+                </div>
+            </div>
+            <div class="card mb-3">
+                <div class="card-header">SEO</div>
+                <div class="card-body">
+                    <label class="form-label small" for="pSlug">Đường dẫn</label><input id="pSlug" name="slug" class="form-control form-control-sm mb-2" th:value="${p.slug}" placeholder="tự tạo từ tên">
+                    <label class="form-label small" for="pMT">Tiêu đề SEO</label><input id="pMT" name="meta_title" class="form-control form-control-sm mb-2" maxlength="150" th:value="${p.metaTitle}">
+                    <label class="form-label small" for="pMD">Mô tả SEO</label><textarea id="pMD" name="meta_description" rows="3" maxlength="300" class="form-control form-control-sm" th:text="${p.metaDescription}"></textarea>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">Thuốc tương đương (được thay khi duyệt đơn)</div>
+                <div class="card-body">
+                    <select name="equivalent_ids[]" class="form-select" multiple size="8" aria-label="Thuốc tương đương">
+                        <option th:each="o : ${allProducts}" th:value="${o.id}" th:selected="${equivalentIds.contains(o.id)}"
+                                th:text="${o.name} + (${o.activeIngredient != null} ? ' (' + ${o.activeIngredient} + ' ' + (${o.strength} ?: '') + ')' : '')"></option>
+                    </select>
+                    <div class="form-text">Giữ Ctrl để chọn nhiều. Thuốc cùng hoạt chất &amp; hàm lượng được tự nhận là tương đương.</div>
+                </div>
+            </div>
+        </div>
+    </form>
+    <form th:unless="${isNew}" th:action="@{/admin/products/{id}/delete(id=${p.id})}" method="post" id="deleteProductForm" class="d-none"></form>
+</th:block>
+</th:block>
 </body>
 </html>

@@ -1,99 +1,99 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head}"></head>
-<body class="staff-body">
-<div class="staff-shell">
-    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
-    <div class="staff-main">
-        <header th:replace="~{fragments/staff :: topbar}"></header>
-        <main class="p-3 p-lg-4">
-            <div th:replace="~{fragments/layout :: flash}"></div>
-            <div class="alert alert-info small"><i class="bi bi-info-circle"></i> Theo quy định, không áp dụng khuyến mãi cho thuốc kê đơn và thuốc kiểm soát đặc biệt -
-                chỉ chọn được thuốc OTC, TPCN, dụng cụ y tế, dược mỹ phẩm. Khuyến mãi áp dụng cho đơn đặt online.</div>
-            <div class="row g-4">
-                <div class="col-xl-7">
-                    <div class="card">
-                        <div class="table-responsive">
-                            <table class="table align-middle mb-0">
-                                <thead><tr><th>Chương trình</th><th>Chi tiết</th><th>Thời gian</th><th>Trạng thái</th><th></th></tr></thead>
-                                <tbody>
-                                <tr th:if="${list.isEmpty()}"><td colspan="5" class="text-center text-muted py-4">Chưa có chương trình.</td></tr>
-                                <tr th:each="p : ${list}">
-                                    <td><div class="fw-semibold" th:text="${p.name}"></div><span class="badge text-bg-light border" th:text="${p.typeLabel}"></span></td>
-                                    <td class="small">
-                                        <th:block th:if="${p.type == 'FLASH_SALE'}"><div th:text="${p.product.name}"></div>
-                                            <div><span class="text-danger fw-semibold" th:text="${@fmt.money(p.salePrice)}"></span> <del class="text-muted" th:text="${@fmt.money(p.product.price)}"></del></div>
-                                            <div th:if="${p.quantityLimit != null}" th:text="'Đã bán ' + ${p.soldCount} + '/' + ${p.quantityLimit} + ' suất'"></div></th:block>
-                                        <th:block th:if="${p.type == 'GIFT'}"><div th:text="'Mua ' + ${p.buyQuantity} + ' ' + ${p.product.unit} + ' ' + ${p.product.name}"></div>
-                                            <div class="text-success" th:text="'Tặng ' + ${p.giftQuantity} + ' ' + ${p.giftProduct.unit} + ' ' + ${p.giftProduct.name}"></div></th:block>
-                                        <th:block th:if="${p.type == 'COMBO'}"><div th:each="i : ${p.items}" th:text="${i.quantity} + ' x ' + ${i.product.name}"></div>
-                                            <div class="text-success" th:text="'Giảm ' + ${@fmt.money(p.comboDiscount)} + '/bộ'"></div></th:block>
-                                    </td>
-                                    <td class="small text-nowrap"><div th:text="${@fmt.dateTime(p.startAt)}"></div><div th:text="${@fmt.dateTime(p.endAt)}"></div></td>
-                                    <td><span class="badge" th:classappend="${p.statusLabel == 'Đang chạy'} ? 'text-bg-success' : 'text-bg-secondary'" th:text="${p.statusLabel}"></span></td>
-                                    <td class="text-nowrap"><a th:href="@{/admin/promotions(edit=${p.id})}" class="btn btn-sm btn-outline-primary">Sửa</a>
-                                        <form th:action="@{/admin/promotions/{id}/toggle(id=${p.id})}" method="post" class="d-inline">
-                                            <button class="btn btn-sm btn-outline-dark" th:text="${p.active} ? 'Dừng' : 'Bật'"></button></form></td>
-                                </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-xl-5">
-                    <div class="btn-group mb-2" th:if="${edit.id == null}">
-                        <a th:href="@{/admin/promotions(type='FLASH_SALE')}" class="btn btn-sm" th:classappend="${edit.type == 'FLASH_SALE'} ? 'btn-primary' : 'btn-outline-primary'"><i class="bi bi-lightning-charge"></i> Flash sale</a>
-                        <a th:href="@{/admin/promotions(type='COMBO')}" class="btn btn-sm" th:classappend="${edit.type == 'COMBO'} ? 'btn-primary' : 'btn-outline-primary'"><i class="bi bi-collection"></i> Combo</a>
-                        <a th:href="@{/admin/promotions(type='GIFT')}" class="btn btn-sm" th:classappend="${edit.type == 'GIFT'} ? 'btn-primary' : 'btn-outline-primary'"><i class="bi bi-gift"></i> Mua X tặng Y</a>
-                    </div>
-                    <form th:action="${edit.id == null} ? @{/admin/promotions} : @{/admin/promotions/{id}(id=${edit.id})}" method="post" class="card">
-                        <input type="hidden" name="type" th:value="${edit.type}">
-                        <div class="card-header" th:text="(${edit.id == null} ? 'Tạo ' : 'Sửa ') + ${edit.typeLabel}"></div>
-                        <div class="card-body row g-2">
-                            <div class="col-12"><label class="form-label small">Tên chương trình</label><input name="name" class="form-control" th:value="${edit.name}" required></div>
-                            <div class="col-6"><label class="form-label small">Bắt đầu</label><input type="datetime-local" name="startAt" class="form-control" th:value="${@fmt.isoTime(edit.startAt)}" required></div>
-                            <div class="col-6"><label class="form-label small">Kết thúc</label><input type="datetime-local" name="endAt" class="form-control" th:value="${@fmt.isoTime(edit.endAt)}" required></div>
-                            <th:block th:if="${edit.type == 'FLASH_SALE'}">
-                                <div class="col-12"><label class="form-label small">Sản phẩm</label>
-                                    <select name="productId" class="form-select" required>
-                                        <option th:each="o : ${products}" th:value="${o.id}" th:text="${o.name} + ' - ' + ${@fmt.money(o.price)} + '/' + ${o.unit}"
-                                                th:selected="${edit.product != null && edit.product.id == o.id}"></option></select></div>
-                                <div class="col-6"><label class="form-label small">Giá flash sale (theo ĐVT gốc)</label><input type="number" name="salePrice" min="1" class="form-control" th:value="${edit.salePrice}" required></div>
-                                <div class="col-6"><label class="form-label small">Số suất (để trống = không giới hạn)</label><input type="number" name="quantityLimit" min="0" class="form-control" th:value="${edit.quantityLimit}"></div>
-                            </th:block>
-                            <th:block th:if="${edit.type == 'GIFT'}">
-                                <div class="col-8"><label class="form-label small">Mua sản phẩm (X)</label>
-                                    <select name="productId" class="form-select" required>
-                                        <option th:each="o : ${products}" th:value="${o.id}" th:text="${o.name}" th:selected="${edit.product != null && edit.product.id == o.id}"></option></select></div>
-                                <div class="col-4"><label class="form-label small">Số lượng mua</label><input type="number" name="buyQuantity" min="1" class="form-control" th:value="${edit.buyQuantity != null ? edit.buyQuantity : 2}" required></div>
-                                <div class="col-8"><label class="form-label small">Tặng sản phẩm (Y)</label>
-                                    <select name="giftProductId" class="form-select" required>
-                                        <option th:each="o : ${products}" th:value="${o.id}" th:text="${o.name}" th:selected="${edit.giftProduct != null && edit.giftProduct.id == o.id}"></option></select></div>
-                                <div class="col-4"><label class="form-label small">Số lượng tặng</label><input type="number" name="giftQuantity" min="1" class="form-control" th:value="${edit.giftQuantity != null ? edit.giftQuantity : 1}" required></div>
-                            </th:block>
-                            <th:block th:if="${edit.type == 'COMBO'}">
-                                <div class="col-12 small text-muted">Chọn 2-4 sản phẩm; khách mua đủ bộ (số lượng theo ĐVT gốc) được giảm số tiền cho mỗi bộ.</div>
-                                <th:block th:each="i : ${#numbers.sequence(0, 3)}">
-                                    <div class="col-9"><select name="comboProductIds" class="form-select form-select-sm">
-                                        <option value="">-- Sản phẩm --</option>
-                                        <option th:each="o : ${products}" th:value="${o.id}" th:text="${o.name} + ' - ' + ${@fmt.money(o.price)}"
-                                                th:selected="${i < edit.items.size() && edit.items[i].product.id == o.id}"></option></select></div>
-                                    <div class="col-3"><input type="number" name="comboQuantities" min="1" class="form-control form-control-sm" placeholder="SL"
-                                                              th:value="${i < edit.items.size() ? edit.items[i].quantity : 1}"></div>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/admin :: layout(~{::content}, ~{})}">
+<body>
+<th:block th:fragment="content">
+<th:block th:with="e=${edit}, isNew=${edit.id == null}, t=${edit.type}">
+    <div class="alert alert-info small"><i class="bi bi-info-circle"></i> Theo quy định, không áp dụng khuyến mãi cho thuốc kê đơn và thuốc kiểm soát đặc biệt -
+        chỉ chọn được thuốc OTC, TPCN, dụng cụ y tế, dược mỹ phẩm. Khuyến mãi áp dụng cho đơn đặt online.</div>
+    <div class="row g-4">
+        <div class="col-xl-7">
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead><tr><th>Chương trình</th><th>Chi tiết</th><th>Thời gian</th><th>Trạng thái</th><th></th></tr></thead>
+                        <tbody>
+                        <tr th:each="p : ${list}">
+                            <td><div class="fw-semibold" th:text="${p.name}"></div><span class="badge text-bg-light border" th:text="${p.typeLabel()}"></span></td>
+                            <td class="small">
+                                <th:block th:if="${p.type == 'FLASH_SALE' and p.product != null}">
+                                    <div th:text="${p.product.name}"></div>
+                                    <div><span class="text-danger fw-semibold" th:text="${@h.money(p.salePrice)}"></span> <del class="text-muted" th:text="${@h.money(p.product.price)}"></del></div>
+                                    <div th:if="${p.quantityLimit != null}" th:text="'Đã bán ' + ${p.soldCount} + '/' + ${p.quantityLimit} + ' suất'"></div>
                                 </th:block>
-                                <div class="col-12"><label class="form-label small">Giảm cho mỗi bộ (đ)</label><input type="number" name="comboDiscount" min="1" class="form-control" th:value="${edit.comboDiscount}" required></div>
-                            </th:block>
-                            <div class="col-12 form-check ms-2" th:if="${edit.id != null}"><input type="checkbox" class="form-check-input" name="active" value="true" id="pActive" th:checked="${edit.active}">
-                                <label class="form-check-label" for="pActive">Đang bật</label></div>
-                        </div>
-                        <div class="card-footer bg-white"><button class="btn btn-primary">Lưu chương trình</button>
-                            <a th:if="${edit.id != null}" th:href="@{/admin/promotions}" class="btn btn-link">Hủy</a></div>
-                    </form>
+                                <th:block th:if="${p.type == 'GIFT' and p.product != null and p.giftProduct != null}">
+                                    <div th:text="'Mua ' + ${p.buyQuantity} + ' ' + ${p.product.unit} + ' ' + ${p.product.name}"></div>
+                                    <div class="text-success" th:text="'Tặng ' + ${p.giftQuantity} + ' ' + ${p.giftProduct.unit} + ' ' + ${p.giftProduct.name}"></div>
+                                </th:block>
+                                <th:block th:if="${p.type == 'COMBO'}">
+                                    <div th:each="i : ${p.items}" th:text="${i.quantity} + ' x ' + ${i.product.name}"></div>
+                                    <div class="text-success" th:text="'Giảm ' + ${@h.money(p.comboDiscount)} + '/bộ'"></div>
+                                </th:block>
+                            </td>
+                            <td class="small text-nowrap"><div th:text="${@h.dt(p.startAt)}"></div><div th:text="${@h.dt(p.endAt)}"></div></td>
+                            <td><span th:class="'badge text-bg-' + (${p.isRunning()} ? 'success' : 'secondary')" th:text="${p.statusLabel()}"></span></td>
+                            <td class="text-nowrap"><a th:href="@{/admin/promotions(edit=${p.id})}" class="btn btn-sm btn-outline-primary">Sửa</a>
+                                <form th:action="@{/admin/promotions/{id}/toggle(id=${p.id})}" method="post" class="d-inline">
+                                    <button class="btn btn-sm btn-outline-dark" th:text="${p.active} ? 'Dừng' : 'Bật'"></button></form></td>
+                        </tr>
+                        <tr th:if="${list.isEmpty()}"><td colspan="5" class="text-center text-muted py-4">Chưa có chương trình.</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
-        </main>
+        </div>
+        <div class="col-xl-5">
+            <div th:if="${isNew}" class="btn-group mb-2">
+                <a th:href="@{/admin/promotions(type='FLASH_SALE')}" th:class="'btn btn-sm ' + (${t == 'FLASH_SALE'} ? 'btn-primary' : 'btn-outline-primary')"><i class="bi bi-lightning-charge"></i> Flash sale</a>
+                <a th:href="@{/admin/promotions(type='COMBO')}" th:class="'btn btn-sm ' + (${t == 'COMBO'} ? 'btn-primary' : 'btn-outline-primary')"><i class="bi bi-collection"></i> Combo</a>
+                <a th:href="@{/admin/promotions(type='GIFT')}" th:class="'btn btn-sm ' + (${t == 'GIFT'} ? 'btn-primary' : 'btn-outline-primary')"><i class="bi bi-gift"></i> Mua X tặng Y</a>
+            </div>
+            <form th:action="${isNew} ? @{/admin/promotions} : @{/admin/promotions/{id}(id=${e.id})}" method="post" class="card">
+                <input type="hidden" name="type" th:value="${t}">
+                <div class="card-header" th:text="(${isNew} ? 'Tạo ' : 'Sửa ') + ${e.typeLabel()}"></div>
+                <div class="card-body row g-2">
+                    <div class="col-12"><label class="form-label small" for="pName">Tên chương trình</label><input id="pName" name="name" class="form-control" th:value="${e.name}" required maxlength="150"></div>
+                    <div class="col-6"><label class="form-label small" for="pStart">Bắt đầu</label><input id="pStart" type="datetime-local" name="start_at" class="form-control" th:value="${@h.isoTime(e.startAt)}" required></div>
+                    <div class="col-6"><label class="form-label small" for="pEnd">Kết thúc</label><input id="pEnd" type="datetime-local" name="end_at" class="form-control" th:value="${@h.isoTime(e.endAt)}" required></div>
+                    <th:block th:if="${t == 'FLASH_SALE'}">
+                        <div class="col-12"><label class="form-label small" for="pProd">Sản phẩm</label>
+                            <select id="pProd" name="product_id" class="form-select" required>
+                                <option th:each="o : ${products}" th:value="${o.id}" th:selected="${e.productId == o.id}" th:text="${o.name} + ' - ' + ${@h.money(o.price)} + '/' + ${o.unit}"></option>
+                            </select></div>
+                        <div class="col-6"><label class="form-label small" for="pSale">Giá flash sale (theo ĐVT gốc)</label><input id="pSale" type="number" name="sale_price" min="1" class="form-control" th:value="${e.salePrice}" required></div>
+                        <div class="col-6"><label class="form-label small" for="pLimit">Số suất (trống = không giới hạn)</label><input id="pLimit" type="number" name="quantity_limit" min="0" class="form-control" th:value="${e.quantityLimit}"></div>
+                    </th:block>
+                    <th:block th:if="${t == 'GIFT'}">
+                        <div class="col-8"><label class="form-label small" for="pBuy">Mua sản phẩm (X)</label>
+                            <select id="pBuy" name="product_id" class="form-select" required>
+                                <option th:each="o : ${products}" th:value="${o.id}" th:selected="${e.productId == o.id}" th:text="${o.name}"></option>
+                            </select></div>
+                        <div class="col-4"><label class="form-label small" for="pBuyQ">Số lượng mua</label><input id="pBuyQ" type="number" name="buy_quantity" min="1" class="form-control" th:value="${e.buyQuantity} ?: 2" required></div>
+                        <div class="col-8"><label class="form-label small" for="pGift">Tặng sản phẩm (Y)</label>
+                            <select id="pGift" name="gift_product_id" class="form-select" required>
+                                <option th:each="o : ${products}" th:value="${o.id}" th:selected="${e.giftProduct != null and e.giftProduct.id == o.id}" th:text="${o.name}"></option>
+                            </select></div>
+                        <div class="col-4"><label class="form-label small" for="pGiftQ">Số lượng tặng</label><input id="pGiftQ" type="number" name="gift_quantity" min="1" class="form-control" th:value="${e.giftQuantity} ?: 1" required></div>
+                    </th:block>
+                    <th:block th:if="${t == 'COMBO'}">
+                        <div class="col-12 small text-muted">Chọn 2-4 sản phẩm; khách mua đủ bộ (số lượng theo ĐVT gốc) được giảm số tiền cho mỗi bộ.</div>
+                        <th:block th:each="it, s : ${comboRows}">
+                            <div class="col-9"><select name="combo_product_ids[]" class="form-select form-select-sm" th:aria-label="'Sản phẩm combo ' + ${s.count}">
+                                <option value="">-- Sản phẩm --</option>
+                                <option th:each="o : ${products}" th:value="${o.id}" th:selected="${it != null and it.productId == o.id}" th:text="${o.name} + ' - ' + ${@h.money(o.price)}"></option>
+                            </select></div>
+                            <div class="col-3"><input type="number" name="combo_quantities[]" min="1" class="form-control form-control-sm" placeholder="SL" th:value="${it != null} ? ${it.quantity} : 1" aria-label="Số lượng"></div>
+                        </th:block>
+                        <div class="col-12"><label class="form-label small" for="pCombo">Giảm cho mỗi bộ (đ)</label><input id="pCombo" type="number" name="combo_discount" min="1" class="form-control" th:value="${e.comboDiscount}" required></div>
+                    </th:block>
+                    <div th:unless="${isNew}" class="col-12 form-check ms-2"><input type="checkbox" class="form-check-input" name="active" value="1" id="pActive" th:checked="${e.active}">
+                        <label class="form-check-label" for="pActive">Đang bật</label></div>
+                </div>
+                <div class="card-footer bg-white"><button class="btn btn-primary">Lưu chương trình</button>
+                    <a th:unless="${isNew}" th:href="@{/admin/promotions}" class="btn btn-link">Hủy</a></div>
+            </form>
+        </div>
     </div>
-</div>
-<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</th:block>
+</th:block>
 </body>
 </html>

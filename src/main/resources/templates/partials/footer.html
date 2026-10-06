@@ -1,0 +1,47 @@
+<footer xmlns:th="http://www.thymeleaf.org" th:fragment="footer" class="site-footer">
+    <svg class="wave" viewBox="0 0 1440 50" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0,30 C240,60 480,0 720,20 C960,40 1200,10 1440,30 L1440,50 L0,50 Z" fill="#06214f"/>
+    </svg>
+    <div class="container py-5">
+        <div class="row g-4">
+            <div class="col-lg-4">
+                <div class="mb-3"><th:block th:replace="~{partials/logo :: logo}"/></div>
+                <p class="small">Hệ thống nhà thuốc trực tuyến đạt chuẩn GPP. Thuốc chính hãng, nguồn gốc rõ ràng,
+                    truy xuất lô và hạn dùng cho từng sản phẩm.</p>
+                <div class="social">
+                    <a href="#" aria-label="Facebook"><i class="bi bi-facebook"></i></a>
+                    <a href="#" aria-label="Zalo"><i class="bi bi-chat-dots-fill"></i></a>
+                    <a href="#" aria-label="Youtube"><i class="bi bi-youtube"></i></a>
+                    <a href="#" aria-label="TikTok"><i class="bi bi-tiktok"></i></a>
+                </div>
+            </div>
+            <div class="col-sm-6 col-lg-3 small">
+                <h6 class="fw-semibold mb-3">Liên hệ</h6>
+                <p class="mb-2"><i class="bi bi-geo-alt me-2"></i><th:block th:text="${settings['store_address']}"/></p>
+                <p class="mb-2"><i class="bi bi-telephone me-2"></i><th:block th:text="${settings['store_phone']}"/></p>
+                <p class="mb-2"><i class="bi bi-envelope me-2"></i><th:block th:text="${settings['store_email']}"/></p>
+            </div>
+            <div class="col-sm-6 col-lg-3 small">
+                <h6 class="fw-semibold mb-3">Thông tin pháp lý</h6>
+                <p class="mb-1" th:text="${settings['business_license']}"></p>
+                <p class="mb-1" th:text="${settings['gpp_cert']}"></p>
+                <p class="mb-1">Dược sĩ phụ trách: <th:block th:text="${settings['pharmacist_in_charge']}"/></p>
+            </div>
+            <div class="col-lg-2 small">
+                <h6 class="fw-semibold mb-3">Hỗ trợ</h6>
+                <ul class="list-unstyled mb-0 d-grid gap-2">
+                    <li><a th:href="@{/about}">Giới thiệu nhà thuốc</a></li>
+                    <li th:each="pg : ${footerPages}"><a th:href="@{/pages/{s}(s=${pg.slug})}" th:text="${pg.title}"></a></li>
+                    <li><a th:href="@{/faq}">Câu hỏi thường gặp</a></li>
+                    <li><a th:href="@{/consult}">Tư vấn với dược sĩ</a></li>
+                    <li><a th:href="@{/posts}">Góc sức khỏe</a></li>
+                </ul>
+            </div>
+        </div>
+        <hr class="my-4">
+        <div class="d-flex flex-wrap justify-content-between gap-2 small footer-note">
+            <span>© <th:block th:text="${@h.year()}"/> <th:block th:text="${settings['store_name']}"/>. Bảo lưu mọi quyền.</span>
+            <span>Thông tin chỉ mang tính tham khảo, không thay thế chẩn đoán của bác sĩ. Thuốc kê đơn chỉ bán khi có đơn hợp lệ.</span>
+        </div>
+    </div>
+</footer>

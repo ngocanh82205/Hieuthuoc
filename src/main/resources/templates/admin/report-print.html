@@ -1,85 +1,29 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head}"></head>
-<body class="bg-white">
-<main class="container py-4 print-report" style="max-width: 960px" th:with="r=${report}">
-    <div class="d-flex justify-content-between align-items-start mb-3">
-        <div>
-            <div class="fw-bold" th:text="${settings['store_name']}"></div>
-            <div class="small" th:text="${settings['store_address']}"></div>
-            <div class="small" th:text="${settings['business_license']}"></div>
-        </div>
-        <div class="text-end small">In lúc <span th:text="${@fmt.dateTime(printedAt)}"></span></div>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/print :: layout(~{::content})}">
+<body>
+<th:block th:fragment="content">
+<th:block th:with="r=${report}">
+    <div class="d-flex justify-content-between mb-3">
+        <div><div class="fw-bold fs-5" th:text="${settings['store_name']}"></div><div class="small" th:text="${settings['store_address']}"></div></div>
+        <div class="text-end"><h1 class="h5 fw-bold mb-0">BÁO CÁO KINH DOANH</h1><div class="small" th:text="'Từ ' + ${@h.date(from)} + ' đến ' + ${@h.date(to)}"></div>
+            <div class="small text-muted" th:text="'In lúc ' + ${@h.dt(printedAt)}"></div></div>
     </div>
-    <h1 class="h4 fw-bold text-center mb-1">BÁO CÁO KINH DOANH</h1>
-    <p class="text-center mb-4" th:text="'Từ ' + ${@fmt.date(r.from)} + ' đến ' + ${@fmt.date(r.to)}"></p>
-
-    <h2 class="h6 fw-bold">1. Tổng quan</h2>
-    <table class="table table-sm table-bordered">
-        <tr><td>Doanh thu (đơn hoàn thành)</td><td class="text-end fw-semibold" th:text="${@fmt.money(r.revenue)}"></td>
-            <td>Số đơn hoàn thành</td><td class="text-end" th:text="${r.orders}"></td></tr>
-        <tr><td>Giá vốn (theo lô)</td><td class="text-end" th:text="${@fmt.money(r.cost)}"></td>
-            <td>Lợi nhuận gộp</td><td class="text-end fw-semibold" th:text="${@fmt.money(r.grossProfit)} + ' (' + ${r.marginRate} + '%)'"></td></tr>
-        <tr><td>Giá trị đơn trung bình</td><td class="text-end" th:text="${@fmt.money(r.aov)}"></td>
-            <td>Tỷ lệ hủy / trả hàng</td><td class="text-end" th:text="${r.cancelOnlyRate} + '% / ' + ${r.returnRate} + '%'"></td></tr>
-        <tr><td>Khách mới / quay lại</td><td class="text-end" th:text="${r.newCustomers} + ' / ' + ${r.returningCustomers}"></td>
-            <td>Tài khoản đăng ký mới</td><td class="text-end" th:text="${r.registrations}"></td></tr>
-        <tr><td>Giá trị tồn kho còn hạn</td><td class="text-end" th:text="${@fmt.money(inventory[0])}"></td>
-            <td>Cận hạn / hết hạn</td><td class="text-end" th:text="${@fmt.money(inventory[1])} + ' / ' + ${@fmt.money(inventory[2])}"></td></tr>
-    </table>
-
-    <div class="row g-3">
-        <div class="col-6">
-            <h2 class="h6 fw-bold">2. Theo kênh bán</h2>
-            <table class="table table-sm table-bordered"><thead><tr><th>Kênh</th><th class="text-end">Đơn</th><th class="text-end">Doanh thu</th></tr></thead>
-                <tr th:each="c : ${r.byChannel}"><td th:text="${c.name()}"></td><td class="text-end" th:text="${c.orders()}"></td><td class="text-end" th:text="${@fmt.money(c.revenue())}"></td></tr></table>
-        </div>
-        <div class="col-6">
-            <h2 class="h6 fw-bold">3. Theo tháng</h2>
-            <table class="table table-sm table-bordered"><thead><tr><th>Tháng</th><th class="text-end">Doanh thu</th></tr></thead>
-                <tr th:each="m : ${r.byMonth}"><td th:text="${m.name()}"></td><td class="text-end" th:text="${@fmt.money(m.value())}"></td></tr></table>
-        </div>
-        <div class="col-6">
-            <h2 class="h6 fw-bold">4. Theo danh mục</h2>
-            <table class="table table-sm table-bordered"><thead><tr><th>Danh mục</th><th class="text-end">Doanh thu</th></tr></thead>
-                <tr th:each="c : ${r.byCategory}"><td th:text="${c.name()}"></td><td class="text-end" th:text="${@fmt.money(c.value())}"></td></tr></table>
-        </div>
-        <div class="col-6">
-            <h2 class="h6 fw-bold">5. Theo nhân viên</h2>
-            <table class="table table-sm table-bordered"><thead><tr><th>Nhân viên</th><th class="text-end">Đơn</th><th class="text-end">Doanh thu</th></tr></thead>
-                <tr th:each="c : ${r.byStaff}"><td th:text="${c.name()}"></td><td class="text-end" th:text="${c.orders()}"></td><td class="text-end" th:text="${@fmt.money(c.revenue())}"></td></tr></table>
-        </div>
+    <th:block th:replace="~{admin/_report :: body(${r})}"/>
+    <h2 class="h6 fw-bold">Doanh thu theo ngày</h2>
+    <table class="table table-sm table-bordered"><thead><tr><th>Ngày</th><th class="text-end">Số đơn</th><th class="text-end">Doanh thu</th></tr></thead><tbody>
+        <tr th:each="e : ${r.byDay}"><td th:text="${@h.date(e.key)}"></td><td class="text-end" th:text="${e.value[0]}"></td><td class="text-end" th:text="${@h.money(e.value[1])}"></td></tr>
+    </tbody></table>
+    <div class="row">
+        <div class="col-6"><h2 class="h6 fw-bold">Theo danh mục</h2><table class="table table-sm table-bordered"><tbody>
+            <tr th:each="e : ${r.byCategory}"><td th:text="${e.key}"></td><td class="text-end" th:text="${@h.money(e.value)}"></td></tr></tbody></table></div>
+        <div class="col-6"><h2 class="h6 fw-bold">Theo phương thức thanh toán</h2><table class="table table-sm table-bordered"><tbody>
+            <tr th:each="e : ${r.byPayment}"><td th:text="${e.key}"></td><td class="text-end" th:text="${e.value[0]}"></td><td class="text-end" th:text="${@h.money(e.value[1])}"></td></tr></tbody></table></div>
     </div>
-
-    <h2 class="h6 fw-bold">6. Sản phẩm bán chạy</h2>
-    <table class="table table-sm table-bordered"><thead><tr><th>Sản phẩm</th><th class="text-end">Số lượng</th><th class="text-end">Doanh thu</th></tr></thead>
-        <tr th:each="p : ${r.topProducts}"><td th:text="${p.name()}"></td><td class="text-end" th:text="${p.quantity()} + ' ' + ${p.unit()}"></td><td class="text-end" th:text="${@fmt.money(p.revenue())}"></td></tr></table>
-
-    <h2 class="h6 fw-bold">7. Hàng tồn chậm</h2>
-    <p class="small" th:text="${r.slowProducts.isEmpty()} ? 'Không có.' : ${#strings.listJoin(r.slowProducts.![name + ' (' + onHand + ')'], ', ')}"></p>
-
-    <h2 class="h6 fw-bold">8. Hiệu suất dược sĩ</h2>
-    <table class="table table-sm table-bordered"><thead><tr><th>Nhân viên</th><th class="text-end">Duyệt</th><th class="text-end">Từ chối</th><th class="text-end">TG duyệt TB</th>
-        <th class="text-end">Tư vấn</th><th class="text-end">Đơn xử lý</th></tr></thead>
-        <tr th:each="p : ${r.pharmacists}"><td th:text="${p.name()}"></td><td class="text-end" th:text="${p.approved()}"></td>
-            <td class="text-end" th:text="${p.rejected()} + ' (' + ${p.rejectRate} + '%)'"></td>
-            <td class="text-end" th:text="${p.avgMinutes() != null ? p.avgMinutes() + ' phút' : '-'}"></td>
-            <td class="text-end" th:text="${p.consultations()}"></td><td class="text-end" th:text="${p.orders()}"></td></tr></table>
-
-    <h2 class="h6 fw-bold">9. Hàng cận hạn / hết hạn</h2>
-    <table class="table table-sm table-bordered"><thead><tr><th>Sản phẩm</th><th>Lô</th><th>HSD</th><th class="text-end">Tồn</th><th class="text-end">Giá trị</th></tr></thead>
-        <tr th:each="e : ${r.expired}" class="table-danger"><td th:text="${e.batch().product.name}"></td><td th:text="${e.batch().batchNo}"></td>
-            <td th:text="${@fmt.date(e.batch().expDate)}"></td><td class="text-end" th:text="${e.batch().quantity}"></td><td class="text-end" th:text="${@fmt.money(e.value())}"></td></tr>
-        <tr th:each="e : ${r.nearExpiry}"><td th:text="${e.batch().product.name}"></td><td th:text="${e.batch().batchNo}"></td>
-            <td th:text="${@fmt.date(e.batch().expDate)}"></td><td class="text-end" th:text="${e.batch().quantity}"></td><td class="text-end" th:text="${@fmt.money(e.value())}"></td></tr></table>
-
-    <div class="row text-center mt-5 small">
-        <div class="col">Người lập báo cáo<br><em>(Ký, ghi rõ họ tên)</em></div>
-        <div class="col">Dược sĩ phụ trách chuyên môn<br><em>(Ký, ghi rõ họ tên)</em></div>
-    </div>
-    <div class="text-center mt-4 no-print"><button class="btn btn-danger" onclick="window.print()"><i class="bi bi-file-earmark-pdf"></i> In / Lưu PDF</button>
-        <div class="small text-muted mt-1">Chọn máy in "Lưu thành PDF" (Save as PDF) để xuất file PDF.</div></div>
-</main>
-<script>window.addEventListener('load', function () { setTimeout(function () { window.print(); }, 400); });</script>
+    <h2 class="h6 fw-bold">Top sản phẩm bán chạy</h2>
+    <table class="table table-sm table-bordered"><tbody><tr th:each="t, s : ${r.topProducts}"><td th:text="${s.count} + '. ' + ${t.name()}"></td>
+        <td class="text-end" th:text="${@h.num(t.quantity())} + ' ' + ${t.unit()}"></td><td class="text-end" th:text="${@h.money(t.revenue())}"></td></tr></tbody></table>
+    <th:block th:replace="~{admin/_report :: tables(${r}, ${inventory}, ${nearDays})}"/>
+</th:block>
+</th:block>
 </body>
 </html>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/admin :: layout(~{::content}, ~{})}">
+<body>
+<th:block th:fragment="content">
+    <div class="card mb-3">
+        <div class="card-body d-flex flex-wrap gap-4 small align-items-center">
+            <div><div class="text-muted">Mã phiếu</div><span class="fw-semibold" th:text="${st.code}"></span></div>
+            <div><div class="text-muted">Thời gian</div><th:block th:text="${@h.dt(st.createdAt)}"/></div>
+            <div><div class="text-muted">Người kiểm</div><th:block th:text="${st.user != null} ? ${st.user.fullName} : '-'"/></div>
+            <div><div class="text-muted">Kết quả</div><th:block th:text="${@h.num(st.totalLines)} + ' lô · '"/>
+                <span th:if="${st.diffLines > 0}" class="text-warning-emphasis fw-semibold" th:text="${@h.num(st.diffLines)} + ' lô chênh lệch'"></span>
+                <span th:unless="${st.diffLines > 0}" class="text-success fw-semibold">khớp sổ sách</span></div>
+            <div th:if="${st.note != null}"><div class="text-muted">Ghi chú</div><th:block th:text="${st.note}"/></div>
+            <a th:href="@{/staff/stocktake/{id}/export(id=${st.id})}" class="btn btn-outline-success ms-auto"><i class="bi bi-file-earmark-excel"></i> Xuất file Excel</a>
+        </div>
+    </div>
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead><tr><th>#</th><th>Tên thuốc</th><th>ĐVT</th><th>Số lô</th><th>HSD</th><th class="text-end">Sổ sách</th><th class="text-end">Chờ giao</th><th class="text-end">Thực tế</th><th class="text-end">Chênh lệch</th><th>Xử lý</th></tr></thead>
+                <tbody>
+                <tr th:each="it, s : ${st.items}" th:with="d=${it.diff()}" th:class="${d != 0} ? 'table-warning' : ''">
+                    <td th:text="${s.count}"></td>
+                    <td th:text="${it.productName}"></td>
+                    <td th:text="${it.unit}"></td>
+                    <td th:text="${it.batchNo}"></td>
+                    <td class="text-nowrap" th:text="${@h.date(it.expDate)}"></td>
+                    <td class="text-end" th:text="${@h.num(it.bookQty)}"></td>
+                    <td class="text-end" th:text="${it.pendingOutQty > 0} ? ${@h.num(it.pendingOutQty)} : '-'"></td>
+                    <td class="text-end" th:text="${@h.num(it.countedQty)}"></td>
+                    <td th:class="'text-end fw-semibold ' + (${d < 0} ? 'text-danger' : (${d > 0} ? 'text-success' : ''))" th:text="${d == 0} ? '0' : (${d > 0} ? '+' : '') + ${@h.num(d)}"></td>
+                    <td class="small">
+                        <th:block th:if="${it.adjustment != null}"><th:block th:text="${it.adjustment.status.label}"/>
+                            <div th:if="${it.adjustment.rejectReason != null}" class="text-muted" th:text="${it.adjustment.rejectReason}"></div></th:block>
+                        <th:block th:if="${it.adjustment == null and d == 0}">Khớp</th:block>
+                    </td>
+                </tr>
+                </tbody>
+                <tfoot><tr class="fw-semibold">
+                    <td colspan="5" class="text-end">Tổng</td>
+                    <td class="text-end" th:text="${@h.num(sumBook)}"></td>
+                    <td class="text-end" th:text="${@h.num(sumPending)}"></td>
+                    <td class="text-end" th:text="${@h.num(sumCounted)}"></td>
+                    <td class="text-end" th:text="${sumDiff == 0} ? '0' : (${sumDiff > 0} ? '+' : '') + ${@h.num(sumDiff)}"></td>
+                    <td></td>
+                </tr></tfoot>
+            </table>
+        </div>
+    </div>
+    <a th:href="@{/staff/stocktake/history}" class="btn btn-link px-0 mt-2">← Lịch sử kiểm kê</a>
+</th:block>
+</body>
+</html>

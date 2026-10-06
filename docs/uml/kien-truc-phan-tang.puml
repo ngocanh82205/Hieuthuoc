@@ -1,0 +1,66 @@
+@startuml kien-truc-phan-tang
+!pragma layout smetana
+!include _style.iuml
+skinparam componentStyle rectangle
+skinparam ComponentBorderColor #1f4e79
+skinparam ComponentBackgroundColor #eaf3fb
+skinparam DatabaseBorderColor #1f4e79
+skinparam DatabaseBackgroundColor #eaf3fb
+title Hình 2.y - Kiến trúc phân tầng bên trong backend Spring Boot
+
+component "Trình duyệt" as BR
+
+package "Tầng trình bày (Presentation)" {
+  component "Bộ lọc bảo mật\n(Spring Security: SecurityConfig,\nphân quyền URL, CSRF)" as SEC
+  component "Interceptor\n(StaffAccessInterceptor,\nPresenceInterceptor)" as INT
+  component "Controller\n(ShopController, CartController,\nAccountController, ConsultController,\nstaff.* (StaffController, PosController...),\nadmin.* (AdminController, AdminStockController...))" as CTL
+  component "View Thymeleaf\n(templates/*.html, fragments)" as VIEW
+  component "Xử lý lỗi chung\n(GlobalControllerAdvice)" as ADV
+}
+
+package "Tầng nghiệp vụ (Service)" {
+  component "Bán hàng\nCartService, OrderService,\nPromotionService, VoucherService,\nPosService, PaymentService" as SV1
+  component "Kho & sản phẩm\nStockService, InventoryService,\nCatalogService, ProductService,\nCategoryService" as SV2
+  component "Chăm sóc khách hàng\nChatService, AiAssistantService,\nSafetyService, CustomerCareService,\nRecommendationService" as SV3
+  component "Hệ thống\nAccountService, SettingService,\nNotificationService, MailService,\nReportService, FileStorageService" as SV4
+}
+
+package "Tầng tích hợp (Integration)" {
+  component "GhnService, PayOS/VNPay\n(trong PaymentService),\nGeminiClient, ClaudeClient" as EXT
+}
+
+package "Tầng truy cập dữ liệu (Data Access)" {
+  component "Repository\n(Spring Data JPA)" as REPO
+  component "EntityManager / Sql\n(JPQL, SQL tổng hợp,\nkhóa SELECT ... FOR UPDATE)" as EM
+}
+
+package "Tầng miền (Domain)" {
+  component "Entity JPA\n(User, Product, Batch, Order,\nOrderItem, Prescription, ...)\nEnum nghiệp vụ\n(OrderStatus, DrugType, ...)" as ENT
+}
+
+database "MySQL" as DB
+cloud "Dịch vụ ngoài" as CLOUD
+
+BR --> SEC : HTTP request
+SEC --> INT
+INT --> CTL
+CTL --> VIEW : Model + tên view
+VIEW --> BR : HTML
+CTL ..> ADV : ngoại lệ
+CTL --> SV1
+CTL --> SV2
+CTL --> SV3
+CTL --> SV4
+SV1 --> EXT
+SV3 --> EXT
+EXT --> CLOUD : HTTPS
+SV1 --> REPO
+SV2 --> REPO
+SV3 --> REPO
+SV4 --> REPO
+SV1 --> EM
+SV2 --> EM
+REPO --> ENT
+EM --> ENT
+ENT --> DB : Hibernate ORM / JDBC
+@enduml

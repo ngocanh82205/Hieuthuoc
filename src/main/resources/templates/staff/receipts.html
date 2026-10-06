@@ -1,35 +1,30 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head}"></head>
-<body class="staff-body">
-<div class="staff-shell">
-    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
-    <div class="staff-main">
-        <header th:replace="~{fragments/staff :: topbar}"></header>
-        <main class="p-3 p-lg-4">
-            <div th:replace="~{fragments/layout :: flash}"></div>
-            <div class="d-flex justify-content-end mb-3"><a th:href="@{/staff/receipts/new}" class="btn btn-primary"><i class="bi bi-plus"></i> Tạo phiếu nhập</a></div>
-            <div class="card">
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead><tr><th>Mã phiếu</th><th>Nhà cung cấp</th><th>Người tạo</th><th>Ngày tạo</th><th class="text-end">Số dòng</th><th class="text-end">Giá trị</th><th>Trạng thái</th></tr></thead>
-                        <tbody>
-                        <tr th:each="r : ${receipts}">
-                            <td><a class="fw-semibold" th:href="@{/staff/receipts/{id}(id=${r.id})}" th:text="${r.code}"></a></td>
-                            <td th:text="${r.supplier != null ? r.supplier.name : '-'}"></td>
-                            <td class="small" th:text="${r.createdBy != null ? r.createdBy.fullName : ''}"></td>
-                            <td class="small" th:text="${@fmt.dateTime(r.createdAt)}"></td>
-                            <td class="text-end" th:text="${r.items.size()}"></td>
-                            <td class="text-end" th:text="${@fmt.money(r.total)}"></td>
-                            <td><span class="badge" th:classappend="'text-bg-' + ${r.status.color}" th:text="${r.status.label}"></span></td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </main>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/admin :: layout(~{::content}, ~{})}">
+<body>
+<th:block th:fragment="content">
+    <div class="d-flex flex-wrap justify-content-between gap-2 mb-3">
+        <ul class="nav nav-pills">
+            <li class="nav-item"><a th:class="'nav-link ' + (${status == null} ? 'active' : '')" th:href="@{/staff/receipts}">Tất cả</a></li>
+            <li class="nav-item" th:each="s : ${statuses}"><a th:class="'nav-link ' + (${status == s} ? 'active' : '')" th:href="@{/staff/receipts(status=${s.name()})}" th:text="${s.label}"></a></li>
+        </ul>
+        <a th:href="@{/staff/receipts/new}" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Tạo phiếu nhập</a>
     </div>
-</div>
-<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead><tr><th>Mã phiếu</th><th>Nhà cung cấp</th><th class="text-end">Số dòng</th><th class="text-end">Giá trị</th><th>Người lập</th><th>Trạng thái</th><th>Ngày</th></tr></thead>
+                <tbody>
+                <tr th:each="r : ${receipts.items}"><td><a th:href="@{/staff/receipts/{id}(id=${r.id})}" class="fw-semibold" th:text="${r.code}"></a></td>
+                    <td th:text="${r.supplier != null} ? ${r.supplier.name} : '-'"></td>
+                    <td class="text-end" th:text="${r.items.size()}"></td><td class="text-end" th:text="${@h.money(r.total())}"></td>
+                    <td class="small" th:text="${r.creator != null} ? ${r.creator.fullName} : ''"></td><td><span th:class="'badge text-bg-' + ${r.status.color}" th:text="${r.status.label}"></span></td>
+                    <td class="small" th:text="${@h.dt(r.createdAt)}"></td></tr>
+                <tr th:if="${receipts.isEmpty()}"><td colspan="7" class="text-center text-muted py-4">Chưa có phiếu nhập.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="mt-3"><th:block th:replace="~{partials/pagination :: links(${receipts})}"/></div>
+</th:block>
 </body>
 </html>

@@ -1,68 +1,186 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head}"></head>
-<body class="staff-body">
-<div class="staff-shell">
-    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
-    <div class="staff-main">
-        <header th:replace="~{fragments/staff :: topbar}"></header>
-        <main class="p-3 p-lg-4">
-            <div th:replace="~{fragments/layout :: flash}"></div>
-            <form th:action="@{/staff/receipts}" method="post" class="card">
-                <div class="card-body">
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-5"><label class="form-label">Nhà cung cấp</label>
-                            <select name="supplierId" class="form-select">
-                                <option value="">-- Chọn --</option>
-                                <option th:each="s : ${suppliers}" th:value="${s.id}" th:text="${s.name}"></option>
-                            </select></div>
-                        <div class="col-md-3"><label class="form-label">Kho nhận</label>
-                            <select name="warehouseId" class="form-select">
-                                <option th:each="w : ${warehouses}" th:value="${w.id}" th:text="${w.name}"></option>
-                            </select></div>
-                        <div class="col-md-4"><label class="form-label">Ghi chú</label><input name="note" class="form-control" maxlength="500"></div>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table table-sm align-middle">
-                            <thead><tr><th style="min-width: 220px">Sản phẩm</th><th>Số lô</th><th>Ngày SX</th><th>Hạn dùng</th><th>Số lượng</th><th>Giá nhập (đ)</th><th></th></tr></thead>
-                            <tbody id="receiptRows">
-                            <tr>
-                                <td><select name="rows[0].productId" class="form-select form-select-sm" required>
-                                    <option value="">-- Chọn sản phẩm --</option>
-                                    <option th:each="p : ${products}" th:value="${p.id}" th:text="${p.name} + ' (' + ${p.unit} + ')'"></option></select></td>
-                                <td><input name="rows[0].batchNo" class="form-control form-control-sm" required></td>
-                                <td><input type="date" name="rows[0].mfgDate" class="form-control form-control-sm"></td>
-                                <td><input type="date" name="rows[0].expDate" class="form-control form-control-sm" required></td>
-                                <td><input type="number" min="1" name="rows[0].quantity" class="form-control form-control-sm" required style="width: 90px"></td>
-                                <td><input type="number" min="0" name="rows[0].importPrice" class="form-control form-control-sm" style="width: 120px"></td>
-                                <td><button type="button" class="btn btn-sm btn-link text-danger js-remove-row"><i class="bi bi-x-lg"></i></button></td>
-                            </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <template id="receiptRowTemplate">
-                        <tr>
-                            <td><select name="rows[__i__].productId" class="form-select form-select-sm">
-                                <option value="">-- Chọn sản phẩm --</option>
-                                <option th:each="p : ${products}" th:value="${p.id}" th:text="${p.name} + ' (' + ${p.unit} + ')'"></option></select></td>
-                            <td><input name="rows[__i__].batchNo" class="form-control form-control-sm"></td>
-                            <td><input type="date" name="rows[__i__].mfgDate" class="form-control form-control-sm"></td>
-                            <td><input type="date" name="rows[__i__].expDate" class="form-control form-control-sm"></td>
-                            <td><input type="number" min="1" name="rows[__i__].quantity" class="form-control form-control-sm" style="width: 90px"></td>
-                            <td><input type="number" min="0" name="rows[__i__].importPrice" class="form-control form-control-sm" style="width: 120px"></td>
-                            <td><button type="button" class="btn btn-sm btn-link text-danger js-remove-row"><i class="bi bi-x-lg"></i></button></td>
-                        </tr>
-                    </template>
-                    <button type="button" id="addReceiptRow" class="btn btn-sm btn-outline-secondary"><i class="bi bi-plus"></i> Thêm dòng</button>
-                </div>
-                <div class="card-footer bg-white d-flex justify-content-between align-items-center">
-                    <span class="small text-muted">Phiếu nhập cần admin duyệt thì hàng mới được đưa vào kho.</span>
-                    <button class="btn btn-primary">Lưu phiếu nhập</button>
-                </div>
-            </form>
-        </main>
-    </div>
-</div>
-<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/admin :: layout(~{::content}, ~{::scripts})}">
+<body>
+<th:block th:fragment="content">
+    <form th:action="@{/staff/receipts}" method="post" class="card" id="receiptForm">
+        <div class="card-body">
+            <div class="row g-3 mb-3">
+                <div class="col-md-5"><label class="form-label" for="rSup">Nhà cung cấp</label>
+                    <select id="rSup" name="supplier_id" class="form-select"><option value="">-- Chọn --</option>
+                        <option th:each="s : ${suppliers}" th:value="${s.id}" th:text="${s.name}"></option></select></div>
+                <div class="col-md-7"><label class="form-label" for="rNote">Ghi chú</label><input id="rNote" name="note" class="form-control" maxlength="500"></div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead><tr><th style="min-width: 220px">Sản phẩm</th><th>Số lô</th><th>Ngày SX</th><th>Hạn dùng</th><th>Số lượng</th><th>Giá nhập (đ)</th><th></th></tr></thead>
+                    <tbody id="receiptRows">
+                    <tr>
+                        <td><div class="product-pick">
+                            <input type="hidden" name="rows[0][product_id]" class="js-product-id">
+                            <input type="search" class="form-control form-control-sm js-product-search" autocomplete="off" required
+                                   placeholder="Gõ tên, hoạt chất hoặc số đăng ký..." aria-label="Sản phẩm" role="combobox" aria-expanded="false">
+                            <div class="list-group product-pick-menu d-none" role="listbox"></div>
+                        </div></td>
+                        <td><input name="rows[0][batch_no]" class="form-control form-control-sm" required aria-label="Số lô"></td>
+                        <td><input type="date" name="rows[0][mfg_date]" class="form-control form-control-sm" th:max="${today}" aria-label="Ngày sản xuất"></td>
+                        <td><input type="date" name="rows[0][exp_date]" class="form-control form-control-sm" th:min="${tomorrow}" required aria-label="Hạn dùng"></td>
+                        <td><input type="number" min="1" name="rows[0][quantity]" class="form-control form-control-sm" required style="width: 90px" aria-label="Số lượng"></td>
+                        <td><input type="number" min="0" name="rows[0][import_price]" class="form-control form-control-sm" style="width: 120px" aria-label="Giá nhập"></td>
+                        <td><button type="button" class="btn btn-sm btn-link text-danger js-remove-row" aria-label="Xóa dòng"><i class="bi bi-x-lg"></i></button></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <template id="receiptRowTemplate">
+                    <tr>
+                        <td><div class="product-pick">
+                            <input type="hidden" name="rows[__i__][product_id]" class="js-product-id">
+                            <input type="search" class="form-control form-control-sm js-product-search" autocomplete="off"
+                                   placeholder="Gõ tên, hoạt chất hoặc số đăng ký..." aria-label="Sản phẩm" role="combobox" aria-expanded="false">
+                            <div class="list-group product-pick-menu d-none" role="listbox"></div>
+                        </div></td>
+                        <td><input name="rows[__i__][batch_no]" class="form-control form-control-sm" aria-label="Số lô"></td>
+                        <td><input type="date" name="rows[__i__][mfg_date]" class="form-control form-control-sm" th:max="${today}" aria-label="Ngày sản xuất"></td>
+                        <td><input type="date" name="rows[__i__][exp_date]" class="form-control form-control-sm" th:min="${tomorrow}" aria-label="Hạn dùng"></td>
+                        <td><input type="number" min="1" name="rows[__i__][quantity]" class="form-control form-control-sm" style="width: 90px" aria-label="Số lượng"></td>
+                        <td><input type="number" min="0" name="rows[__i__][import_price]" class="form-control form-control-sm" style="width: 120px" aria-label="Giá nhập"></td>
+                        <td><button type="button" class="btn btn-sm btn-link text-danger js-remove-row" aria-label="Xóa dòng"><i class="bi bi-x-lg"></i></button></td>
+                    </tr>
+            </template>
+            <button type="button" id="addReceiptRow" class="btn btn-sm btn-outline-secondary"><i class="bi bi-plus"></i> Thêm dòng</button>
+        </div>
+        <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+            <span class="small text-muted">Phiếu nhập cần người có quyền duyệt phiếu kho duyệt thì hàng mới vào kho.</span>
+            <button class="btn btn-primary">Lưu phiếu nhập</button>
+        </div>
+    </form>
+</th:block>
+<th:block th:fragment="scripts">
+<script th:inline="javascript">
+/* Ô chọn sản phẩm có tìm kiếm (không dấu) cho phiếu nhập */
+(function () {
+    var products = /*[[${productData}]]*/ [];
+    var norm = function (s) {
+        return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+    };
+    products.forEach(function (p) { p._q = norm([p.name, p.ingredient, p.reg].join(' ')); });
+    var label = function (p) { return p.name + ' (' + p.unit + ')'; };
+    var esc = function (s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
+    var rows = document.getElementById('receiptRows');
+
+    var parts = function (input) {
+        var box = input.closest('.product-pick');
+        return {box: box, id: box.querySelector('.js-product-id'), menu: box.querySelector('.product-pick-menu')};
+    };
+    var close = function (input) {
+        var x = parts(input);
+        x.menu.classList.add('d-none');
+        input.setAttribute('aria-expanded', 'false');
+    };
+    var render = function (input) {
+        var x = parts(input);
+        var words = norm(input.value).split(/\s+/).filter(Boolean);
+        var list = products.filter(function (p) { return words.every(function (w) { return p._q.indexOf(w) !== -1; }); }).slice(0, 30);
+        x.menu.innerHTML = list.length ? list.map(function (p, i) {
+            return '<button type="button" class="list-group-item list-group-item-action py-1' + (i === 0 ? ' active' : '') + '" data-id="' + p.id + '">'
+                + '<div class="small fw-semibold">' + esc(label(p)) + '</div>'
+                + (p.ingredient || p.reg ? '<div class="small text-muted">' + esc([p.ingredient, p.reg ? 'SĐK ' + p.reg : ''].filter(Boolean).join(' · ')) + '</div>' : '')
+                + '</button>';
+        }).join('') : '<div class="list-group-item small text-muted">Không tìm thấy sản phẩm</div>';
+        // Danh sách nổi trên khung bảng (bảng có thanh cuộn ngang sẽ cắt mất danh sách)
+        var r = input.getBoundingClientRect();
+        x.menu.style.left = r.left + 'px';
+        x.menu.style.top = (r.bottom + 2) + 'px';
+        x.menu.style.width = Math.max(r.width, 320) + 'px';
+        x.menu.classList.remove('d-none');
+        input.setAttribute('aria-expanded', 'true');
+    };
+    window.addEventListener('scroll', function (e) {
+        if (e.target.classList && e.target.classList.contains('product-pick-menu')) return;
+        var a = document.activeElement;
+        if (a && a.classList && a.classList.contains('js-product-search')) close(a);
+    }, true);
+    var choose = function (input, id) {
+        var p = products.find(function (q) { return String(q.id) === String(id); });
+        if (!p) return;
+        parts(input).id.value = p.id;
+        input.value = label(p);
+        input.setCustomValidity('');
+        close(input);
+    };
+
+    rows.addEventListener('input', function (e) {
+        if (!e.target.classList.contains('js-product-search')) return;
+        parts(e.target).id.value = '';
+        render(e.target);
+    });
+    rows.addEventListener('focusin', function (e) {
+        if (e.target.classList.contains('js-product-search') && !parts(e.target).id.value) render(e.target);
+    });
+    rows.addEventListener('focusout', function (e) {
+        if (e.target.classList.contains('js-product-search')) setTimeout(function () { close(e.target); }, 150);
+    });
+    rows.addEventListener('mousedown', function (e) {
+        var item = e.target.closest('.product-pick-menu [data-id]');
+        if (!item) return;
+        e.preventDefault();
+        choose(item.closest('.product-pick').querySelector('.js-product-search'), item.dataset.id);
+    });
+    rows.addEventListener('keydown', function (e) {
+        if (!e.target.classList.contains('js-product-search')) return;
+        var menu = parts(e.target).menu;
+        var items = Array.prototype.slice.call(menu.querySelectorAll('[data-id]'));
+        var cur = items.findIndex(function (b) { return b.classList.contains('active'); });
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (menu.classList.contains('d-none')) { render(e.target); return; }
+            if (!items.length) return;
+            var next = (cur + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+            items.forEach(function (b, i) { b.classList.toggle('active', i === next); });
+            items[next].scrollIntoView({block: 'nearest'});
+        } else if (e.key === 'Enter') {
+            if (!menu.classList.contains('d-none') && items[cur]) { e.preventDefault(); choose(e.target, items[cur].dataset.id); }
+        } else if (e.key === 'Escape') {
+            close(e.target);
+        }
+    });
+
+    // Không cho lưu khi đã gõ nhưng chưa chọn sản phẩm từ danh sách
+    document.getElementById('receiptForm').addEventListener('submit', function (e) {
+        var bad = null;
+        rows.querySelectorAll('tr:not(.d-none) .js-product-search').forEach(function (input) {
+            var missing = (input.required || input.value.trim() !== '') && !parts(input).id.value;
+            input.setCustomValidity(missing ? 'Vui lòng chọn sản phẩm trong danh sách gợi ý.' : '');
+            if (missing && !bad) bad = input;
+        });
+        if (bad) { e.preventDefault(); bad.reportValidity(); return; }
+
+        // Số lô trùng giữa các dòng: cùng thuốc thì chặn, khác thuốc thì hỏi lại
+        var byLot = {};
+        rows.querySelectorAll('tr:not(.d-none)').forEach(function (tr) {
+            var lot = (tr.querySelector('[name$="[batch_no]"]') || {}).value;
+            var id = (tr.querySelector('.js-product-id') || {}).value;
+            if (!lot || !id) return;
+            var k = lot.trim().toLowerCase();
+            (byLot[k] = byLot[k] || []).push({id: id, name: tr.querySelector('.js-product-search').value, lot: lot.trim()});
+        });
+        for (var k in byLot) {
+            var list = byLot[k];
+            var ids = list.map(function (x) { return x.id; });
+            if (ids.length !== new Set(ids).size) {
+                e.preventDefault();
+                alert('Lô ' + list[0].lot + ' bị ghi lặp cho cùng một thuốc. Hãy gộp số lượng vào một dòng.');
+                return;
+            }
+            if (list.length > 1 && !confirm('Số lô ' + list[0].lot + ' trùng ở nhiều thuốc khác nhau:\n- ' + list.map(function (x) { return x.name; }).join('\n- ')
+                + '\n\nChỉ tiếp tục nếu đúng là số lô trên vỏ hộp của từng thuốc.')) {
+                e.preventDefault();
+                return;
+            }
+        }
+    });
+})();
+</script>
+</th:block>
 </body>
 </html>

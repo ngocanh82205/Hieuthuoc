@@ -1,107 +1,107 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head}"></head>
-<body class="staff-body">
-<div class="staff-shell">
-    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
-    <div class="staff-main">
-        <header th:replace="~{fragments/staff :: topbar}"></header>
-        <main class="p-3 p-lg-4">
-            <div th:replace="~{fragments/layout :: flash}"></div>
-            <div class="row g-4">
-                <div class="col-xl-7">
-                    <form class="card card-body mb-3 d-flex flex-row gap-2" method="get" th:action="@{/staff/pos}">
-                        <input name="q" class="form-control" th:value="${q}" placeholder="Tìm tên thuốc, hoạt chất, số đăng ký..." autofocus>
-                        <button class="btn btn-primary"><i class="bi bi-search"></i></button>
-                    </form>
-                    <div class="card" th:if="${!results.isEmpty()}">
-                        <ul class="list-group list-group-flush">
-                            <li class="list-group-item" th:each="p : ${results}">
-                                <div class="d-flex justify-content-between flex-wrap gap-2 align-items-center">
-                                    <div><span class="fw-semibold" th:text="${p.name}"></span>
-                                        <span class="badge" th:classappend="'text-bg-' + ${p.drugType.color}" th:text="${p.drugType.shortLabel}"></span>
-                                        <div class="small text-muted" th:text="'Còn ' + ${p.available} + ' ' + ${p.unit}"></div></div>
-                                    <form th:action="@{/staff/pos/add}" method="post" class="d-flex gap-1">
-                                        <input type="hidden" name="productId" th:value="${p.id}">
-                                        <input type="hidden" name="q" th:value="${q}">
-                                        <select name="unitId" class="form-select form-select-sm">
-                                            <option th:each="u : ${p.unitOptions}" th:value="${u.id()}" th:text="|${u.name()} - ${@fmt.money(u.price())}|"></option></select>
-                                        <input type="number" name="qty" value="1" min="1" class="form-control form-control-sm" style="width: 70px">
-                                        <button class="btn btn-sm btn-primary" th:disabled="${p.available <= 0}"><i class="bi bi-plus-lg"></i></button>
-                                    </form>
-                                </div>
-                            </li>
-                        </ul>
-                    </div>
-                    <p th:if="${q != null && results.isEmpty()}" class="text-muted">Không tìm thấy sản phẩm.</p>
-                    <div th:if="${param.done}" class="alert alert-success mt-3">
-                        <a th:href="@{/staff/orders/{id}/invoice(id=${param.done})}" target="_blank" class="btn btn-sm btn-success"><i class="bi bi-printer"></i> In hóa đơn</a>
-                        <a th:href="@{/staff/orders/{id}/usage(id=${param.done})}" target="_blank" class="btn btn-sm btn-outline-success">In hướng dẫn sử dụng</a>
-                    </div>
-                </div>
-                <div class="col-xl-5">
-                    <div class="card mb-3">
-                        <div class="card-header">Khách hàng</div>
-                        <div class="card-body">
-                            <div th:if="${pos.customer != null}" class="d-flex justify-content-between align-items-center">
-                                <div><div class="fw-semibold" th:text="${pos.customer.fullName}"></div>
-                                    <div class="small text-muted" th:text="${pos.customer.phone} + ' · ' + ${pos.customer.points} + ' điểm'"></div></div>
-                                <form th:action="@{/staff/pos/customer}" method="post"><input type="hidden" name="clear" value="true">
-                                    <button class="btn btn-sm btn-outline-secondary">Bỏ</button></form>
-                            </div>
-                            <form th:if="${pos.customer == null}" th:action="@{/staff/pos/customer}" method="post" class="d-flex gap-2">
-                                <input name="phone" class="form-control form-control-sm" placeholder="SĐT khách thành viên (để cộng điểm)">
-                                <button class="btn btn-sm btn-outline-primary text-nowrap">Tìm</button>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/admin :: layout(~{::content}, ~{})}">
+<body>
+<th:block th:fragment="content">
+    <div class="row g-4">
+        <div class="col-xl-7">
+            <form class="card card-body mb-3 d-flex flex-row gap-2" method="get" th:action="@{/staff/pos}">
+                <input name="q" class="form-control" th:value="${q}" placeholder="Tìm tên thuốc, hoạt chất, số đăng ký..." autofocus aria-label="Tìm sản phẩm">
+                <button class="btn btn-primary" aria-label="Tìm"><i class="bi bi-search"></i></button>
+            </form>
+            <div class="card" th:if="${!results.isEmpty()}">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item" th:each="p : ${results}">
+                        <div class="d-flex justify-content-between flex-wrap gap-2 align-items-center">
+                            <div><span class="fw-semibold" th:text="${p.name}"></span>
+                                <span th:class="'badge text-bg-' + ${p.drugType.color}" th:text="${p.drugType.shortLabel}"></span>
+                                <div class="small text-muted" th:text="'Còn ' + ${@h.num(p.available)} + ' ' + ${p.unit}"></div></div>
+                            <form th:action="@{/staff/pos/add}" method="post" class="d-flex gap-1">
+                                <input type="hidden" name="product_id" th:value="${p.id}">
+                                <input type="hidden" name="q" th:value="${q}">
+                                <select name="unit_id" class="form-select form-select-sm" aria-label="Đơn vị">
+                                    <option th:each="u : ${p.unitOptions()}" th:value="${u.id()}" th:text="${u.name()} + ' - ' + ${@h.money(u.price())}"></option>
+                                </select>
+                                <input type="number" name="qty" value="1" min="1" class="form-control form-control-sm" style="width: 70px" aria-label="Số lượng">
+                                <button class="btn btn-sm btn-primary" th:disabled="${p.available <= 0}" aria-label="Thêm"><i class="bi bi-plus-lg"></i></button>
                             </form>
-                            <div th:if="${pos.customer == null}" class="small text-muted mt-1">Bỏ trống nếu là khách lẻ.</div>
                         </div>
+                    </li>
+                </ul>
+            </div>
+            <p th:if="${results.isEmpty() and !q.isEmpty()}" class="text-muted">Không tìm thấy sản phẩm.</p>
+            <div th:if="${done != null}" class="alert alert-success mt-3 d-flex flex-wrap gap-2 align-items-center">
+                <span th:text="'Hóa đơn ' + ${done.code} + ' - ' + ${@h.money(done.total)}"></span>
+                <a th:href="@{/staff/orders/{id}/invoice(id=${done.id})}" target="_blank" class="btn btn-sm btn-success"><i class="bi bi-printer"></i> In hóa đơn</a>
+                <a th:href="@{/staff/orders/{id}/usage(id=${done.id})}" target="_blank" class="btn btn-sm btn-outline-success">In hướng dẫn sử dụng</a>
+            </div>
+        </div>
+        <div class="col-xl-5" th:with="c=${pos.customer}">
+            <div class="card mb-3">
+                <div class="card-header">Khách hàng</div>
+                <div class="card-body">
+                    <div th:if="${c != null}" class="d-flex justify-content-between align-items-center">
+                        <div><div class="fw-semibold" th:text="${c.fullName}"></div>
+                            <div class="small text-muted" th:text="${c.phone} + ' · ' + ${@h.num(c.points)} + ' điểm'"></div></div>
+                        <form th:action="@{/staff/pos/customer}" method="post"><input type="hidden" name="clear" value="1">
+                            <button class="btn btn-sm btn-outline-secondary">Bỏ</button></form>
                     </div>
-                    <th:block th:if="${pos.customer != null}"><div th:replace="~{fragments/staff :: warnings(${warnings})}"></div></th:block>
-                    <div class="card">
-                        <div class="card-header d-flex justify-content-between">Hóa đơn
-                            <form th:action="@{/staff/pos/clear}" method="post"><button class="btn btn-sm btn-link text-danger p-0">Xóa hết</button></form></div>
-                        <ul class="list-group list-group-flush">
-                            <li th:if="${pos.lines.isEmpty()}" class="list-group-item text-muted small">Chưa có sản phẩm.</li>
-                            <li class="list-group-item" th:each="l : ${pos.lines}">
-                                <div class="d-flex justify-content-between">
-                                    <div><div class="fw-semibold small" th:text="${l.product.name}"></div>
-                                        <div class="small text-muted" th:text="|${@fmt.money(l.unit.price())}/${l.unit.name()}|"></div>
-                                        <div th:if="${l.error != null}" class="small text-danger" th:text="${l.error}"></div></div>
-                                    <div class="text-end">
-                                        <form th:action="@{/staff/pos/update}" method="post" class="d-flex gap-1 justify-content-end">
-                                            <input type="hidden" name="key" th:value="${l.key}">
-                                            <input type="number" name="qty" th:value="${l.quantity}" min="0" class="form-control form-control-sm" style="width: 70px">
-                                            <button class="btn btn-sm btn-light"><i class="bi bi-arrow-repeat"></i></button></form>
-                                        <div class="fw-semibold small mt-1" th:text="${@fmt.money(l.lineTotal)}"></div>
-                                    </div>
-                                </div>
-                            </li>
-                        </ul>
-                        <form th:action="@{/staff/pos/checkout}" method="post" class="card-body border-top">
-                            <div class="d-flex justify-content-between fs-5 fw-bold mb-3"><span>Tổng tiền</span><span class="price fs-5" th:text="${@fmt.money(pos.total)}"></span></div>
-                            <div th:if="${pos.rxRequired}" class="border border-danger rounded p-2 mb-3">
-                                <div class="small fw-semibold text-danger mb-1"><i class="bi bi-file-earmark-medical"></i> Có thuốc kê đơn - kiểm tra đơn giấy & ghi sổ</div>
-                                <input name="patientName" class="form-control form-control-sm mb-1" placeholder="Tên bệnh nhân *" required>
-                                <input name="doctorName" class="form-control form-control-sm mb-1" placeholder="Bác sĩ kê đơn *" required>
-                                <input name="clinic" class="form-control form-control-sm mb-1" placeholder="Cơ sở khám bệnh">
-                                <input type="date" name="rxDate" class="form-control form-control-sm" required>
-                            </div>
-                            <div class="d-flex gap-3 mb-2">
-                                <div class="form-check"><input class="form-check-input" type="radio" name="paymentMethod" value="CASH" id="pmCash" checked>
-                                    <label class="form-check-label" for="pmCash">Tiền mặt</label></div>
-                                <div class="form-check"><input class="form-check-input" type="radio" name="paymentMethod" value="BANK_TRANSFER" id="pmBank">
-                                    <label class="form-check-label" for="pmBank">Chuyển khoản</label></div>
-                            </div>
-                            <input type="number" name="cashReceived" min="0" class="form-control form-control-sm mb-2" placeholder="Tiền khách đưa (để tính tiền thối)">
-                            <input name="note" class="form-control form-control-sm mb-2" placeholder="Ghi chú">
-                            <button class="btn btn-primary w-100 btn-lg" th:disabled="${pos.lines.isEmpty() || !pos.errors.isEmpty()}"><i class="bi bi-receipt"></i> Thanh toán & lập hóa đơn</button>
+                    <th:block th:if="${c == null}">
+                        <form th:action="@{/staff/pos/customer}" method="post" class="d-flex gap-2">
+                            <input name="phone" class="form-control form-control-sm" placeholder="SĐT khách thành viên (để cộng điểm)" aria-label="SĐT khách">
+                            <button class="btn btn-sm btn-outline-primary text-nowrap">Tìm</button>
                         </form>
-                    </div>
+                        <div class="small text-muted mt-1">Bỏ trống nếu là khách lẻ.</div>
+                    </th:block>
                 </div>
             </div>
-        </main>
+            <th:block th:if="${c != null}"><th:block th:replace="~{partials/misc :: warnings(${warnings})}"/></th:block>
+            <div class="card">
+                <div class="card-header d-flex justify-content-between">Hóa đơn
+                    <form th:action="@{/staff/pos/clear}" method="post"><button class="btn btn-sm btn-link text-danger p-0">Xóa hết</button></form></div>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item" th:each="l : ${pos.lines}">
+                        <div class="d-flex justify-content-between">
+                            <div><div class="fw-semibold small" th:text="${l.product.name}"></div>
+                                <div class="small text-muted" th:text="${@h.money(l.unit.price())} + '/' + ${l.unit.name()}"></div>
+                                <div th:if="${l.error != null}" class="small text-danger" th:text="${l.error}"></div></div>
+                            <div class="text-end">
+                                <form th:action="@{/staff/pos/update}" method="post" class="d-flex gap-1 justify-content-end">
+                                    <input type="hidden" name="key" th:value="${l.key}">
+                                    <input type="number" name="qty" th:value="${l.quantity}" min="0" class="form-control form-control-sm" style="width: 70px" aria-label="Số lượng">
+                                    <button class="btn btn-sm btn-light" aria-label="Cập nhật"><i class="bi bi-arrow-repeat"></i></button></form>
+                                <div class="fw-semibold small mt-1" th:text="${@h.money(l.total)}"></div>
+                            </div>
+                        </div>
+                    </li>
+                    <li th:if="${pos.lines.isEmpty()}" class="list-group-item text-muted small">Chưa có sản phẩm.</li>
+                </ul>
+                <form th:action="@{/staff/pos/checkout}" method="post" class="card-body border-top">
+                    <div class="d-flex justify-content-between fs-5 fw-bold mb-3"><span>Tổng tiền</span><span class="price fs-5" th:text="${@h.money(pos.total)}"></span></div>
+                    <div th:if="${pos.rxRequired}" class="border border-danger rounded p-2 mb-3">
+                        <div class="small fw-semibold text-danger mb-1"><i class="bi bi-file-earmark-medical"></i> Có thuốc kê đơn - kiểm tra đơn giấy &amp; ghi sổ</div>
+                        <input name="patient_name" th:value="${old['patient_name']}" class="form-control form-control-sm mb-1" placeholder="Tên bệnh nhân *" required aria-label="Tên bệnh nhân">
+                        <input name="doctor_name" th:value="${old['doctor_name']}" class="form-control form-control-sm mb-1" placeholder="Bác sĩ kê đơn *" required aria-label="Bác sĩ kê đơn">
+                        <input name="clinic" th:value="${old['clinic']}" class="form-control form-control-sm mb-1" placeholder="Cơ sở khám bệnh" aria-label="Cơ sở khám bệnh">
+                        <input type="date" name="rx_date" th:value="${old['rx_date']}" class="form-control form-control-sm" required aria-label="Ngày kê đơn" th:max="${@h.today()}">
+                        <div th:if="${rx_reuse != null}" class="form-check small mt-2 p-2 ps-4 border border-warning rounded bg-warning-subtle">
+                            <input class="form-check-input" type="checkbox" name="reuse_confirmed" value="1" id="reuseConfirmed" required>
+                            <label class="form-check-label" for="reuseConfirmed">Tôi đã kiểm tra: đơn thuốc này <strong>còn được bán tiếp</strong> (số lượng đã bán chưa vượt số lượng kê).</label></div>
+                    </div>
+                    <div class="d-flex gap-3 mb-2">
+                        <div class="form-check"><input class="form-check-input" type="radio" name="payment_method" value="CASH" id="pmCash" checked>
+                            <label class="form-check-label" for="pmCash">Tiền mặt</label></div>
+                        <div class="form-check"><input class="form-check-input" type="radio" name="payment_method" value="BANK_TRANSFER" id="pmBank">
+                            <label class="form-check-label" for="pmBank">Chuyển khoản</label></div>
+                    </div>
+                    <div th:if="${hasDanger}" class="form-check small mb-2 p-2 ps-4 border border-danger rounded bg-danger-subtle">
+                        <input class="form-check-input" type="checkbox" name="safety_ack" value="1" id="posSafetyAck" required>
+                        <label class="form-check-label" for="posSafetyAck">Đã kiểm tra cảnh báo an toàn và tư vấn cho khách.</label></div>
+                    <input name="note" class="form-control form-control-sm mb-2" placeholder="Ghi chú" aria-label="Ghi chú">
+                    <button class="btn btn-primary w-100 btn-lg" th:disabled="${pos.lines.isEmpty() or !pos.errors.isEmpty()}"><i class="bi bi-receipt"></i> Thanh toán &amp; lập hóa đơn</button>
+                </form>
+            </div>
+        </div>
     </div>
-</div>
-<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</th:block>
 </body>
 </html>

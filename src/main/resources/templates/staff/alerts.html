@@ -1,70 +1,28 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head}"></head>
-<body class="staff-body">
-<div class="staff-shell">
-    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
-    <div class="staff-main">
-        <header th:replace="~{fragments/staff :: topbar}"></header>
-        <main class="p-3 p-lg-4">
-            <div th:replace="~{fragments/layout :: flash}"></div>
-            <div class="row g-4">
-                <div class="col-xl-6">
-                    <div class="card border-danger h-100">
-                        <div class="card-header text-danger"><i class="bi bi-exclamation-octagon"></i> Lô đã hết hạn còn tồn kho (<span th:text="${expired.size()}"></span>)</div>
-                        <ul class="list-group list-group-flush">
-                            <li th:if="${expired.isEmpty()}" class="list-group-item text-muted">Không có.</li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center" th:each="b : ${expired}">
-                                <div><div class="fw-semibold" th:text="${b.product.name}"></div>
-                                    <small th:text="'Lô ' + ${b.batchNo} + ' · HSD ' + ${@fmt.date(b.expDate)} + ' · còn ' + ${b.quantity} + ' ' + ${b.product.unit}"></small></div>
-                                <a th:href="@{/staff/inventory/{id}(id=${b.product.id})}" class="btn btn-sm btn-outline-danger">Hủy thuốc</a>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-                <div class="col-xl-6">
-                    <div class="card border-warning h-100">
-                        <div class="card-header"><i class="bi bi-hourglass-split text-warning"></i> Lô cận hạn trong <span th:text="${nearDays}"></span> ngày (<span th:text="${nearExpiry.size()}"></span>)</div>
-                        <ul class="list-group list-group-flush">
-                            <li th:if="${nearExpiry.isEmpty()}" class="list-group-item text-muted">Không có.</li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center" th:each="b : ${nearExpiry}">
-                                <div><div class="fw-semibold" th:text="${b.product.name}"></div>
-                                    <small th:text="'Lô ' + ${b.batchNo} + ' · HSD ' + ${@fmt.date(b.expDate)} + ' (còn ' + ${@fmt.daysUntil(b.expDate)} + ' ngày) · ' + ${b.quantity} + ' ' + ${b.product.unit}"></small></div>
-                                <a th:href="@{/staff/inventory/{id}(id=${b.product.id})}" class="btn btn-sm btn-outline-secondary">Xem</a>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-                <div class="col-xl-6">
-                    <div class="card h-100">
-                        <div class="card-header"><i class="bi bi-box-seam text-warning"></i> Dưới định mức tồn (<span th:text="${lowStock.size()}"></span>)</div>
-                        <ul class="list-group list-group-flush">
-                            <li th:if="${lowStock.isEmpty()}" class="list-group-item text-muted">Không có.</li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center" th:each="p : ${lowStock}">
-                                <div><div class="fw-semibold" th:text="${p.name}"></div>
-                                    <small th:text="'Tồn ' + ${p.onHand} + ' / định mức ' + ${p.minStock} + ' ' + ${p.unit}"></small></div>
-                                <a th:href="@{/staff/receipts/new}" class="btn btn-sm btn-outline-primary">Nhập hàng</a>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-                <div class="col-xl-6">
-                    <div class="card h-100">
-                        <div class="card-header"><i class="bi bi-lock"></i> Lô đang bị khóa / thu hồi (<span th:text="${locked.size()}"></span>)</div>
-                        <ul class="list-group list-group-flush">
-                            <li th:if="${locked.isEmpty()}" class="list-group-item text-muted">Không có.</li>
-                            <li class="list-group-item d-flex justify-content-between align-items-center" th:each="b : ${locked}">
-                                <div><div class="fw-semibold" th:text="${b.product.name}"></div>
-                                    <small th:text="'Lô ' + ${b.batchNo} + ' · ' + ${b.lockReason}"></small></div>
-                                <a th:href="@{/staff/batches/{id}/buyers(id=${b.id})}" class="btn btn-sm btn-outline-secondary">Truy vết</a>
-                            </li>
-                        </ul>
-                    </div>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/admin :: layout(~{::content}, ~{})}">
+<body>
+<th:block th:fragment="content">
+    <div class="row g-4">
+        <th:block th:replace="~{staff/_parts :: alertSection('Đã hết hạn - cần hủy', ${expired}, 'danger', 'bi-x-octagon')}"/>
+        <th:block th:replace="~{staff/_parts :: alertSection('Cận hạn (trong ' + ${nearDays} + ' ngày)', ${nearExpiry}, 'warning', 'bi-hourglass-split')}"/>
+        <th:block th:replace="~{staff/_parts :: alertSection('Lô đang khóa (thu hồi / nghi ngờ chất lượng)', ${locked}, 'dark', 'bi-lock')}"/>
+        <div class="col-xl-6">
+            <div class="card h-100 border-primary">
+                <div class="card-header fw-semibold text-primary"><i class="bi bi-graph-down-arrow"></i> <th:block th:text="'Dưới định mức tồn (' + ${lowStock.size()} + ')'"/></div>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead><tr><th>Sản phẩm</th><th class="text-end">Có thể bán</th><th class="text-end">Định mức</th><th></th></tr></thead>
+                        <tbody>
+                        <tr th:each="p : ${lowStock}"><td th:text="${p.name}"></td><td class="text-end text-danger fw-semibold" th:text="${@h.num(p.available)}"></td>
+                            <td class="text-end" th:text="${@h.num(p.minStock)}"></td>
+                            <td><a th:href="@{/staff/receipts/new}" class="btn btn-sm btn-light">Nhập thêm</a></td></tr>
+                        <tr th:if="${lowStock.isEmpty()}"><td colspan="4" class="text-center text-muted py-3">Không có.</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
-        </main>
+        </div>
     </div>
-</div>
-<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</th:block>
 </body>
 </html>

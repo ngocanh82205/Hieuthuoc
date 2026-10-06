@@ -1,50 +1,67 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head}"></head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/account :: layout(~{::content}, ~{::scripts})}">
 <body>
-<header th:replace="~{fragments/layout :: navbar}"></header>
-<main class="container py-4">
-    <div class="row g-4">
-        <aside class="col-lg-3"><div th:replace="~{fragments/layout :: accountMenu}"></div></aside>
-        <section class="col-lg-9">
-            <div th:replace="~{fragments/layout :: flash}"></div>
-            <div class="card mb-4">
-                <div class="card-header">Sổ địa chỉ</div>
-                <ul class="list-group list-group-flush">
-                    <li th:if="${addresses.isEmpty()}" class="list-group-item text-muted">Chưa có địa chỉ nào.</li>
-                    <li class="list-group-item d-flex flex-wrap justify-content-between gap-2" th:each="a : ${addresses}">
-                        <div>
-                            <strong th:text="${a.recipient}"></strong> · <span th:text="${a.phone}"></span>
-                            <span th:if="${a.defaultAddress}" class="badge text-bg-primary ms-1">Mặc định</span>
-                            <div class="text-muted small" th:text="${a.addressLine}"></div>
-                        </div>
-                        <div class="d-flex gap-1">
-                            <form th:unless="${a.defaultAddress}" th:action="@{/account/addresses/{id}/default(id=${a.id})}" method="post">
-                                <button class="btn btn-sm btn-outline-secondary">Đặt mặc định</button></form>
-                            <form th:action="@{/account/addresses/{id}/delete(id=${a.id})}" method="post" data-confirm="Xóa địa chỉ này?">
-                                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
-                        </div>
-                    </li>
-                </ul>
-            </div>
-            <div class="card">
-                <div class="card-header">Thêm địa chỉ mới</div>
-                <div class="card-body">
-                    <form th:action="@{/account/addresses}" method="post" class="row g-3">
-                        <div class="col-md-6"><label class="form-label">Người nhận</label><input class="form-control" name="recipient" required></div>
-                        <div class="col-md-6"><label class="form-label">Số điện thoại</label><input class="form-control" name="phone" required pattern="0[0-9]{9,10}"></div>
-                        <div class="col-12"><label class="form-label">Địa chỉ chi tiết</label><input class="form-control" name="addressLine" required minlength="10"></div>
-                        <div class="col-12"><div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="makeDefault" value="true" id="makeDefault">
-                            <label class="form-check-label" for="makeDefault">Đặt làm địa chỉ mặc định</label></div></div>
-                        <div class="col-12"><button class="btn btn-primary">Thêm địa chỉ</button></div>
-                    </form>
+<th:block th:fragment="content">
+    <div class="card mb-4">
+        <div class="card-header">Sổ địa chỉ</div>
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item d-flex flex-wrap justify-content-between gap-2" th:each="a : ${addresses}">
+                <div>
+                    <strong th:text="${a.recipient}"></strong> · <th:block th:text="${a.phone}"/>
+                    <span th:if="${a.default}" class="badge text-bg-primary ms-1">Mặc định</span>
+                    <div class="text-muted small" th:text="${a.fullText()}"></div>
                 </div>
-            </div>
-        </section>
+                <div class="d-flex gap-1">
+                    <form th:unless="${a.default}" th:action="@{/account/addresses/{id}/default(id=${a.id})}" method="post"><button class="btn btn-sm btn-outline-secondary">Đặt mặc định</button></form>
+                    <form th:action="@{/account/addresses/{id}/delete(id=${a.id})}" method="post" data-confirm="Xóa địa chỉ này?"><button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
+                </div>
+            </li>
+            <li th:if="${addresses.isEmpty()}" class="list-group-item text-muted">Chưa có địa chỉ nào.</li>
+        </ul>
     </div>
-</main>
-<footer th:replace="~{fragments/layout :: footer}"></footer>
-<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+    <div class="card">
+        <div class="card-header">Thêm địa chỉ mới</div>
+        <div class="card-body">
+            <form th:action="@{/account/addresses}" method="post" class="row g-3">
+                <div class="col-md-6"><label class="form-label">Người nhận</label><input class="form-control" name="recipient" th:value="${old['recipient'] ?: currentUser.fullName}" required></div>
+                <div class="col-md-6"><label class="form-label">Số điện thoại</label><input class="form-control" name="phone" th:value="${old['phone'] ?: currentUser.phone}" required pattern="0[0-9]{9,10}"></div>
+                <th:block th:if="${ghnEnabled}">
+                    <input type="hidden" name="province" id="province">
+                    <div class="col-md-4"><label class="form-label">Tỉnh / thành</label><select class="form-select" name="ghn_province_id" id="ghnProvince" required><option value="">Đang tải...</option></select></div>
+                    <div class="col-md-4"><label class="form-label">Quận / huyện</label><select class="form-select" name="ghn_district_id" id="ghnDistrict" required><option value="">--</option></select></div>
+                    <div class="col-md-4"><label class="form-label">Phường / xã</label><select class="form-select" name="ghn_ward_code" id="ghnWard" required><option value="">--</option></select></div>
+                </th:block>
+                <div th:unless="${ghnEnabled}" class="col-md-4"><label class="form-label">Tỉnh / thành</label>
+                    <select class="form-select" name="province" required><option value="">-- Chọn --</option>
+                        <option th:each="p : ${provinces}" th:value="${p}" th:selected="${old['province'] == p}" th:text="${p}"></option></select></div>
+                <div th:class="${ghnEnabled} ? 'col-12' : 'col-md-8'"><label class="form-label">Địa chỉ chi tiết</label><input class="form-control" name="address_line" th:value="${old['address_line']}" required minlength="10" placeholder="Số nhà, đường, phường/xã, quận/huyện"></div>
+                <div class="col-12"><div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="make_default" value="1" id="makeDefault">
+                    <label class="form-check-label" for="makeDefault">Đặt làm địa chỉ mặc định</label></div></div>
+                <div class="col-12"><button class="btn btn-primary">Thêm địa chỉ</button></div>
+            </form>
+        </div>
+    </div>
+</th:block>
+<th:block th:fragment="scripts">
+<script th:if="${ghnEnabled}">
+(function () {
+    var base = document.querySelector('meta[name="base-url"]').content.replace(/\/$/, '');
+    var get = function (u) { return fetch(base + u, {headers: {'Accept': 'application/json'}}).then(function (r) { return r.json(); }); };
+    var fill = function (sel, items, key, ph) {
+        sel.innerHTML = '<option value="">' + ph + '</option>';
+        items.forEach(function (it) { var o = document.createElement('option'); o.value = it[key]; o.textContent = it.name; sel.appendChild(o); });
+    };
+    var p = document.getElementById('ghnProvince'), d = document.getElementById('ghnDistrict'), w = document.getElementById('ghnWard');
+    get('/shipping/provinces').then(function (x) { fill(p, x, 'id', '-- Chọn --'); });
+    p.addEventListener('change', function () {
+        document.getElementById('province').value = p.value ? p.selectedOptions[0].textContent : '';
+        fill(w, [], 'code', '--');
+        if (p.value) get('/shipping/districts?province_id=' + p.value).then(function (x) { fill(d, x, 'id', '-- Chọn --'); });
+    });
+    d.addEventListener('change', function () { if (d.value) get('/shipping/wards?district_id=' + d.value).then(function (x) { fill(w, x, 'code', '-- Chọn --'); }); });
+})();
+</script>
+</th:block>
 </body>
 </html>

@@ -1,0 +1,22 @@
+<!--/* Bộ lọc dùng chung cho Thống kê / Giao dịch: action = đường dẫn form, f = tham số hiện tại */-->
+<form xmlns:th="http://www.thymeleaf.org" th:fragment="filter(action)" class="card card-body mb-3" method="get" th:action="${action}">
+    <div class="row g-2 align-items-end">
+        <div class="col-md-3"><label class="form-label small">Mã đơn / tên / SĐT</label><input name="q" class="form-control form-control-sm" th:value="${f['q']}"></div>
+        <div class="col-md-2"><label class="form-label small">Từ ngày</label><input type="date" name="from" class="form-control form-control-sm" th:value="${f['from']}"></div>
+        <div class="col-md-2"><label class="form-label small">Đến ngày</label><input type="date" name="to" class="form-control form-control-sm" th:value="${f['to']}"></div>
+        <div class="col-md-2"><label class="form-label small">Phương thức</label>
+            <select name="method" class="form-select form-select-sm"><option value="">Tất cả</option>
+                <option th:each="m : ${methods}" th:value="${m.name()}" th:selected="${f['method'] == m.name()}" th:text="${m.shortLabel}"></option></select></div>
+        <div class="col-md-2"><label class="form-label small">Trạng thái TT</label>
+            <select name="status" class="form-select form-select-sm"><option value="">Tất cả</option>
+                <option th:each="s : ${payStatuses}" th:value="${s.name()}" th:selected="${f['status'] == s.name()}" th:text="${s.label}"></option></select></div>
+        <div class="col-md-1"><button class="btn btn-primary btn-sm w-100">Lọc</button></div>
+        <div class="col-md-2"><label class="form-label small">Số tiền từ</label><input type="number" name="min" min="0" class="form-control form-control-sm" th:value="${f['min']}"></div>
+        <div class="col-md-2"><label class="form-label small">đến</label><input type="number" name="max" min="0" class="form-control form-control-sm" th:value="${f['max']}"></div>
+        <div class="col-md-8 d-flex gap-2 justify-content-end" th:with="txUrl=${@h.pathQuery('/admin/finance/transactions', 'page', null, 'sort', null, 'dir', null)}">
+            <a th:href="@{/admin/finance}" th:class="'btn btn-sm ' + (${isIndex} ? 'btn-dark' : 'btn-outline-dark')"><i class="bi bi-graph-up"></i> Thống kê</a>
+            <a th:href="${txUrl}" th:class="'btn btn-sm ' + (${isIndex} ? 'btn-outline-dark' : 'btn-dark')"><i class="bi bi-list-ul"></i> Giao dịch</a>
+            <a th:href="@{/admin/refunds}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-cash-coin"></i> Hoàn tiền</a>
+        </div>
+    </div>
+</form>

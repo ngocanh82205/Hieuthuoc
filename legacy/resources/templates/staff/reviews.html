@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="staff-body">
+<div class="staff-shell">
+    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
+    <div class="staff-main">
+        <header th:replace="~{fragments/staff :: topbar}"></header>
+        <main class="p-3 p-lg-4">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="table mb-0">
+                        <thead><tr><th>Sản phẩm</th><th>Khách hàng</th><th>Điểm</th><th>Nội dung</th><th>Ngày</th><th></th></tr></thead>
+                        <tbody>
+                        <tr th:if="${reviews.isEmpty()}"><td colspan="6" class="text-center text-muted py-4">Chưa có đánh giá.</td></tr>
+                        <tr th:each="r : ${reviews}" th:classappend="${r.hidden} ? 'table-secondary'">
+                            <td><a th:href="@{/products/{s}(s=${r.product.slug})}" target="_blank" th:text="${r.product.name}"></a></td>
+                            <td th:text="${r.user.fullName}"></td>
+                            <td class="text-warning text-nowrap" th:text="${@fmt.stars(r.rating)}"></td>
+                            <td class="small" th:text="${r.comment}"></td>
+                            <td class="small text-nowrap" th:text="${@fmt.date(r.createdAt)}"></td>
+                            <td><form th:action="@{/staff/reviews/{id}/toggle(id=${r.id})}" method="post">
+                                <button class="btn btn-sm" th:classappend="${r.hidden} ? 'btn-outline-success' : 'btn-outline-secondary'" th:text="${r.hidden} ? 'Hiện' : 'Ẩn'"></button></form></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

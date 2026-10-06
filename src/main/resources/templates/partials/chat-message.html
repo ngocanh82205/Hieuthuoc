@@ -1,0 +1,16 @@
+<!--/* m: tin nhắn từ ChatService.messages() (Map); meId; canAdd: hiện nút thêm giỏ tư vấn */-->
+<th:block xmlns:th="http://www.thymeleaf.org" th:fragment="message(m, meId, canAdd)">
+    <div th:if="${m['kind'] == 'SYSTEM'}" class="chat-system" th:text="${m['body']}"></div>
+    <th:block th:unless="${m['kind'] == 'SYSTEM'}" th:with="mine=${m['senderId'] == meId or m['kind'] == 'USER'}">
+        <div th:class="'chat-msg ' + (${mine} ? 'mine' : (${m['kind'] == 'AI'} ? 'ai' : ''))" th:attr="data-id=${m['id']}">
+            <div class="bubble"><th:block th:text="${m['body']}"/><a th:if="${m['imageUrl'] != null}" th:href="${m['imageUrl']}" target="_blank"><img th:src="${m['imageUrl']}" alt="Ảnh đính kèm"></a>
+                <div th:if="${m['cartId'] != null}" class="chat-cart">
+                    <div th:each="line : ${m['cartLines']}" th:text="'• ' + ${line}"></div>
+                    <div class="fw-semibold mt-1" th:text="'Tạm tính: ' + ${@h.money(m['cartTotal'])}"></div>
+                    <form th:if="${canAdd}" th:action="@{/consult/carts/{id}/add(id=${m['cartId']})}" method="post" class="mt-2">
+                        <button class="btn btn-sm btn-light"><i class="bi bi-cart-plus"></i> Thêm tất cả vào giỏ</button></form>
+                </div></div>
+            <div class="meta" th:text="${mine} ? ${m['time']} : ((${m['kind'] == 'AI'} ? '🤖 ' : '') + ${m['senderName']} + (${m['fromStaff']} ? ' (Dược sĩ)' : '') + ' · ' + ${m['time']})"></div>
+        </div>
+    </th:block>
+</th:block>

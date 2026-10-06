@@ -1,25 +1,23 @@
 package com.hieuthuoc.entity;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-
 import java.util.ArrayList;
 import java.util.List;
 
-/** Phiếu nhập kho: nhân viên tạo, admin duyệt thì hàng mới vào kho. */
+/** Phiếu nhập kho (chờ quản trị viên duyệt mới tạo lô). */
 @Entity
 @Table(name = "receipts")
 @Getter
 @Setter
 @NoArgsConstructor
-public class Receipt {
+public class Receipt extends Timestamped {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -28,14 +26,12 @@ public class Receipt {
     private String code;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "supplier_id")
     private Supplier supplier;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    private User createdBy;
-
-    /** Kho nhận hàng (null = kho chính). */
-    @ManyToOne(fetch = FetchType.LAZY)
-    private Warehouse warehouse;
+    @JoinColumn(name = "created_by")
+    private User creator;
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
@@ -46,23 +42,17 @@ public class Receipt {
     private String note;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    private User approvedBy;
+    @JoinColumn(name = "approved_by")
+    private User approver;
 
+    @Column(name = "approved_at")
     private LocalDateTime approvedAt;
 
-    @Column(nullable = false)
-    private LocalDateTime createdAt;
-
     @OneToMany(mappedBy = "receipt", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderBy("id")
+    @OrderBy("id ASC")
     private List<ReceiptItem> items = new ArrayList<>();
 
-    @PrePersist
-    void prePersist() {
-        if (createdAt == null) createdAt = LocalDateTime.now();
-    }
-
-    public long getTotal() {
+    public long total() {
         return items.stream().mapToLong(i -> i.getQuantity() * i.getImportPrice()).sum();
     }
 }

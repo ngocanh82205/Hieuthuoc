@@ -1,0 +1,46 @@
+<div xmlns:th="http://www.thymeleaf.org" th:fragment="card(p)" class="card product-card h-100"
+     th:with="canShop=${currentUser == null or currentUser.customer}">
+    <a th:href="@{/products/{s}(s=${p.slug})}" class="product-thumb">
+        <img th:if="${p.imageUrl() != null}" th:src="${p.imageUrl()}" th:alt="${p.name}" loading="lazy">
+        <span th:unless="${p.imageUrl() != null}" class="thumb-placeholder"><i th:class="'bi ' + (${p.category != null and p.category.icon != null} ? ${p.category.icon} : 'bi-capsule')"></i></span>
+        <span th:if="${p.onSale and !p.flashSale}" class="badge bg-danger sale-badge" th:text="'-' + ${p.discountPercent()} + '%'"></span>
+        <span th:if="${p.flashSale}" class="badge sale-badge flash-badge"><i class="bi bi-lightning-charge-fill"></i> -<th:block th:text="${p.flashPercent()}"/>%</span>
+    </a>
+    <form th:if="${canShop}" th:action="@{/wishlist/toggle/{id}(id=${p.id})}" method="post" class="wish-form js-wish"
+          th:with="wished=${wishlistIds != null and wishlistIds.contains(p.id)}">
+        <button th:class="'wish-btn ' + (${wished} ? 'on' : '')" th:title="${wished} ? 'Bỏ yêu thích' : 'Yêu thích'" aria-label="Yêu thích">
+            <i th:class="'bi ' + (${wished} ? 'bi-heart-fill' : 'bi-heart')"></i></button>
+    </form>
+    <div class="card-body d-flex flex-column">
+        <span th:class="'badge align-self-start mb-2 type-badge text-bg-' + ${p.drugType.color}" th:text="${p.drugType.shortLabel}"></span>
+        <a th:href="@{/products/{s}(s=${p.slug})}" class="product-name stretched-link-sm" th:text="${p.name}"></a>
+        <div class="small text-muted mb-2" th:text="${p.packaging}"></div>
+        <div class="mt-auto">
+            <div class="d-flex align-items-baseline gap-2 flex-wrap">
+                <span th:class="'price ' + (${p.onSale or p.flashSale} ? 'price-sale' : '')" th:text="${@h.money(p.flashSale ? p.flashPrice : p.price)}"></span>
+                <span class="small text-muted" th:text="'/ ' + ${p.unit}"></span>
+                <del th:if="${p.flashSale}" class="small text-muted" th:text="${@h.money(p.price)}"></del>
+                <del th:if="${!p.flashSale and p.onSale}" class="small text-muted" th:text="${@h.money(p.oldPrice)}"></del>
+            </div>
+            <div th:each="lb : ${p.promoLabels}" class="small text-success"><i class="bi bi-gift"></i> <th:block th:text="${lb}"/></div>
+            <div th:if="${!p.units.isEmpty()}" class="small text-muted">
+                <th:block th:each="u, st : ${p.units}"><th:block th:text="${u.name} + ': ' + ${@h.money(u.price)}"/><th:block th:if="${!st.last}"> · </th:block></th:block>
+            </div>
+            <div class="small text-muted mt-1">
+                <span th:if="${p.avgRating != null}" class="stars" th:text="${@h.stars(p.avgRating)}"></span>
+                <th:block th:if="${p.sold > 0}" th:text="' Đã bán ' + ${@h.num(p.sold)}"/>
+            </div>
+            <div th:if="${canShop}" class="mt-2">
+                <div th:if="${p.drugType.name() == 'SPECIAL'}" class="small text-danger"><i class="bi bi-slash-circle"></i> Chỉ bán tại nhà thuốc</div>
+                <a th:if="${p.drugType.name() != 'SPECIAL' and p.available <= 0}" th:href="@{/products/{s}(s=${p.slug})}" class="btn btn-sm btn-outline-secondary w-100"><i class="bi bi-bell"></i> Hết hàng - báo khi có</a>
+                <form th:if="${p.drugType.name() != 'SPECIAL' and p.available > 0}" th:action="@{/cart/add}" method="post" class="js-add-cart">
+                    <input type="hidden" name="product_id" th:value="${p.id}">
+                    <input type="hidden" name="qty" value="1">
+                    <button th:class="'btn btn-sm w-100 add-btn ' + (${p.drugType.name() == 'ETC'} ? 'btn-outline-danger' : 'btn-primary')">
+                        <i class="bi bi-bag-plus"></i> <th:block th:text="${p.drugType.name() == 'ETC'} ? 'Chọn mua (cần đơn)' : 'Thêm vào giỏ'"/>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

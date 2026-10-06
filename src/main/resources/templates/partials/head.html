@@ -1,0 +1,25 @@
+<th:block xmlns:th="http://www.thymeleaf.org" th:fragment="head">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <th:block th:if="${metaDescription != null}">
+        <meta name="description" th:content="${metaDescription}">
+        <meta property="og:title" th:content="${title} ?: ''">
+        <meta property="og:description" th:content="${metaDescription}">
+    </th:block>
+    <meta th:if="${ogImage != null}" property="og:image" th:content="${ogImage}">
+    <meta name="csrf-token" th:if="${_csrf != null}" th:content="${_csrf.token}">
+    <meta name="_csrf" th:if="${_csrf != null}" th:content="${_csrf.token}">
+    <meta name="_csrf_header" content="X-CSRF-TOKEN">
+    <meta name="base-url" th:content="@{/}">
+    <meta th:if="${currentUser != null}" name="logged-in" content="1">
+    <title th:text="${(title != null ? title + ' | ' : '') + (settings['store_name'] ?: 'VinaPharma')}">VinaPharma</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
+    <meta name="theme-color" content="#0b63e5">
+    <link th:href="@{/vendor/bootstrap/bootstrap.min.css}" rel="stylesheet">
+    <link th:href="@{/vendor/bootstrap-icons/bootstrap-icons.min.css}" rel="stylesheet">
+    <link th:href="@{/css/style.css(v=7)}" rel="stylesheet">
+    <link th:href="@{/css/app.css(v=3)}" rel="stylesheet">
+</th:block>

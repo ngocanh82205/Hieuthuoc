@@ -1,10 +1,8 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head}"></head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/app :: layout(~{::content}, ~{})}">
 <body>
-<header th:replace="~{fragments/layout :: navbar}"></header>
-<main class="container py-4">
-    <h1 class="h4 fw-bold mb-3">Giới thiệu & chính sách</h1>
+<th:block th:fragment="content">
+    <h1 class="h4 fw-bold mb-3">Giới thiệu &amp; chính sách</h1>
     <div class="row g-4">
         <div class="col-lg-8">
             <div class="card mb-4">
@@ -15,7 +13,7 @@
                     <ul class="mb-0">
                         <li th:text="${settings['business_license']}"></li>
                         <li th:text="${settings['gpp_cert']}"></li>
-                        <li>Dược sĩ phụ trách chuyên môn: <span th:text="${settings['pharmacist_in_charge']}"></span></li>
+                        <li th:text="'Dược sĩ phụ trách chuyên môn: ' + ${settings['pharmacist_in_charge']}"></li>
                     </ul>
                 </div>
             </div>
@@ -45,18 +43,24 @@
             </div>
         </div>
         <div class="col-lg-4">
-            <div class="card">
+            <div class="card mb-3">
                 <div class="card-header">Giao hàng</div>
                 <div class="card-body small">
-                    <p>Phí giao hàng: <strong th:text="${@fmt.money(settings['shipping_fee'])}"></strong>.</p>
-                    <p>Miễn phí giao hàng cho đơn từ <strong th:text="${@fmt.money(settings['free_ship_threshold'])}"></strong>.</p>
-                    <p class="mb-0">Nhận tại nhà thuốc: <span th:text="${settings['store_address']}"></span>.</p>
+                    <p>Giao hàng toàn quốc qua Giao Hàng Nhanh (GHN) và nhân viên nhà thuốc; phí tính theo địa chỉ nhận.</p>
+                    <p>Miễn phí giao hàng cho đơn từ <strong th:text="${@h.money(settings['free_ship_threshold'])}"></strong>.</p>
+                    <p class="mb-0" th:text="'Nhận tại nhà thuốc: ' + ${settings['store_address']} + '.'"></p>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">Thanh toán</div>
+                <div class="card-body small">
+                    <ul class="mb-0 ps-3">
+                        <li th:each="m : ${paymentMethods}"><i th:class="'bi ' + ${m.icon} + ' me-1'"></i><th:block th:text="${m.label}"/></li>
+                    </ul>
                 </div>
             </div>
         </div>
     </div>
-</main>
-<footer th:replace="~{fragments/layout :: footer}"></footer>
-<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</th:block>
 </body>
 </html>

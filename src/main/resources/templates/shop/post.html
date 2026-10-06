@@ -1,21 +1,20 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head}"></head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/app :: layout(~{::content}, ~{})}">
 <body>
-<header th:replace="~{fragments/layout :: navbar}"></header>
-<main class="container py-4">
+<th:block th:fragment="content">
     <div class="row g-4">
         <article class="col-lg-8">
             <div class="card">
+                <img th:if="${post.imageUrl() != null}" th:src="${post.imageUrl()}" class="card-img-top" th:alt="${post.title}" style="max-height:340px;object-fit:cover">
                 <div class="card-body p-md-5">
                     <a th:href="@{/posts}" class="small"><i class="bi bi-arrow-left"></i> Góc sức khỏe</a>
                     <h1 class="h3 fw-bold mt-2" th:text="${post.title}"></h1>
-                    <div class="small text-muted mb-4">
-                        <span th:text="${@fmt.date(post.createdAt)}"></span>
-                        <span th:if="${post.author != null}" th:text="' · ' + ${post.author.fullName}"></span>
+                    <div class="small text-muted mb-4 d-flex flex-wrap align-items-center gap-2">
+                        <span><th:block th:text="${@h.date(post.createdAt)}"/><th:block th:if="${post.author != null}" th:text="' · ' + ${post.author.fullName}"/></span>
+                        <th:block th:with="shareUrl=${@h.abs('/posts/' + post.slug)}"><th:block th:replace="~{partials/misc :: share(${shareUrl}, ${post.title}, '')}"/></th:block>
                     </div>
-                    <p class="lead" th:if="${post.summary != null}" th:text="${post.summary}"></p>
-                    <p th:each="para : ${post.paragraphs}" th:text="${para}"></p>
+                    <p th:if="${post.summary != null}" class="lead" th:text="${post.summary}"></p>
+                    <div class="static-page" th:with="html=${@h.md(post.content)}" th:utext="${html}"></div>
                 </div>
             </div>
         </article>
@@ -27,7 +26,7 @@
                     <a th:href="@{/consult}" class="btn btn-primary btn-sm">Chat với dược sĩ</a>
                 </div>
             </div>
-            <div class="card" th:if="${!others.isEmpty()}">
+            <div th:if="${!others.isEmpty()}" class="card">
                 <div class="card-header">Bài viết khác</div>
                 <ul class="list-group list-group-flush">
                     <li class="list-group-item" th:each="o : ${others}"><a th:href="@{/posts/{s}(s=${o.slug})}" th:text="${o.title}"></a></li>
@@ -35,8 +34,6 @@
             </div>
         </aside>
     </div>
-</main>
-<footer th:replace="~{fragments/layout :: footer}"></footer>
-<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</th:block>
 </body>
 </html>

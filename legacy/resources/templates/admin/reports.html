@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="staff-body">
+<div class="staff-shell">
+    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
+    <div class="staff-main">
+        <header th:replace="~{fragments/staff :: topbar}"></header>
+        <main class="p-3 p-lg-4">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <form class="card card-body mb-4 d-flex flex-row flex-wrap gap-2 align-items-end" method="get" th:action="@{/admin/reports}">
+                <div><label class="form-label small">Từ ngày</label><input type="date" name="from" class="form-control form-control-sm" th:value="${@fmt.iso(report.from)}"></div>
+                <div><label class="form-label small">Đến ngày</label><input type="date" name="to" class="form-control form-control-sm" th:value="${@fmt.iso(report.to)}"></div>
+                <button class="btn btn-primary btn-sm">Xem báo cáo</button>
+                <div class="ms-auto d-flex flex-wrap gap-2">
+                    <a class="btn btn-success btn-sm" th:href="@{/admin/reports/export.xlsx(from=${@fmt.iso(report.from)},to=${@fmt.iso(report.to)})}">
+                        <i class="bi bi-file-earmark-excel"></i> Xuất Excel</a>
+                    <a class="btn btn-outline-danger btn-sm" target="_blank" th:href="@{/admin/reports/print(from=${@fmt.iso(report.from)},to=${@fmt.iso(report.to)})}">
+                        <i class="bi bi-file-earmark-pdf"></i> Bản in / PDF</a>
+                    <a class="btn btn-outline-success btn-sm" th:href="@{/admin/reports/export.csv(from=${@fmt.iso(report.from)},to=${@fmt.iso(report.to)})}">
+                        <i class="bi bi-filetype-csv"></i> CSV đơn hàng</a>
+                    <a class="btn btn-outline-primary btn-sm" th:href="@{/admin/reports/national.xlsx(from=${@fmt.iso(report.from)},to=${@fmt.iso(report.to)})}"
+                       title="Chi tiết bán ra theo lô, thông tin đơn thuốc và nhập hàng - để đối chiếu / tải lên hệ thống liên thông Dược Quốc gia">
+                        <i class="bi bi-bank"></i> Dữ liệu liên thông Dược QG</a>
+                </div>
+            </form>
+
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-xl-3"><div class="stat-card"><div class="icon icon-green"><i class="bi bi-cash-stack"></i></div>
+                    <div><div class="value fs-5" th:text="${@fmt.money(report.revenue)}"></div><div class="label">Doanh thu (<span th:text="${report.orders}"></span> đơn)</div></div></div></div>
+                <div class="col-6 col-xl-3"><div class="stat-card"><div class="icon icon-blue"><i class="bi bi-graph-up-arrow"></i></div>
+                    <div><div class="value fs-5" th:text="${@fmt.money(report.grossProfit)}"></div><div class="label">Lợi nhuận gộp (giá vốn theo lô: <span th:text="${@fmt.money(report.cost)}"></span>)</div></div></div></div>
+                <div class="col-6 col-xl-3"><div class="stat-card"><div class="icon icon-violet"><i class="bi bi-basket"></i></div>
+                    <div><div class="value fs-5" th:text="${@fmt.money(report.aov)}"></div><div class="label">Giá trị đơn trung bình</div></div></div></div>
+                <div class="col-6 col-xl-3"><div class="stat-card"><div class="icon icon-red"><i class="bi bi-x-circle"></i></div>
+                    <div><div class="value" th:text="${report.cancelOnlyRate} + '% / ' + ${report.returnRate} + '%'"></div><div class="label">Tỷ lệ hủy / trả hàng (<span th:text="${report.cancelledOnly}"></span> hủy, <span th:text="${report.returned}"></span> trả / <span th:text="${report.created}"></span> đơn)</div></div></div></div>
+            </div>
+            <div class="row g-3 mb-4">
+                <div class="col-md-4" th:each="c : ${report.byChannel}"><div class="stat-card"><div class="icon" th:classappend="${c.name() == 'Online'} ? 'icon-blue' : 'icon-amber'">
+                    <i class="bi" th:classappend="${c.name() == 'Online'} ? 'bi-globe' : 'bi-shop-window'"></i></div>
+                    <div><div class="value fs-5" th:text="${@fmt.money(c.revenue())}"></div><div class="label" th:text="'Kênh ' + ${c.name()} + ' · ' + ${c.orders()} + ' đơn'"></div></div></div></div>
+                <div class="col-md-4"><div class="stat-card"><div class="icon icon-violet"><i class="bi bi-people"></i></div>
+                    <div><div class="value fs-5"><span th:text="${report.newCustomers}"></span> mới · <span th:text="${report.returningCustomers}"></span> quay lại</div>
+                        <div class="label" th:text="'Tỷ lệ khách quay lại ' + ${report.returningRate} + '% · ' + ${report.registrations} + ' tài khoản đăng ký mới'"></div></div></div></div>
+            </div>
+
+            <div class="row g-4 mb-4">
+                <div class="col-xl-8">
+                    <div class="card h-100">
+                        <div class="card-header">Doanh thu theo ngày</div>
+                        <div class="card-body"><canvas id="dayChart" height="120"></canvas></div>
+                    </div>
+                </div>
+                <div class="col-xl-4">
+                    <div class="card h-100">
+                        <div class="card-header">Doanh thu theo danh mục</div>
+                        <div class="card-body"><canvas id="catChart" height="220"></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4 mb-4">
+                <div class="col-xl-7">
+                    <div class="card h-100">
+                        <div class="card-header">Doanh thu theo tháng</div>
+                        <div class="card-body"><canvas id="monthChart" height="130"></canvas></div>
+                    </div>
+                </div>
+                <div class="col-xl-5">
+                    <div class="card h-100">
+                        <div class="card-header">Doanh thu theo nhân viên xử lý</div>
+                        <div class="table-responsive">
+                            <table class="table table-sm mb-0">
+                                <thead><tr><th>Nhân viên</th><th class="text-end">Đơn</th><th class="text-end">Doanh thu</th></tr></thead>
+                                <tbody><tr th:each="st : ${report.byStaff}"><td th:text="${st.name()}"></td><td class="text-end" th:text="${st.orders()}"></td>
+                                    <td class="text-end" th:text="${@fmt.money(st.revenue())}"></td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4 mb-4">
+                <div class="col-xl-6">
+                    <div class="card h-100">
+                        <div class="card-header">Top 10 sản phẩm bán chạy</div>
+                        <div class="table-responsive">
+                            <table class="table table-sm mb-0">
+                                <thead><tr><th>#</th><th>Sản phẩm</th><th class="text-end">SL</th><th class="text-end">Doanh thu</th></tr></thead>
+                                <tbody>
+                                <tr th:if="${report.topProducts.isEmpty()}"><td colspan="4" class="text-muted text-center">Không có dữ liệu.</td></tr>
+                                <tr th:each="t, st : ${report.topProducts}"><td th:text="${st.count}"></td><td th:text="${t.name()}"></td>
+                                    <td class="text-end" th:text="${t.quantity()} + ' ' + ${t.unit()}"></td><td class="text-end" th:text="${@fmt.money(t.revenue())}"></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-6">
+                    <div class="card h-100">
+                        <div class="card-header">Hàng tồn chậm (không bán được trong kỳ)</div>
+                        <div class="table-responsive">
+                            <table class="table table-sm mb-0">
+                                <thead><tr><th>Sản phẩm</th><th class="text-end">Tồn kho</th></tr></thead>
+                                <tbody>
+                                <tr th:if="${report.slowProducts.isEmpty()}"><td colspan="2" class="text-muted text-center">Không có.</td></tr>
+                                <tr th:each="p : ${report.slowProducts}"><td th:text="${p.name}"></td><td class="text-end" th:text="${p.onHand} + ' ' + ${p.unit}"></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-xl-8">
+                    <div class="card h-100">
+                        <div class="card-header">Hiệu suất dược sĩ / nhân viên</div>
+                        <div class="table-responsive">
+                            <table class="table table-sm mb-0">
+                                <thead><tr><th>Nhân viên</th><th class="text-end">Duyệt đơn thuốc</th><th class="text-end">Từ chối</th><th class="text-end">TG duyệt TB</th><th class="text-end">Cuộc tư vấn</th><th class="text-end">Tin nhắn</th><th class="text-end">Đơn xử lý</th></tr></thead>
+                                <tbody>
+                                <tr th:each="r : ${report.pharmacists}">
+                                    <td><span th:text="${r.name()}"></span><div class="small text-muted" th:text="${r.licenseNo()}"></div></td>
+                                    <td class="text-end" th:text="${r.approved()}"></td>
+                                    <td class="text-end"><span th:text="${r.rejected()}"></span> <small class="text-muted" th:text="'(' + ${r.rejectRate} + '%)'"></small></td>
+                                    <td class="text-end" th:text="${r.avgMinutes() != null ? r.avgMinutes() + ' phút' : '-'}"></td>
+                                    <td class="text-end" th:text="${r.consultations()}"></td>
+                                    <td class="text-end" th:text="${r.messages()}"></td>
+                                    <td class="text-end"><span th:text="${r.orders()}"></span><div class="small text-muted" th:text="${@fmt.money(r.revenue())}"></div></td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-4">
+                    <div class="card h-100">
+                        <div class="card-header">Giá trị tồn kho (giá nhập)</div>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between"><span>Còn hạn</span><strong th:text="${@fmt.money(inventory[0])}"></strong></li>
+                            <li class="list-group-item d-flex justify-content-between"><span>Trong đó cận hạn (<span th:text="${nearDays}"></span> ngày)</span><strong class="text-warning" th:text="${@fmt.money(inventory[1])}"></strong></li>
+                            <li class="list-group-item d-flex justify-content-between"><span>Đã hết hạn (cần hủy)</span><strong class="text-danger" th:text="${@fmt.money(inventory[2])}"></strong></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-header">Hàng cận hạn (<span th:text="${nearDays}"></span> ngày) và hết hạn</div>
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead><tr><th>Tình trạng</th><th>Sản phẩm</th><th>Số lô</th><th>HSD</th><th class="text-end">Tồn</th><th class="text-end">Giá trị (giá nhập)</th></tr></thead>
+                        <tbody>
+                        <tr th:if="${report.nearExpiry.isEmpty() && report.expired.isEmpty()}"><td colspan="6" class="text-center text-muted py-3">Không có lô cận hạn / hết hạn.</td></tr>
+                        <tr th:each="e : ${report.expired}" class="table-danger"><td>Hết hạn <span th:text="${e.days()} + ' ngày'"></span></td>
+                            <td th:text="${e.batch().product.name}"></td><td th:text="${e.batch().batchNo}"></td><td th:text="${@fmt.date(e.batch().expDate)}"></td>
+                            <td class="text-end" th:text="${e.batch().quantity}"></td><td class="text-end" th:text="${@fmt.money(e.value())}"></td></tr>
+                        <tr th:each="e : ${report.nearExpiry}" class="table-warning"><td>Còn <span th:text="${e.days()} + ' ngày'"></span></td>
+                            <td th:text="${e.batch().product.name}"></td><td th:text="${e.batch().batchNo}"></td><td th:text="${@fmt.date(e.batch().expDate)}"></td>
+                            <td class="text-end" th:text="${e.batch().quantity}"></td><td class="text-end" th:text="${@fmt.money(e.value())}"></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <script th:src="@{/webjars/chart.js/4.4.1/dist/chart.umd.js}"></script>
+            <script th:inline="javascript">
+                (function () {
+                    var dayLabels = /*[[${dayLabels}]]*/ [];
+                    var dayRevenue = /*[[${dayRevenue}]]*/ [];
+                    var catNames = /*[[${catNames}]]*/ [];
+                    var catValues = /*[[${catValues}]]*/ [];
+                    var monthLabels = /*[[${monthLabels}]]*/ [];
+                    var monthValues = /*[[${monthValues}]]*/ [];
+                    new Chart(document.getElementById('monthChart'), {
+                        type: 'line',
+                        data: {labels: monthLabels, datasets: [{label: 'Doanh thu (đ)', data: monthValues, borderColor: '#0b63e5', backgroundColor: 'rgba(11,99,229,.15)', fill: true, tension: .3}]},
+                        options: {plugins: {legend: {display: false}}, scales: {y: {beginAtZero: true, ticks: {callback: function (v) { return (v / 1000).toLocaleString('vi-VN') + 'k'; }}}}}
+                    });
+                    new Chart(document.getElementById('dayChart'), {
+                        type: 'bar',
+                        data: {
+                            labels: dayLabels,
+                            datasets: [{label: 'Doanh thu (đ)', data: dayRevenue, backgroundColor: 'rgba(11,99,229,.8)', borderRadius: 4}]
+                        },
+                        options: {plugins: {legend: {display: false}}, scales: {y: {beginAtZero: true, ticks: {callback: function (v) { return (v / 1000).toLocaleString('vi-VN') + 'k'; }}}}}
+                    });
+                    var palette = ['#0b63e5', '#00b4d8', '#06327a', '#38bdf8', '#6366f1', '#0ea5e9', '#1e40af', '#7dd3fc', '#a5b4fc', '#94a3b8'];
+                    new Chart(document.getElementById('catChart'), {
+                        type: 'doughnut',
+                        data: {labels: catNames, datasets: [{data: catValues, backgroundColor: palette}]},
+                        options: {plugins: {legend: {position: 'bottom', labels: {boxWidth: 12}}}}
+                    });
+                })();
+            </script>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

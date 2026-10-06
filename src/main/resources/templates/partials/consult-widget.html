@@ -1,0 +1,111 @@
+<div xmlns:th="http://www.thymeleaf.org" th:fragment="widget" id="consultWidget" class="consult-widget" data-state="minimized"
+     th:with="cw=${@consultWidget.data()}, aiMode=${cw['aiMode']}, aiName=${cw['aiName']}, aiEnabled=${cw['aiEnabled']}, messages=${cw['messages']}">
+    <!-- Nút tròn nổi -->
+    <button type="button" id="consultWidgetToggle" class="consult-widget-btn shadow" aria-label="Mở tư vấn thuốc" aria-expanded="false"
+            aria-controls="consultWidgetPanel" title="Mở tư vấn thuốc">
+        <span class="consult-btn-icon-open"><i class="bi bi-chat-dots-fill"></i></span>
+        <span class="consult-btn-icon-close"><i class="bi bi-x-lg"></i></span>
+        <span class="consult-btn-badge">Tư vấn</span>
+    </button>
+
+    <!-- Khung panel tư vấn nổi -->
+    <section id="consultWidgetPanel" class="consult-widget-panel shadow-lg" role="dialog" aria-modal="false" aria-label="Khung tư vấn thuốc" aria-hidden="true">
+        <header class="consult-panel-header">
+            <div class="consult-header-left" id="chatHeader">
+                <span th:class="'chat-avatar ' + (${aiMode} ? 'ai' : '')"><i th:class="'bi ' + (${aiMode} ? 'bi-robot' : 'bi-person-badge')"></i></span>
+                <div class="consult-header-meta">
+                    <h3 class="consult-header-title text-truncate" data-title
+                        th:text="${aiMode} ? ${aiName} : (${cw['pharmacistName']} ?: 'Dược sĩ ' + ${settings['store_name']})"></h3>
+                    <p class="consult-header-subtitle text-truncate mb-0" data-subtitle
+                       th:text="${aiMode} ? 'Trợ lý tự động · trả lời ngay' : (${cw['pharmacistName'] != null} ? 'Dược sĩ phụ trách' : 'Đang chờ dược sĩ tiếp nhận')"></p>
+                </div>
+            </div>
+            <div class="consult-header-actions">
+                <button type="button" th:class="'consult-action-btn btn-handoff ' + (${aiMode} ? '' : 'd-none')" id="handoffBtn"
+                        title="Yêu cầu kết nối gặp dược sĩ trực tuyến" aria-label="Gặp dược sĩ">
+                    <i class="bi bi-person-badge me-1"></i><span class="d-none d-sm-inline">Dược sĩ</span>
+                </button>
+                <button type="button" th:class="'consult-action-btn btn-resume-ai text-success ' + (${aiMode} ? 'd-none' : '')" id="resumeAiBtn"
+                        title="Quay lại trò chuyện với Trợ lý AI" aria-label="Quay lại tư vấn AI">
+                    <i class="bi bi-robot me-1"></i><span class="d-none d-sm-inline">Trợ lý AI</span>
+                </button>
+                <button type="button" class="consult-action-btn btn-size" id="consultWidgetMaximize" title="Phóng to / Thu nhỏ kích thước" aria-label="Phóng to khung tư vấn">
+                    <i class="bi bi-arrows-fullscreen icon-maximize"></i>
+                    <i class="bi bi-fullscreen-exit icon-restore d-none"></i>
+                </button>
+                <button type="button" class="consult-action-btn btn-minimize" id="consultWidgetMinimize" title="Thu nhỏ về nút tròn" aria-label="Thu nhỏ khung tư vấn">
+                    <i class="bi bi-dash-lg"></i>
+                </button>
+                <button type="button" class="consult-action-btn btn-close-panel" id="consultWidgetClose" title="Đóng tư vấn thuốc" aria-label="Đóng tư vấn thuốc">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+        </header>
+
+        <div th:class="'ai-note small px-3 py-2 ' + (${aiMode} ? '' : 'd-none')" id="aiNote">
+            <i class="bi bi-info-circle me-1"></i> Trợ lý AI tư vấn tham khảo. Đơn thuốc &amp; liều dùng sẽ do dược sĩ duyệt.
+        </div>
+
+        <div id="chat" class="consult-chat-body"
+             th:attr="data-me=${currentUser != null ? currentUser.id : ''}, data-last-id=${cw['lastId']}, data-fetch-url=@{/consult/messages},
+                      data-cart-action=@{/consult/carts/}, data-handoff-url=@{/consult/handoff}, data-resume-ai-url=@{/consult/resume-ai},
+                      data-mode=${aiMode ? 'AI' : 'HUMAN'}, data-ai-name=${aiName}">
+            <div class="chat-box" aria-live="polite">
+                <div th:if="${currentUser == null}" class="chat-empty text-center py-4 px-3">
+                    <div class="consult-empty-icon mb-2"><i class="bi bi-robot text-primary fs-1"></i></div>
+                    <h4 class="h6 fw-semibold text-dark mb-1">Tư vấn sức khỏe &amp; thuốc</h4>
+                    <p class="small text-muted mb-3">Vui lòng đăng nhập để bắt đầu trò chuyện với Dược sĩ và Trợ lý AI VinaPharma.</p>
+                    <a th:href="@{/login}" class="btn btn-primary btn-sm px-3 shadow-sm"><i class="bi bi-box-arrow-in-right me-1"></i> Đăng nhập ngay</a>
+                    <div class="mt-2 small text-muted">Chưa có tài khoản? <a th:href="@{/register}" class="fw-semibold">Đăng ký</a></div>
+                </div>
+                <div th:if="${currentUser != null and !currentUser.customer}" class="chat-empty text-center py-4 px-3">
+                    <i class="bi bi-person-badge text-primary fs-1 mb-2 d-inline-block"></i>
+                    <h4 class="h6 fw-semibold text-dark">Khu vực nhân viên</h4>
+                    <p class="small text-muted mb-3">Bạn đang đăng nhập bằng tài khoản nhân viên / quản lý.</p>
+                    <a th:href="@{/staff/consultations}" class="btn btn-primary btn-sm px-3"><i class="bi bi-chat-dots me-1"></i> Vào trang tiếp nhận tư vấn</a>
+                </div>
+                <th:block th:if="${currentUser != null and currentUser.customer}">
+                    <div th:if="${messages.isEmpty()}" class="chat-empty text-center text-muted py-3 px-2">
+                        <i th:class="'bi ' + (${aiEnabled} ? 'bi-robot text-primary' : 'bi-chat-heart text-primary') + ' fs-2 mb-2 d-inline-block'"></i>
+                        <p class="small mb-2 px-2 text-dark" th:text="${aiEnabled} ? 'Xin chào! Mình là ' + ${aiName} + '. Bạn cần hỗ trợ gì? Mình sẽ chuyển dược sĩ khi cần tư vấn thuốc.' : 'Hãy mô tả triệu chứng hoặc câu hỏi về thuốc. Dược sĩ sẽ trả lời bạn sớm nhất.'"></p>
+                        <div th:if="${aiEnabled}" class="d-flex flex-wrap gap-1 justify-content-center px-1">
+                            <button type="button" class="btn btn-xs btn-light border quick-reply" data-quick="Kiểm tra đơn hàng của tôi">📦 Đơn hàng</button>
+                            <button type="button" class="btn btn-xs btn-light border quick-reply" data-quick="Phí giao hàng bao nhiêu?">🚚 Phí ship</button>
+                            <button type="button" class="btn btn-xs btn-light border quick-reply" data-quick="Chính sách đổi trả thế nào?">↩️ Đổi trả</button>
+                            <button type="button" class="btn btn-xs btn-light border quick-reply" data-quick="Tôi bị đau đầu, sốt nhẹ">🤒 Triệu chứng</button>
+                        </div>
+                    </div>
+                    <th:block th:each="m : ${messages}"><th:block th:replace="~{partials/chat-message :: message(${m}, ${currentUser.id}, true)}"/></th:block>
+                    <div class="chat-msg ai d-none" id="typing" aria-live="polite" aria-busy="true">
+                        <div class="bubble typing"><span></span><span></span><span></span>
+                            <span class="visually-hidden">Trợ lý AI đang soạn câu trả lời...</span></div>
+                    </div>
+                </th:block>
+            </div>
+
+            <form th:if="${currentUser != null and currentUser.customer}" th:action="@{/consult/messages}" method="post" enctype="multipart/form-data" class="consult-chat-form border-top">
+                <div class="consult-form-inputs p-2">
+                    <div class="consult-input-row">
+                        <textarea name="body" id="consultInputBody" class="form-control consult-textarea" rows="1" maxlength="2000"
+                                  placeholder="Nhập câu hỏi (Shift+Enter để xuống dòng)..." aria-label="Nội dung câu hỏi"></textarea>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <div class="d-flex align-items-center gap-1">
+                            <label class="btn btn-sm btn-outline-secondary consult-attach-btn" title="Gửi ảnh (đơn thuốc, vỏ hộp thuốc...)" aria-label="Đính kèm ảnh">
+                                <i class="bi bi-camera"></i>
+                                <input type="file" name="image" id="consultImageInput" class="d-none" accept="image/jpeg,image/png,image/webp,image/gif" data-preview="chatPreview">
+                            </label>
+                            <span class="small text-muted d-none d-sm-inline" style="font-size: 0.72rem;">Enter để gửi</span>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm px-3 consult-send-btn" aria-label="Gửi tin nhắn"><i class="bi bi-send-fill me-1"></i> Gửi</button>
+                    </div>
+                    <div class="position-relative mt-2 d-none" id="chatPreviewContainer">
+                        <img id="chatPreview" class="img-thumbnail" style="max-height: 80px" alt="Xem trước ảnh">
+                        <button type="button" class="btn-close btn-close-white position-absolute top-0 start-0 bg-dark rounded-circle p-1 m-1" id="chatPreviewRemove"
+                                aria-label="Hủy ảnh đính kèm" style="width: 14px; height: 14px;"></button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </section>
+</div>

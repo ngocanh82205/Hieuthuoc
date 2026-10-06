@@ -1,0 +1,40 @@
+<!--/* Tổng tiền giỏ hàng: cart = CartService.View */-->
+<th:block xmlns:th="http://www.thymeleaf.org" th:fragment="summary(cart)">
+    <div class="d-flex justify-content-between mb-1"><span>Tạm tính</span><span th:text="${@h.money(cart.subtotal)}"></span></div>
+    <div th:if="${cart.promoDiscount > 0}" class="d-flex justify-content-between mb-1 text-success"><span>Khuyến mãi combo</span><span th:text="'-' + ${@h.money(cart.promoDiscount)}"></span></div>
+    <div th:each="g : ${cart.gifts}" class="small mb-1 text-success"><i class="bi bi-gift"></i> <th:block th:text="'Tặng ' + ${g.quantity()} + ' ' + ${g.product().unit} + ' ' + ${g.product().name}"/></div>
+    <div th:each="n : ${cart.promoNotes}" class="small mb-1 text-warning-emphasis" th:text="${n}"></div>
+    <div th:if="${cart.discount > 0}" class="d-flex justify-content-between mb-1 text-success"><span th:text="'Giảm giá (' + ${cart.voucher.code} + ')'"></span><span th:text="'-' + ${@h.money(cart.discount)}"></span></div>
+    <div th:if="${cart.pointsDiscount > 0}" class="d-flex justify-content-between mb-1 text-success"><span th:text="'Dùng ' + ${cart.pointsUsed} + ' điểm'"></span><span th:text="'-' + ${@h.money(cart.pointsDiscount)}"></span></div>
+</th:block>
+
+<!--/* Ô mã giảm giá + dùng điểm: back = 'cart' | 'checkout' */-->
+<div th:fragment="voucherBox(cart, back)" class="card mb-3">
+    <div class="card-body">
+        <form th:if="${cart.voucher == null}" th:action="@{/cart/voucher}" method="post" class="d-flex gap-2">
+            <input type="hidden" name="back" th:value="${back}">
+            <input class="form-control" name="code" placeholder="Mã giảm giá (VD: WELCOME10)">
+            <button class="btn btn-outline-primary">Áp dụng</button>
+        </form>
+        <form th:if="${cart.voucher != null}" th:action="@{/cart/voucher}" method="post" class="d-flex justify-content-between align-items-center">
+            <input type="hidden" name="back" th:value="${back}">
+            <span><i class="bi bi-ticket-perforated text-primary"></i> Mã <strong th:text="${cart.voucher.code}"></strong></span>
+            <button class="btn btn-sm btn-link text-danger" name="remove" value="1">Bỏ mã</button>
+        </form>
+        <div th:if="${cart.voucherError != null}" class="small text-danger mt-2" th:text="${cart.voucherError}"></div>
+        <div class="small text-muted mt-2">Mã giảm giá không áp dụng cho thuốc kê đơn.</div>
+        <th:block th:if="${currentUser != null and currentUser.customer}">
+            <hr>
+            <form th:action="@{/cart/points}" method="post" class="d-flex justify-content-between align-items-center gap-2">
+                <input type="hidden" name="back" th:value="${back}">
+                <div>
+                    <div class="fw-semibold"><i class="bi bi-coin text-warning me-1"></i>Dùng điểm tích lũy</div>
+                    <div class="small text-muted">Bạn có <strong th:text="${@h.num(cart.pointsAvailable)}"></strong> điểm (1 điểm = <th:block th:text="${@h.money(cart.pointValue)}"/>)</div>
+                </div>
+                <input type="hidden" name="use" th:value="${cart.usePoints ? 0 : 1}">
+                <button th:class="'btn btn-sm ' + (${cart.usePoints} ? 'btn-outline-secondary' : 'btn-primary')" th:disabled="${cart.pointsAvailable == 0}"
+                        th:text="${cart.usePoints} ? 'Bỏ dùng' : 'Dùng điểm'"></button>
+            </form>
+        </th:block>
+    </div>
+</div>

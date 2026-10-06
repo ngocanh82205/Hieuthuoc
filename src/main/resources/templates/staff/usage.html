@@ -1,29 +1,24 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head}"></head>
-<body class="bg-white">
-<main class="container py-4 print-page" th:with="o=${order}">
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/print :: layout(~{::content})}">
+<body>
+<th:block th:fragment="content">
+<th:block th:with="o=${order}, rx=${order.latestPrescription()}">
     <div class="text-center mb-3">
         <div class="fw-bold fs-5" th:text="${settings['store_name']}"></div>
         <h1 class="h4 fw-bold mt-2">HƯỚNG DẪN SỬ DỤNG THUỐC</h1>
-        <div class="small" th:text="'Đơn hàng ' + ${o.code} + ' · ' + ${o.recipient} + ' · ' + ${@fmt.date(o.createdAt)}"></div>
+        <div class="small" th:text="'Đơn hàng ' + ${o.code} + ' · ' + ${o.recipient} + ' · ' + ${@h.date(o.createdAt)}"></div>
     </div>
-    <div class="alert alert-warning small" th:if="${o.latestPrescription != null && o.latestPrescription.pharmacistNote != null}">
-        <strong>Lời dặn của dược sĩ:</strong> <span th:text="${o.latestPrescription.pharmacistNote}"></span></div>
-    <div class="border rounded p-3 mb-3" th:each="it, st : ${o.items}">
-        <div class="d-flex justify-content-between">
-            <div class="fw-bold" th:text="${st.count} + '. ' + ${it.productName}"></div>
-            <div class="small" th:text="${it.quantity} + ' ' + ${it.unit}"></div>
-        </div>
-        <div class="small text-muted" th:text="${it.product.activeIngredient ?: ''} + ' ' + ${it.product.strength ?: ''}"></div>
-        <div class="small mt-1"><strong>Cách dùng:</strong> <span th:text="${it.product.usageInstruction ?: 'Theo chỉ dẫn của bác sĩ/dược sĩ.'}"></span></div>
-        <div class="small" th:if="${it.product.contraindications != null}"><strong>Không dùng khi:</strong> <span th:text="${it.product.contraindications}"></span></div>
-        <div class="small" th:if="${it.product.sideEffects != null}"><strong>Tác dụng phụ có thể gặp:</strong> <span th:text="${it.product.sideEffects}"></span></div>
-        <div class="small text-muted" th:each="a : ${it.allocations}" th:text="'Số lô ' + ${a.batch.batchNo} + ' - HSD ' + ${@fmt.date(a.batch.expDate)}"></div>
+    <div th:if="${rx != null and rx.pharmacistNote != null}" class="alert alert-warning small"><strong>Lời dặn của dược sĩ:</strong> <th:block th:text="${rx.pharmacistNote}"/></div>
+    <div th:each="it, s : ${o.items}" class="border rounded p-3 mb-3" th:with="p=${it.product}">
+        <div class="d-flex justify-content-between"><div class="fw-bold" th:text="${s.count} + '. ' + ${it.productName}"></div><div class="small" th:text="${it.quantity} + ' ' + ${it.unit}"></div></div>
+        <div class="small text-muted" th:text="(${p.activeIngredient} ?: '') + ' ' + (${p.strength} ?: '')"></div>
+        <div class="small mt-1"><strong>Cách dùng:</strong> <th:block th:text="${p.usageInstruction != null and !p.usageInstruction.isBlank()} ? ${p.usageInstruction} : 'Theo chỉ dẫn của bác sĩ/dược sĩ.'"/></div>
+        <div th:if="${p.contraindications != null}" class="small"><strong>Không dùng khi:</strong> <th:block th:text="${p.contraindications}"/></div>
+        <div th:if="${p.sideEffects != null}" class="small"><strong>Tác dụng phụ có thể gặp:</strong> <th:block th:text="${p.sideEffects}"/></div>
+        <div th:each="a : ${it.allocations}" class="small text-muted" th:text="'Số lô ' + ${a.batch.batchNo} + ' - HSD ' + ${@h.date(a.batch.expDate)}"></div>
     </div>
-    <p class="small text-muted">Đọc kỹ hướng dẫn sử dụng trước khi dùng. Nếu có bất thường, ngừng thuốc và liên hệ dược sĩ qua hotline
-        <strong th:text="${settings['store_phone']}"></strong>.</p>
-    <div class="text-center mt-4 no-print"><button class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer"></i> In</button></div>
-</main>
+    <p class="small text-muted">Đọc kỹ hướng dẫn sử dụng trước khi dùng. Nếu có bất thường, ngừng thuốc và liên hệ dược sĩ qua hotline <strong th:text="${settings['store_phone']}"></strong>.</p>
+</th:block>
+</th:block>
 </body>
 </html>

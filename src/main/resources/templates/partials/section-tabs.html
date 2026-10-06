@@ -1,0 +1,14 @@
+<th:block xmlns:th="http://www.thymeleaf.org" th:fragment="tabs" th:with="tabGroup=${@menu.currentGroup(currentUser)}">
+    <!--/* Thanh tab chung của nhóm chức năng đang mở (Quản lý kho, Marketing, ...): chuyển nhanh giữa các trang cùng nhóm. */-->
+    <div th:if="${tabGroup != null}" class="section-tabs no-print mb-3" th:with="tabCurrent=${@menu.currentItem(tabGroup)}">
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <i th:class="'bi ' + ${tabGroup.icon} + ' text-primary'"></i><span class="fw-semibold" th:text="${tabGroup.label}"></span>
+        </div>
+        <ul class="nav nav-pills flex-nowrap overflow-auto pb-1">
+            <li class="nav-item" th:each="i : ${tabGroup.items}">
+                <a th:class="'nav-link text-nowrap ' + (${i == tabCurrent} ? 'active' : '')" th:href="@{${i.url}}"
+                   th:attr="aria-current=${i == tabCurrent} ? 'page' : null"><i th:class="'bi ' + ${i.icon} + ' me-1'"></i><th:block th:text="${i.label}"/></a>
+            </li>
+        </ul>
+    </div>
+</th:block>

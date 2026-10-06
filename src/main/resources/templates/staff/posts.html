@@ -1,38 +1,33 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head}"></head>
-<body class="staff-body">
-<div class="staff-shell">
-    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
-    <div class="staff-main">
-        <header th:replace="~{fragments/staff :: topbar}"></header>
-        <main class="p-3 p-lg-4">
-            <div th:replace="~{fragments/layout :: flash}"></div>
-            <div class="d-flex justify-content-end mb-3"><a th:href="@{/staff/posts/new}" class="btn btn-primary"><i class="bi bi-plus"></i> Viết bài mới</a></div>
-            <div class="card">
-                <div class="table-responsive">
-                    <table class="table mb-0">
-                        <thead><tr><th>Tiêu đề</th><th>Tác giả</th><th>Ngày đăng</th><th>Trạng thái</th><th></th></tr></thead>
-                        <tbody>
-                        <tr th:if="${posts.isEmpty()}"><td colspan="5" class="text-center text-muted py-4">Chưa có bài viết.</td></tr>
-                        <tr th:each="p : ${posts}">
-                            <td><a th:href="@{/posts/{s}(s=${p.slug})}" target="_blank" th:text="${p.title}"></a></td>
-                            <td class="small" th:text="${p.author != null ? p.author.fullName : ''}"></td>
-                            <td class="small" th:text="${@fmt.date(p.createdAt)}"></td>
-                            <td><span class="badge" th:classappend="${p.published} ? 'text-bg-success' : 'text-bg-secondary'" th:text="${p.published} ? 'Đã đăng' : 'Nháp'"></span></td>
-                            <td class="text-nowrap">
-                                <a th:href="@{/staff/posts/{id}/edit(id=${p.id})}" class="btn btn-sm btn-outline-primary">Sửa</a>
-                                <form th:action="@{/staff/posts/{id}/delete(id=${p.id})}" method="post" class="d-inline" data-confirm="Xóa bài viết này?">
-                                    <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </main>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/admin :: layout(~{::content}, ~{})}">
+<body>
+<th:block th:fragment="content">
+    <div class="d-flex justify-content-end mb-3"><a th:href="@{/staff/posts/new}" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Viết bài mới</a></div>
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead><tr><th>Bài viết</th><th>Tác giả</th><th>Trạng thái</th><th>Cập nhật</th><th></th></tr></thead>
+                <tbody>
+                <tr th:each="p : ${posts.items}">
+                    <td><div class="d-flex gap-2 align-items-center" th:with="img=${p.imageUrl()}">
+                        <img th:if="${img != null}" th:src="${img}" alt="" width="56" height="40" class="rounded object-fit-cover">
+                        <div><div class="fw-semibold" th:text="${p.title}"></div><div class="small text-muted" th:text="${@h.limit(p.summary, 90)}"></div></div></div></td>
+                    <td class="small" th:text="${p.author != null} ? ${p.author.fullName} : '-'"></td>
+                    <td><span th:if="${p.published}" class="badge text-bg-success">Đã đăng</span><span th:unless="${p.published}" class="badge text-bg-secondary">Nháp</span></td>
+                    <td class="small text-muted" th:text="${@h.dt(p.updatedAt)}"></td>
+                    <td class="text-nowrap">
+                        <a th:if="${p.published}" th:href="@{/posts/{s}(s=${p.slug})}" target="_blank" class="btn btn-sm btn-light" aria-label="Xem"><i class="bi bi-eye"></i></a>
+                        <a th:href="@{/staff/posts/{id}/edit(id=${p.id})}" class="btn btn-sm btn-outline-primary">Sửa</a>
+                        <form th:action="@{/staff/posts/{id}/delete(id=${p.id})}" method="post" class="d-inline" data-confirm="Xóa bài viết này?">
+                            <button class="btn btn-sm btn-outline-danger" aria-label="Xóa"><i class="bi bi-trash"></i></button></form>
+                    </td>
+                </tr>
+                <tr th:if="${posts.isEmpty()}"><td colspan="5" class="text-center text-muted py-4">Chưa có bài viết.</td></tr>
+                </tbody>
+            </table>
+        </div>
     </div>
-</div>
-<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+    <div class="mt-3"><th:block th:replace="~{partials/pagination :: links(${posts})}"/></div>
+</th:block>
 </body>
 </html>

@@ -1,0 +1,10 @@
+<!--/* Hàng sản phẩm: items, heading, link (có thể null), icon (có thể null) */-->
+<section xmlns:th="http://www.thymeleaf.org" th:fragment="row(items, heading, link, icon)" th:if="${items != null and !items.isEmpty()}" class="mb-5">
+    <div class="d-flex justify-content-between align-items-center">
+        <h2 class="section-title reveal"><i th:if="${icon != null}" th:class="'bi ' + ${icon} + ' me-1'"></i><th:block th:text="${heading}"/></h2>
+        <a th:if="${link != null}" class="section-link" th:href="${link}">Xem tất cả <i class="bi bi-arrow-right"></i></a>
+    </div>
+    <div class="row row-cols-2 row-cols-md-4 g-3 reveal-stagger">
+        <div class="col" th:each="p : ${items}"><th:block th:replace="~{partials/product-card :: card(${p})}"/></div>
+    </div>
+</section>

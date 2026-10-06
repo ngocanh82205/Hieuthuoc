@@ -1,0 +1,19 @@
+<th:block xmlns:th="http://www.thymeleaf.org" th:fragment="flash">
+    <div th:if="${success != null}" class="alert alert-success alert-dismissible fade show" role="alert">
+        <span th:with="html=${@h.nl2br(success)}" th:utext="${html}"></span><button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Đóng"></button>
+    </div>
+    <div th:if="${error != null}" class="alert alert-danger alert-dismissible fade show" role="alert">
+        <span th:with="html=${@h.nl2br(error)}" th:utext="${html}"></span><button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Đóng"></button>
+    </div>
+    <div th:if="${warning != null}" class="alert alert-warning alert-dismissible fade show" role="alert">
+        <span th:with="html=${@h.nl2br(warning)}" th:utext="${html}"></span><button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Đóng"></button>
+    </div>
+    <div th:if="${info != null}" class="alert alert-info alert-dismissible fade show" role="alert">
+        <span th:with="html=${@h.nl2br(info)}" th:utext="${html}"></span><button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Đóng"></button>
+    </div>
+    <div th:if="${errors != null and !errors.isEmpty()}" class="alert alert-danger alert-dismissible fade show" role="alert">
+        <th:block th:if="${errors.size() == 1}" th:text="${errors[0]}"></th:block>
+        <ul th:if="${errors.size() > 1}" class="mb-0 ps-3"><li th:each="e : ${errors}" th:text="${e}"></li></ul>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Đóng"></button>
+    </div>
+</th:block>

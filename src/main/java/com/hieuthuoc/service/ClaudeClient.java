@@ -2,100 +2,55 @@ package com.hieuthuoc.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClient;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 
-/**
- * Gọi Claude (Anthropic Messages API). Cấu hình bằng biến môi trường ANTHROPIC_API_KEY (hoặc app.ai.api-key).
- * Không có key: isConfigured() = false, trợ lý dùng chế độ trả lời tự động theo kịch bản.
- */
-@Slf4j
+/** Gọi Claude (Anthropic Messages API). Không có key: isConfigured() = false, trợ lý dùng trả lời theo kịch bản. */
 @Component
 public class ClaudeClient {
-    public record Turn(String role, String text) {
-    }
-
-    private final String apiKey;
-    private final String model;
-    private final String baseUrl;
     private final ObjectMapper json = new ObjectMapper();
-    private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
 
-    public ClaudeClient(@Value("${app.ai.api-key:}") String apiKey,
-                        @Value("${app.ai.model:claude-sonnet-5}") String model,
-                        @Value("${app.ai.base-url:https://api.anthropic.com}") String baseUrl) {
-        String key = apiKey == null || apiKey.isBlank() ? System.getenv("ANTHROPIC_API_KEY") : apiKey;
-        this.apiKey = key == null ? "" : key.trim();
-        this.model = model;
-        this.baseUrl = baseUrl.replaceAll("/+$", "");
-    }
+    @Value("${app.ai.anthropic-key:}")
+    private String apiKey;
+    @Value("${app.ai.anthropic-model:claude-sonnet-5-5}")
+    private String model;
+    @Value("${app.ai.anthropic-base-url:https://api.anthropic.com}")
+    private String baseUrl;
 
     public boolean isConfigured() {
-        return !apiKey.isEmpty();
+        return !apiKey.isBlank();
     }
 
     public String model() {
         return model;
     }
 
-    /**
-     * Gửi hội thoại, trả về câu trả lời dạng văn bản. Các lượt liên tiếp cùng vai trò được gộp lại
-     * (API yêu cầu user / assistant xen kẽ, bắt đầu bằng user).
-     */
-    public String complete(String system, List<Turn> turns, int maxTokens) {
+    /** turns: [role, text]; các lượt liền nhau cùng vai trò được gộp, bắt đầu bằng user. */
+    public String complete(String system, List<String[]> turns, int maxTokens) throws Exception {
         if (!isConfigured()) throw new IllegalStateException("Chưa cấu hình ANTHROPIC_API_KEY");
-        List<Map<String, Object>> messages = new ArrayList<>();
-        for (Turn t : turns) {
-            if (t.text() == null || t.text().isBlank()) continue;
-            if (messages.isEmpty() && !"user".equals(t.role())) continue;
-            Map<String, Object> last = messages.isEmpty() ? null : messages.get(messages.size() - 1);
-            if (last != null && last.get("role").equals(t.role())) {
-                last.put("content", last.get("content") + "\n" + t.text());
-            } else {
-                Map<String, Object> m = new LinkedHashMap<>();
-                m.put("role", t.role());
-                m.put("content", t.text());
-                messages.add(m);
-            }
+        List<Map<String, String>> messages = new ArrayList<>();
+        for (String[] t : turns) {
+            if (t[1] == null || t[1].trim().isEmpty() || (messages.isEmpty() && !"user".equals(t[0]))) continue;
+            Map<String, String> last = messages.isEmpty() ? null : messages.get(messages.size() - 1);
+            if (last != null && last.get("role").equals(t[0])) last.put("content", last.get("content") + "\n" + t[1]);
+            else messages.add(new HashMap<>(Map.of("role", t[0], "content", t[1])));
         }
-        if (messages.isEmpty()) throw new IllegalArgumentException("Không có nội dung để gửi");
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("model", model);
-        body.put("max_tokens", maxTokens);
-        body.put("system", system);
-        body.put("messages", messages);
-        try {
-            HttpRequest req = HttpRequest.newBuilder(URI.create(baseUrl + "/v1/messages"))
-                    .timeout(Duration.ofSeconds(45))
-                    .header("content-type", "application/json")
-                    .header("x-api-key", apiKey)
-                    .header("anthropic-version", "2023-06-01")
-                    .POST(HttpRequest.BodyPublishers.ofString(json.writeValueAsString(body)))
-                    .build();
-            HttpResponse<String> res = http.send(req, HttpResponse.BodyHandlers.ofString());
-            if (res.statusCode() / 100 != 2) {
-                throw new IllegalStateException("Claude API trả về " + res.statusCode() + ": " + res.body().substring(0, Math.min(300, res.body().length())));
-            }
-            JsonNode root = json.readTree(res.body());
-            StringBuilder sb = new StringBuilder();
-            for (JsonNode c : root.path("content")) if ("text".equals(c.path("type").asText())) sb.append(c.path("text").asText());
-            return sb.toString().trim();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("Bị gián đoạn khi gọi Claude API", e);
-        } catch (java.io.IOException e) {
-            throw new IllegalStateException("Không kết nối được Claude API: " + e.getMessage(), e);
-        }
+        if (messages.isEmpty()) throw new IllegalStateException("Không có nội dung để gửi");
+        Map<String, Object> body = Map.of("model", model, "max_tokens", maxTokens, "system", system, "messages", messages);
+        String res = RestClient.create().post().uri(baseUrl.replaceAll("/+$", "") + "/v1/messages").contentType(MediaType.APPLICATION_JSON)
+                .header("x-api-key", apiKey.trim()).header("anthropic-version", "2023-06-01").body(json.writeValueAsString(body))
+                .exchange((rq, rs) -> {
+                    String b = new String(rs.getBody().readAllBytes(), StandardCharsets.UTF_8);
+                    if (!rs.getStatusCode().is2xxSuccessful()) throw new IllegalStateException("Claude API trả về " + rs.getStatusCode().value());
+                    return b;
+                });
+        StringBuilder sb = new StringBuilder();
+        for (JsonNode c : json.readTree(res).path("content")) if ("text".equals(c.path("type").asText())) sb.append(c.path("text").asText());
+        return sb.toString().trim();
     }
 }

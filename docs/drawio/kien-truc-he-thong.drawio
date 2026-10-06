@@ -1,0 +1,227 @@
+<mxfile host="app.diagrams.net" pages="2">
+  <diagram id="kien-truc-tong-the" name="Kiến trúc tổng thể">
+    <mxGraphModel dx="1681" dy="791" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="960" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="nUser" parent="1" style="rounded=1;arcSize=3;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=10;fontStyle=1;fontSize=14;fillColor=#f5f9fd;strokeColor=#1f4e79;" value="«node» Máy người dùng" vertex="1">
+          <mxGeometry height="190" width="250" x="150" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="nApp" parent="1" style="rounded=1;arcSize=3;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=10;fontStyle=1;fontSize=14;fillColor=#f5f9fd;strokeColor=#1f4e79;" value="«node» Máy chủ ứng dụng (JDK 17+)" vertex="1">
+          <mxGeometry height="500" width="400" x="470" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="nDb" parent="1" style="rounded=1;arcSize=3;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=10;fontStyle=1;fontSize=14;fillColor=#f5f9fd;strokeColor=#1f4e79;" value="«node» Máy chủ CSDL" vertex="1">
+          <mxGeometry height="190" width="400" x="470" y="680" as="geometry" />
+        </mxCell>
+        <mxCell id="nCloud" parent="1" style="rounded=1;arcSize=3;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=10;fontStyle=1;fontSize=14;fillColor=#f5f9fd;strokeColor=#1f4e79;dashed=1;fillColor=#fafafa;strokeColor=#7f9fbf;" value="Dịch vụ bên ngoài (Internet)" vertex="1">
+          <mxGeometry height="880" width="400" x="950" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="KH" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fontSize=14;fillColor=#ffffff;strokeColor=#1f4e79;" value="Khách hàng" vertex="1">
+          <mxGeometry height="66" width="36" x="40" y="250" as="geometry" />
+        </mxCell>
+        <mxCell id="DS" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fontSize=14;fillColor=#ffffff;strokeColor=#1f4e79;" value="Dược sĩ /&lt;br&gt;Nhân viên" vertex="1">
+          <mxGeometry height="66" width="36" x="40" y="380" as="geometry" />
+        </mxCell>
+        <mxCell id="AD" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fontSize=14;fillColor=#ffffff;strokeColor=#1f4e79;" value="Quản trị viên" vertex="1">
+          <mxGeometry height="66" width="36" x="40" y="510" as="geometry" />
+        </mxCell>
+        <mxCell id="BR" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fillColor=#dae8fc;strokeColor=#1f4e79;" value="&lt;b&gt;Trình duyệt web&lt;/b&gt;&lt;br&gt;- Giao diện web (HTML + Bootstrap 5 + JS fetch, Chart.js)&lt;br&gt;- Ứng dụng client VinaPharma App (SPA, gọi REST API)" vertex="1">
+          <mxGeometry height="110" width="210" x="170" y="350" as="geometry" />
+        </mxCell>
+        <mxCell id="APP" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fillColor=#dae8fc;strokeColor=#1f4e79;align=left;spacingLeft=14;" value="&lt;b&gt;Ứng dụng Spring Boot&lt;/b&gt;&lt;br&gt;(Tomcat nhúng, cổng 8080)&lt;br&gt;&lt;br&gt;- Spring MVC + Thymeleaf&lt;br&gt;- REST API /api/v1 (JSON, JWT)&lt;br&gt;- Spring Security&lt;br&gt;- Spring Data JPA / Hibernate&lt;br&gt;- Tác vụ định kỳ (@Scheduled)&lt;br&gt;- Spring Mail (JavaMailSender)" vertex="1">
+          <mxGeometry height="250" width="340" x="500" y="165" as="geometry" />
+        </mxCell>
+        <mxCell id="FS" parent="1" style="shape=folder;tabWidth=60;tabHeight=14;tabPosition=left;whiteSpace=wrap;html=1;fontSize=14;fillColor=#dae8fc;strokeColor=#1f4e79;" value="Kho file upload&lt;br&gt;(ảnh sản phẩm, bài viết,&lt;br&gt;đơn thuốc, ảnh chat)" vertex="1">
+          <mxGeometry height="100" width="220" x="560" y="480" as="geometry" />
+        </mxCell>
+        <mxCell id="DB" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;size=14;fontSize=14;fillColor=#dae8fc;strokeColor=#1f4e79;" value="MySQL 8 / MariaDB&lt;br&gt;(CSDL Hieuthuoc,&lt;br&gt;InnoDB, utf8mb4)" vertex="1">
+          <mxGeometry height="120" width="180" x="580" y="720" as="geometry" />
+        </mxCell>
+        <mxCell id="PAYOS" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fillColor=#dae8fc;strokeColor=#1f4e79;" value="PayOS (VietQR)" vertex="1">
+          <mxGeometry height="70" width="260" x="1050" y="95" as="geometry" />
+        </mxCell>
+        <mxCell id="VNPAY" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fillColor=#dae8fc;strokeColor=#1f4e79;" value="VNPay" vertex="1">
+          <mxGeometry height="70" width="260" x="1050" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="GHN" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fillColor=#dae8fc;strokeColor=#1f4e79;" value="Giao Hàng Nhanh (GHN)" vertex="1">
+          <mxGeometry height="70" width="260" x="1050" y="325" as="geometry" />
+        </mxCell>
+        <mxCell id="AI" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fillColor=#dae8fc;strokeColor=#1f4e79;" value="Google Gemini /&lt;br&gt;Anthropic Claude" vertex="1">
+          <mxGeometry height="70" width="260" x="1050" y="440" as="geometry" />
+        </mxCell>
+        <mxCell id="SMTP" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fillColor=#dae8fc;strokeColor=#1f4e79;" value="Máy chủ email (SMTP)" vertex="1">
+          <mxGeometry height="70" width="260" x="1050" y="555" as="geometry" />
+        </mxCell>
+        <mxCell id="OSM" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fillColor=#dae8fc;strokeColor=#1f4e79;" value="OpenStreetMap Nominatim" vertex="1">
+          <mxGeometry height="70" width="260" x="1050" y="670" as="geometry" />
+        </mxCell>
+        <mxCell id="VQR" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fillColor=#dae8fc;strokeColor=#1f4e79;" value="VietQR (ảnh mã QR)" vertex="1">
+          <mxGeometry height="70" width="260" x="1050" y="785" as="geometry" />
+        </mxCell>
+        <mxCell id="eKH" edge="1" parent="1" source="KH" style="endArrow=block;endFill=1;html=1;fontSize=14;strokeColor=#1f4e79;labelBackgroundColor=#ffffff;endArrow=open;" target="BR" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eDS" edge="1" parent="1" source="DS" style="endArrow=block;endFill=1;html=1;fontSize=14;strokeColor=#1f4e79;labelBackgroundColor=#ffffff;endArrow=open;" target="BR" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eAD" edge="1" parent="1" source="AD" style="endArrow=block;endFill=1;html=1;fontSize=14;strokeColor=#1f4e79;labelBackgroundColor=#ffffff;endArrow=open;" target="BR" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eBR" edge="1" parent="1" source="BR" style="endArrow=block;endFill=1;html=1;fontSize=14;strokeColor=#1f4e79;labelBackgroundColor=#ffffff;" target="APP" value="HTTP/HTTPS: trang HTML, form POST (web)&lt;br&gt;REST JSON /api/v1 + Bearer token (App)">
+          <mxGeometry relative="1" x="0.1653" y="35" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eDB" edge="1" parent="1" source="APP" style="endArrow=block;endFill=1;html=1;fontSize=14;strokeColor=#1f4e79;labelBackgroundColor=#ffffff;exitX=0.15;exitY=1;entryX=0;entryY=0.5;" target="DB" value="JDBC (HikariCP)">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="551" y="780" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="eFS" edge="1" parent="1" source="APP" style="endArrow=block;endFill=1;html=1;fontSize=14;strokeColor=#1f4e79;labelBackgroundColor=#ffffff;" target="FS" value="Đọc / ghi file">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ePAY" edge="1" parent="1" source="APP" style="endArrow=block;endFill=1;html=1;fontSize=14;strokeColor=#1f4e79;labelBackgroundColor=#ffffff;startArrow=block;startFill=1;exitX=1;exitY=0.08;entryX=0;entryY=0.5;" target="PAYOS" value="HTTPS REST/JSON ⇄ Webhook">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eVNP" edge="1" parent="1" source="APP" style="endArrow=block;endFill=1;html=1;fontSize=14;strokeColor=#1f4e79;labelBackgroundColor=#ffffff;startArrow=block;startFill=1;exitX=1;exitY=0.24;entryX=0;entryY=0.5;" target="VNPAY" value="URL có chữ ký ⇄ Return URL / IPN">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eGHN" edge="1" parent="1" source="APP" style="endArrow=block;endFill=1;html=1;fontSize=14;strokeColor=#1f4e79;labelBackgroundColor=#ffffff;startArrow=block;startFill=1;exitX=1;exitY=0.4;entryX=0;entryY=0.5;" target="GHN" value="HTTPS REST/JSON ⇄ Webhook vận đơn">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eAI" edge="1" parent="1" source="APP" style="endArrow=block;endFill=1;html=1;fontSize=14;strokeColor=#1f4e79;labelBackgroundColor=#ffffff;exitX=1;exitY=0.56;entryX=0;entryY=0.5;" target="AI" value="HTTPS REST/JSON">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eSMTP" edge="1" parent="1" source="APP" style="endArrow=block;endFill=1;html=1;fontSize=14;strokeColor=#1f4e79;labelBackgroundColor=#ffffff;exitX=1;exitY=0.72;entryX=0;entryY=0.5;" target="SMTP" value="SMTP">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eOSM" edge="1" parent="1" source="APP" style="endArrow=block;endFill=1;html=1;fontSize=14;strokeColor=#1f4e79;labelBackgroundColor=#ffffff;exitX=1;exitY=0.88;entryX=0;entryY=0.5;" target="OSM" value="HTTPS (tra cứu địa chỉ)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eVQR" edge="1" parent="1" source="BR" style="endArrow=block;endFill=1;html=1;fontSize=14;strokeColor=#1f4e79;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;entryX=0.5;entryY=1;" target="VQR" value="Tải ảnh QR chuyển khoản">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="275" y="910" />
+              <mxPoint x="1180" y="910" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="kien-truc-phan-tang" name="Kiến trúc phân tầng backend">
+    <mxGraphModel dx="2102" dy="1270" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1300" pageHeight="1400" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="BR" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;fontStyle=1;fillColor=#ffffff;strokeColor=#1f4e79;" value="Trình duyệt web" vertex="1">
+          <mxGeometry height="45" width="860" x="102.67" y="48" as="geometry" />
+        </mxCell>
+        <mxCell id="L1" parent="1" style="rounded=1;arcSize=2;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontStyle=1;fontSize=14;strokeColor=#1f4e79;fillColor=#eef5fb;" value="Tầng trình bày (Presentation)" vertex="1">
+          <mxGeometry height="290" width="937" x="70.67" y="123" as="geometry" />
+        </mxCell>
+        <mxCell id="L2" parent="1" style="rounded=1;arcSize=2;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontStyle=1;fontSize=14;strokeColor=#1f4e79;fillColor=#fdf3e7;" value="Tầng nghiệp vụ (Service / Business)" vertex="1">
+          <mxGeometry height="180" width="937" x="70.67" y="453" as="geometry" />
+        </mxCell>
+        <mxCell id="L3" parent="1" style="rounded=1;arcSize=2;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontStyle=1;fontSize=14;strokeColor=#1f4e79;fillColor=#f1f8ec;" value="Tầng tích hợp (Integration)" vertex="1">
+          <mxGeometry height="140" width="937" x="70.67" y="673" as="geometry" />
+        </mxCell>
+        <mxCell id="L4" parent="1" style="rounded=1;arcSize=2;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontStyle=1;fontSize=14;strokeColor=#1f4e79;fillColor=#f3effa;" value="Tầng truy cập dữ liệu (Data Access)" vertex="1">
+          <mxGeometry height="150" width="937" x="70.67" y="853" as="geometry" />
+        </mxCell>
+        <mxCell id="L5" parent="1" style="rounded=1;arcSize=2;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=10;spacingTop=4;fontStyle=1;fontSize=14;strokeColor=#1f4e79;fillColor=#fbeef0;" value="Tầng miền (Domain)" vertex="1">
+          <mxGeometry height="170" width="937" x="70.67" y="1043" as="geometry" />
+        </mxCell>
+        <mxCell id="SEC" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fillColor=#dae8fc;strokeColor=#1f4e79;" value="Bộ lọc bảo mật&lt;br&gt;(SecurityConfig: session, CSRF;&lt;br&gt;ApiSecurityConfig: Bearer JWT;&lt;br&gt;BCrypt, phân quyền URL)" vertex="1">
+          <mxGeometry height="110" width="200" x="90" y="158" as="geometry" />
+        </mxCell>
+        <mxCell id="INT" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fillColor=#dae8fc;strokeColor=#1f4e79;" value="Interceptor&lt;br&gt;(StaffAccessInterceptor,&lt;br&gt;PresenceInterceptor)" vertex="1">
+          <mxGeometry height="110" width="200" x="310" y="158" as="geometry" />
+        </mxCell>
+        <mxCell id="CTL" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fillColor=#dae8fc;strokeColor=#1f4e79;" value="Controller web (shop, staff.*, admin.*)&lt;br&gt;+ REST Controller api.*&lt;br&gt;(AuthApi, ShoppingApi, StaffApi, AdminApi...)" vertex="1">
+          <mxGeometry height="110" width="200" x="530" y="158" as="geometry" />
+        </mxCell>
+        <mxCell id="VIEW" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fillColor=#dae8fc;strokeColor=#1f4e79;" value="View Thymeleaf (HTML)&lt;br&gt;/ JSON qua DTO (API)" vertex="1">
+          <mxGeometry height="110" width="200" x="803.67" y="158" as="geometry" />
+        </mxCell>
+        <mxCell id="ADV" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fillColor=#dae8fc;strokeColor=#1f4e79;" value="Xử lý lỗi chung&lt;br&gt;(GlobalControllerAdvice,&lt;br&gt;ApiExceptionHandler)" vertex="1">
+          <mxGeometry height="85" width="200" x="530" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="SV1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fillColor=#dae8fc;strokeColor=#1f4e79;fillColor=#ffffff;strokeColor=#b46504;" value="&lt;b&gt;Bán hàng&lt;/b&gt;&lt;br&gt;CartService, OrderService,&lt;br&gt;PromotionService, VoucherService,&lt;br&gt;PosService, PaymentService" vertex="1">
+          <mxGeometry height="120" width="200" x="102.67" y="493" as="geometry" />
+        </mxCell>
+        <mxCell id="SV2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fillColor=#dae8fc;strokeColor=#1f4e79;fillColor=#ffffff;strokeColor=#b46504;" value="&lt;b&gt;Kho &amp;amp; sản phẩm&lt;/b&gt;&lt;br&gt;StockService, InventoryService,&lt;br&gt;CatalogService, ProductService,&lt;br&gt;CategoryService" vertex="1">
+          <mxGeometry height="120" width="200" x="322.67" y="493" as="geometry" />
+        </mxCell>
+        <mxCell id="SV3" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fillColor=#dae8fc;strokeColor=#1f4e79;fillColor=#ffffff;strokeColor=#b46504;" value="Chăm sóc khách hàng&lt;br&gt;ChatService, AiAssistantService, SafetyService, CustomerCareService, RecommendationService" vertex="1">
+          <mxGeometry height="120" width="200" x="542.67" y="493" as="geometry" />
+        </mxCell>
+        <mxCell id="SV4" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fillColor=#dae8fc;strokeColor=#1f4e79;fillColor=#ffffff;strokeColor=#b46504;" value="&lt;b&gt;Hệ thống&lt;/b&gt;&lt;br&gt;AccountService, SettingService,&lt;br&gt;NotificationService, MailService,&lt;br&gt;ReportService, FileStorageService" vertex="1">
+          <mxGeometry height="120" width="200" x="762.67" y="493" as="geometry" />
+        </mxCell>
+        <mxCell id="EXT" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fillColor=#dae8fc;strokeColor=#1f4e79;fillColor=#ffffff;strokeColor=#2d7600;" value="GhnService · PayOS / VNPay (trong PaymentService)&lt;br&gt;GeminiClient · ClaudeClient" vertex="1">
+          <mxGeometry height="80" width="480" x="292.67" y="713" as="geometry" />
+        </mxCell>
+        <mxCell id="REPO" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fillColor=#dae8fc;strokeColor=#1f4e79;fillColor=#ffffff;strokeColor=#5a3e9b;" value="Repository&lt;br&gt;(Spring Data JPA)" vertex="1">
+          <mxGeometry height="90" width="300" x="192.67" y="893" as="geometry" />
+        </mxCell>
+        <mxCell id="EM" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fillColor=#dae8fc;strokeColor=#1f4e79;fillColor=#ffffff;strokeColor=#5a3e9b;" value="EntityManager / Sql&lt;br&gt;(JPQL, SQL tổng hợp,&lt;br&gt;khóa PESSIMISTIC_WRITE)" vertex="1">
+          <mxGeometry height="90" width="300" x="572.67" y="893" as="geometry" />
+        </mxCell>
+        <mxCell id="ENT" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=14;fillColor=#dae8fc;strokeColor=#1f4e79;fillColor=#ffffff;strokeColor=#ae4132;" value="&lt;b&gt;Entity JPA&lt;/b&gt;: User, Product, ProductUnit, Batch, Order,&lt;br&gt;OrderItem, Prescription, PaymentTransaction, ...&lt;br&gt;&lt;br&gt;&lt;b&gt;Enum nghiệp vụ&lt;/b&gt;: OrderStatus, DrugType,&lt;br&gt;PaymentMethod, MemberTier, ..." vertex="1">
+          <mxGeometry height="115" width="580" x="242.67" y="1083" as="geometry" />
+        </mxCell>
+        <mxCell id="DB" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;size=12;fontSize=14;fontStyle=1;fillColor=#dae8fc;strokeColor=#1f4e79;" value="MySQL" vertex="1">
+          <mxGeometry height="90" width="140" x="462.67" y="1253" as="geometry" />
+        </mxCell>
+        <mxCell id="CLOUD" parent="1" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;fontSize=14;fillColor=#fafafa;strokeColor=#7f9fbf;" value="Dịch vụ ngoài&lt;br&gt;(GHN, PayOS, VNPay,&lt;br&gt;Gemini / Claude)" vertex="1">
+          <mxGeometry height="120" width="240" x="1032.67" y="693" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="BR" style="endArrow=block;endFill=1;html=1;fontSize=14;strokeColor=#1f4e79;labelBackgroundColor=#ffffff;exitX=0.116;exitY=1;entryX=0.5;entryY=0;" target="SEC" value="HTTP request">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="SEC" style="endArrow=block;endFill=1;html=1;fontSize=14;strokeColor=#1f4e79;labelBackgroundColor=#ffffff;" target="INT" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="INT" style="endArrow=block;endFill=1;html=1;fontSize=14;strokeColor=#1f4e79;labelBackgroundColor=#ffffff;" target="CTL" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="CTL" style="endArrow=block;endFill=1;html=1;fontSize=14;strokeColor=#1f4e79;labelBackgroundColor=#ffffff;" target="VIEW" value="Model +&lt;br&gt;tên view">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="VIEW" style="endArrow=block;endFill=1;html=1;fontSize=14;strokeColor=#1f4e79;labelBackgroundColor=#ffffff;exitX=0.5;exitY=0;entryX=0.884;entryY=1;" target="BR" value="HTML">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="CTL" style="endArrow=block;endFill=1;html=1;fontSize=14;strokeColor=#1f4e79;labelBackgroundColor=#ffffff;dashed=1;endArrow=open;" target="ADV" value="ngoại lệ">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" source="L1" style="endArrow=block;endFill=1;html=1;fontSize=14;strokeColor=#1f4e79;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="L2" value="gọi phương thức nghiệp vụ">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" edge="1" parent="1" source="L2" style="endArrow=block;endFill=1;html=1;fontSize=14;strokeColor=#1f4e79;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="L3" value="gọi API ngoài">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" edge="1" parent="1" source="L2" style="endArrow=block;endFill=1;html=1;fontSize=14;strokeColor=#1f4e79;labelBackgroundColor=#ffffff;exitX=0;exitY=0.5;entryX=0;entryY=0.5;" target="L4" value="đọc / ghi&lt;br&gt;dữ liệu">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="32.34" y="543" />
+              <mxPoint x="32.34" y="734.33" />
+              <mxPoint x="32.34" y="928" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e10" edge="1" parent="1" source="EXT" style="endArrow=block;endFill=1;html=1;fontSize=14;strokeColor=#1f4e79;labelBackgroundColor=#ffffff;entryX=0.088;entryY=0.511;entryDx=0;entryDy=0;entryPerimeter=0;" target="CLOUD" value="HTTPS">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" edge="1" parent="1" source="L4" style="endArrow=block;endFill=1;html=1;fontSize=14;strokeColor=#1f4e79;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="L5" value="ánh xạ ORM">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" edge="1" parent="1" source="L5" style="endArrow=block;endFill=1;html=1;fontSize=14;strokeColor=#1f4e79;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="DB" value="Hibernate / JDBC">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

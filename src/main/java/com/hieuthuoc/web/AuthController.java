@@ -2,135 +2,117 @@ package com.hieuthuoc.web;
 
 import com.hieuthuoc.config.AppUserDetails;
 import com.hieuthuoc.entity.User;
-import com.hieuthuoc.repository.NotificationRepository;
-import com.hieuthuoc.service.AccountService;
-import com.hieuthuoc.service.CurrentUser;
+import com.hieuthuoc.service.*;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.WebAttributes;
-import org.springframework.security.web.context.SecurityContextRepository;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
+import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.util.List;
-
+/** Đăng nhập (POST /login do Spring Security xử lý - xem SecurityConfig), đăng ký, quên mật khẩu, Google. */
 @Controller
 @RequiredArgsConstructor
 public class AuthController {
-    private final AccountService accountService;
+    private final AccountService accounts;
     private final CurrentUser currentUser;
-    private final NotificationRepository notificationRepo;
-    private final SecurityContextRepository contextRepo;
+
+    @PersistenceContext
+    private EntityManager em;
+
+    /** Trang chỉ dành cho khách chưa đăng nhập (middleware guest). */
+    private String guestOnly() {
+        User u = currentUser.getOrNull();
+        return u != null ? "redirect:" + AccountService.homeFor(u) : null;
+    }
 
     @GetMapping("/login")
-    public String login(HttpServletRequest req, Model model) {
-        User u = currentUser.getOrNull();
-        if (u != null) return "redirect:" + home(u);
-        if (req.getParameter("error") != null) {
-            HttpSession s = req.getSession(false);
-            Object ex = s == null ? null : s.getAttribute(WebAttributes.AUTHENTICATION_EXCEPTION);
-            model.addAttribute("error", ex instanceof LockedException
-                    ? "Tài khoản đã bị khóa. Vui lòng liên hệ nhà thuốc."
-                    : "Email hoặc mật khẩu không đúng.");
-        }
-        if (req.getParameter("locked") != null) model.addAttribute("error", "Tài khoản của bạn đã bị khóa.");
+    public String loginForm(Model model) {
+        String r = guestOnly();
+        if (r != null) return r;
         model.addAttribute("title", "Đăng nhập");
         return "auth/login";
     }
 
     @GetMapping("/register")
     public String registerForm(Model model) {
-        if (currentUser.getOrNull() != null) return "redirect:/";
-        model.addAttribute("form", new AccountService.RegisterForm());
+        String r = guestOnly();
+        if (r != null) return r;
         model.addAttribute("title", "Đăng ký");
         return "auth/register";
     }
 
     @PostMapping("/register")
-    public String register(@ModelAttribute("form") AccountService.RegisterForm form, Model model,
-                           HttpServletRequest req, HttpServletResponse res, RedirectAttributes ra) {
-        List<String> errors = accountService.validateRegister(form);
-        if (!errors.isEmpty()) {
-            model.addAttribute("errors", errors);
-            model.addAttribute("title", "Đăng ký");
-            return "auth/register";
-        }
-        User u = accountService.register(form);
-        // Tự động đăng nhập sau khi đăng ký
-        AppUserDetails details = new AppUserDetails(u);
+    @Transactional
+    public String register(@RequestParam MultiValueMap<String, String> params, HttpServletRequest req, HttpServletResponse res, RedirectAttributes ra) {
+        String r = guestOnly();
+        if (r != null) return r;
+        Form f = new Form(params);
+        Validator.of(f)
+                .required("full_name").min("full_name", 2).max("full_name", 100)
+                .required("phone").phone("phone", "Số điện thoại không hợp lệ (10-11 số, bắt đầu bằng 0).")
+                .unique("phone", v -> exists("phone", v), "Số điện thoại đã được đăng ký.")
+                .email("email").max("email", 150).unique("email", v -> exists("email", v.toLowerCase()), "Email đã được sử dụng.")
+                .required("password").min("password", 6).confirmed("password")
+                .check();
+        User u = accounts.register(f.get("full_name"), f.str("email"), f.get("phone"), f.get("password"));
+        login(u, req, res);
+        Web.success(ra, "Đăng ký thành công! Chào mừng bạn đến với nhà thuốc.");
+        SavedRequest saved = new HttpSessionRequestCache().getRequest(req, res);
+        return "redirect:" + (saved != null ? saved.getRedirectUrl() : "/");
+    }
+
+    private boolean exists(String column, String value) {
+        String field = column.equals("phone") ? "u.phone" : "lower(u.email)";
+        return em.createQuery("select count(u) from User u where " + field + " = :v", Long.class).setParameter("v", value).getSingleResult() > 0;
+    }
+
+    /** Đăng nhập ngay sau khi đăng ký (giữ nguyên phiên nên giỏ hàng của khách vãng lai vẫn còn). */
+    private static void login(User u, HttpServletRequest req, HttpServletResponse res) {
+        AppUserDetails d = new AppUserDetails(u);
         SecurityContext ctx = SecurityContextHolder.createEmptyContext();
-        ctx.setAuthentication(UsernamePasswordAuthenticationToken.authenticated(details, null, details.getAuthorities()));
+        ctx.setAuthentication(UsernamePasswordAuthenticationToken.authenticated(d, null, d.getAuthorities()));
         SecurityContextHolder.setContext(ctx);
-        req.getSession(true);
         req.changeSessionId();
-        contextRepo.saveContext(ctx, req, res);
-        Flash.success(ra, "Đăng ký thành công! Chào mừng bạn đến với nhà thuốc.");
-        return "redirect:/";
+        new HttpSessionSecurityContextRepository().saveContext(ctx, req, res);
     }
 
     @GetMapping("/forgot-password")
     public String forgotForm(Model model) {
+        String r = guestOnly();
+        if (r != null) return r;
         model.addAttribute("title", "Quên mật khẩu");
         return "auth/forgot";
     }
 
     @PostMapping("/forgot-password")
-    public String forgot(@org.springframework.web.bind.annotation.RequestParam String identifier,
-                         @org.springframework.web.bind.annotation.RequestParam String contactPhone,
-                         @org.springframework.web.bind.annotation.RequestParam(required = false) String note, RedirectAttributes ra) {
-        accountService.requestPasswordReset(identifier, contactPhone, note);
-        Flash.success(ra, "Đã gửi yêu cầu. Nhà thuốc sẽ gọi điện xác minh và cấp mật khẩu tạm cho bạn trong giờ làm việc.");
+    @Transactional
+    public String forgot(@RequestParam(required = false) String identifier, @RequestParam(name = "contact_phone", required = false) String contactPhone,
+                         @RequestParam(required = false) String note, RedirectAttributes ra) {
+        String r = guestOnly();
+        if (r != null) return r;
+        accounts.requestPasswordReset(identifier, contactPhone, note);
+        Web.success(ra, "Đã gửi yêu cầu. Nhà thuốc sẽ gọi điện xác minh và cấp mật khẩu tạm cho bạn trong giờ làm việc.");
         return "redirect:/login";
     }
 
-    /** Số thông báo chưa đọc + thông báo mới nhất (JS gọi định kỳ để hiện toast, VD nhắc uống thuốc). */
-    @GetMapping("/notifications/unread")
-    @org.springframework.web.bind.annotation.ResponseBody
-    public java.util.Map<String, Object> unread() {
-        User u = currentUser.get();
-        java.util.List<java.util.Map<String, Object>> latest = new java.util.ArrayList<>();
-        for (var n : notificationRepo.findTop100ByUserOrderByIdDesc(u)) {
-            if (n.isSeen() || latest.size() >= 5) break;
-            latest.add(java.util.Map.of("id", n.getId(), "message", n.getMessage(), "link", n.getLink() == null ? "" : n.getLink()));
-        }
-        return java.util.Map.of("count", notificationRepo.countByUserAndSeenFalse(u), "latest", latest);
-    }
-
-    @GetMapping("/notifications")
-    @Transactional
-    public String notifications(Model model) {
-        User u = currentUser.get();
-        model.addAttribute("notifications", notificationRepo.findTop100ByUserOrderByIdDesc(u));
-        notificationRepo.markAllSeen(u);
-        model.addAttribute("unreadCount", 0L);
-        model.addAttribute("title", "Thông báo");
-        return u.isStaff() ? "staff/notifications" : "account/notifications";
-    }
-
-    @GetMapping("/403")
-    public String forbidden(Model model, HttpServletResponse res) {
-        res.setStatus(403);
-        model.addAttribute("status", 403);
-        model.addAttribute("message", "Bạn không có quyền truy cập chức năng này.");
-        return "error";
-    }
-
-    static String home(User u) {
-        return switch (u.getRole()) {
-            case ADMIN -> "/admin";
-            case PHARMACIST -> "/staff";
-            default -> "/";
-        };
+    /** Đăng nhập Google: bản Spring chưa cấu hình OAuth (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET). */
+    @GetMapping({"/auth/google", "/auth/google/callback"})
+    public String google(RedirectAttributes ra) {
+        Web.warning(ra, "Đăng nhập Google chưa được cấu hình (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET).");
+        return "redirect:/login";
     }
 }

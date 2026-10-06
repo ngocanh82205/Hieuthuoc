@@ -1,46 +1,36 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head}"></head>
-<body class="staff-body">
-<div class="staff-shell">
-    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
-    <div class="staff-main">
-        <header th:replace="~{fragments/staff :: topbar}"></header>
-        <main class="p-3 p-lg-4">
-            <div th:replace="~{fragments/layout :: flash}"></div>
-            <form th:action="@{/admin/loyalty}" method="post">
-                <div class="card mb-4" style="max-width: 900px">
-                    <div class="card-header"><i class="bi bi-star me-1"></i>Tích điểm</div>
-                    <div class="card-body row g-3">
-                        <div class="col-md-6"><label class="form-label">Số tiền cho 1 điểm (đ)</label><input type="number" min="1" name="points_per_amount" class="form-control" th:value="${values['points_per_amount']}">
-                            <div class="form-text">VD 10.000 đ = 1 điểm (nhân hệ số hạng). Điểm cộng khi đơn hoàn thành, cả đơn online và tại quầy.</div></div>
-                        <div class="col-md-6"><label class="form-label">Giá trị 1 điểm khi thanh toán (đ)</label><input type="number" min="0" name="point_value" class="form-control" th:value="${values['point_value']}">
-                            <div class="form-text">Điểm chỉ trừ trên phần hàng không kê đơn.</div></div>
-                    </div>
-                </div>
-                <div class="card mb-3" style="max-width: 900px">
-                    <div class="card-header"><i class="bi bi-gem me-1"></i>Hạng thành viên (theo tổng chi tiêu đơn hoàn thành)</div>
-                    <div class="table-responsive">
-                        <table class="table align-middle mb-0">
-                            <thead><tr><th>Hạng</th><th>Chi tiêu tối thiểu (đ)</th><th>Hệ số điểm (%)</th><th class="text-end">Số khách</th></tr></thead>
-                            <tbody>
-                            <tr th:each="t : ${tiers}">
-                                <td><span class="badge rounded-pill" th:style="|background: ${t.color}|" th:text="${t.label}"></span></td>
-                                <td><input type="number" min="0" class="form-control form-control-sm" th:name="'tier_' + ${t.key} + '_min'" th:value="${values['tier_' + t.key + '_min']}"
-                                           th:readonly="${t.name() == 'DONG'}"></td>
-                                <td><input type="number" min="100" max="1000" class="form-control form-control-sm" th:name="'tier_' + ${t.key} + '_rate'" th:value="${values['tier_' + t.key + '_rate']}"></td>
-                                <td class="text-end" th:text="${memberCounts[t.name()]}"></td>
-                            </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="card-footer bg-white"><button class="btn btn-primary">Lưu cấu hình</button></div>
-                </div>
-                <p class="small text-muted">Voucher theo hạng: tạo tại <a th:href="@{/admin/vouchers}">Mã giảm giá</a> và chọn "Hạng thành viên từ".</p>
-            </form>
-        </main>
-    </div>
-</div>
-<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/admin :: layout(~{::content}, ~{})}">
+<body>
+<th:block th:fragment="content">
+    <form th:action="@{/admin/loyalty}" method="post" style="max-width: 900px">
+        <div class="card mb-4">
+            <div class="card-header"><i class="bi bi-star me-1"></i>Tích điểm</div>
+            <div class="card-body row g-3">
+                <div class="col-md-6"><label class="form-label" for="lPer">Số tiền cho 1 điểm (đ)</label><input id="lPer" type="number" min="1" name="points_per_amount" class="form-control" th:value="${cfg['points_per_amount']}">
+                    <div class="form-text">VD 10.000 đ = 1 điểm (nhân hệ số hạng). Điểm cộng khi đơn hoàn thành, cả đơn online và tại quầy.</div></div>
+                <div class="col-md-6"><label class="form-label" for="lVal">Giá trị 1 điểm khi thanh toán (đ)</label><input id="lVal" type="number" min="1" name="point_value" class="form-control" th:value="${cfg['point_value']}">
+                    <div class="form-text" th:text="'Điểm chỉ trừ trên phần hàng không kê đơn. Điểm khách đang giữ: ' + ${@h.num(pointsOutstanding)} + ' (≈ ' + ${@h.money(pointsValue)} + ').'"></div></div>
+            </div>
+        </div>
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-gem me-1"></i>Hạng thành viên (theo tổng chi tiêu đơn hoàn thành)</div>
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead><tr><th>Hạng</th><th>Chi tiêu tối thiểu (đ)</th><th>Hệ số điểm (%)</th><th class="text-end">Số khách</th></tr></thead>
+                    <tbody>
+                    <tr th:each="t : ${tiers}" th:with="kMin='tier_' + ${t.key} + '_min', kRate='tier_' + ${t.key} + '_rate'">
+                        <td><span class="badge rounded-pill" th:style="'background: ' + ${t.color}" th:text="${t.label}"></span></td>
+                        <td><input type="number" min="0" class="form-control form-control-sm" th:name="${kMin}" th:value="${cfg.get(kMin)}" th:aria-label="'Ngưỡng ' + ${t.label}" th:readonly="${t.name() == 'DONG'}"></td>
+                        <td><input type="number" min="100" max="1000" class="form-control form-control-sm" th:name="${kRate}" th:value="${cfg.get(kRate)}" th:aria-label="'Hệ số ' + ${t.label}"></td>
+                        <td class="text-end" th:text="${@h.num(memberCounts[t.name()])}"></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer bg-white"><button class="btn btn-primary">Lưu cấu hình</button></div>
+        </div>
+        <p class="small text-muted">Voucher theo hạng: tạo tại <a th:href="@{/admin/vouchers}">Mã giảm giá</a> và chọn "Hạng thành viên từ". Điều chỉnh điểm từng khách tại <a th:href="@{/admin/customers}">Khách hàng</a>.</p>
+    </form>
+</th:block>
 </body>
 </html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="staff-body">
+<div class="staff-shell">
+    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
+    <div class="staff-main">
+        <header th:replace="~{fragments/staff :: topbar}"></header>
+        <main class="p-3 p-lg-4">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <form th:action="@{/staff/products/{id}/info(id=${product.id})}" method="post" class="card" style="max-width: 900px">
+                <div class="card-header" th:text="${product.name}"></div>
+                <div class="card-body row g-3">
+                    <div class="col-md-8"><label class="form-label">Hoạt chất</label><input name="activeIngredient" class="form-control" th:value="${product.activeIngredient}"></div>
+                    <div class="col-md-4"><label class="form-label">Hàm lượng</label><input name="strength" class="form-control" th:value="${product.strength}"></div>
+                    <div class="col-12"><label class="form-label">Công dụng</label><textarea name="description" class="form-control" rows="3" th:text="${product.description}"></textarea></div>
+                    <div class="col-12"><label class="form-label">Liều dùng - cách dùng</label><textarea name="usageInstruction" class="form-control" rows="3" th:text="${product.usageInstruction}"></textarea></div>
+                    <div class="col-md-6"><label class="form-label">Chống chỉ định</label><textarea name="contraindications" class="form-control" rows="3" th:text="${product.contraindications}"></textarea></div>
+                    <div class="col-md-6"><label class="form-label">Tác dụng phụ</label><textarea name="sideEffects" class="form-control" rows="3" th:text="${product.sideEffects}"></textarea></div>
+                </div>
+                <div class="card-footer bg-white"><button class="btn btn-primary">Lưu</button> <a th:href="@{/staff/products}" class="btn btn-link">Hủy</a>
+                    <span class="small text-muted ms-2">Giá bán và thông tin kinh doanh do admin quản lý.</span></div>
+            </form>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

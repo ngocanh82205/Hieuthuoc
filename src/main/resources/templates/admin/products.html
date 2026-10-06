@@ -1,67 +1,57 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head}"></head>
-<body class="staff-body">
-<div class="staff-shell">
-    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
-    <div class="staff-main">
-        <header th:replace="~{fragments/staff :: topbar}"></header>
-        <main class="p-3 p-lg-4">
-            <div th:replace="~{fragments/layout :: flash}"></div>
-            <form class="card card-body mb-3" method="get" th:action="@{/admin/products}">
-                <div class="row g-2 align-items-end">
-                    <div class="col-md-4"><input name="q" class="form-control form-control-sm" th:value="${q}" placeholder="Tên, hoạt chất, số đăng ký"></div>
-                    <div class="col-md-3"><select name="category" class="form-select form-select-sm">
-                        <option value="">Tất cả danh mục</option>
-                        <option th:each="c : ${categories}" th:value="${c.id}" th:text="${#strings.repeat('— ', c.depth) + c.name}" th:selected="${category == c.id}"></option></select></div>
-                    <div class="col-md-3"><select name="type" class="form-select form-select-sm">
-                        <option value="">Tất cả loại</option>
-                        <option th:each="t : ${drugTypes}" th:value="${t}" th:text="${t.label}" th:selected="${type == t}"></option></select></div>
-                    <div class="col-md-2 d-flex gap-2"><button class="btn btn-primary btn-sm flex-grow-1">Lọc</button>
-                        <a th:href="@{/admin/products/new}" class="btn btn-success btn-sm" title="Thêm sản phẩm"><i class="bi bi-plus-lg"></i></a></div>
-                </div>
-            </form>
-            <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
-                <a th:href="@{/admin/products/export.xlsx}" class="btn btn-sm btn-outline-success"><i class="bi bi-file-earmark-excel"></i> Xuất Excel (cũng là file mẫu)</a>
-                <form th:action="@{/admin/products/import}" method="post" enctype="multipart/form-data" class="d-flex gap-2">
-                    <input type="file" name="file" accept=".xlsx" class="form-control form-control-sm" required style="max-width: 260px">
-                    <button class="btn btn-sm btn-success"><i class="bi bi-upload"></i> Nhập Excel</button>
-                </form>
-                <span class="small text-muted">Dòng có ID / số đăng ký / tên trùng sẽ được cập nhật, còn lại thêm mới. File có lỗi sẽ không nhập dòng nào.</span>
-            </div>
-            <div th:if="${importErrors != null}" class="alert alert-danger small">
-                <div class="fw-semibold mb-1">Lỗi khi nhập file:</div>
-                <ul class="mb-0"><li th:each="e : ${importErrors}" th:text="${e}"></li></ul>
-            </div>
-            <div class="card">
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead><tr><th>Sản phẩm</th><th>Danh mục</th><th>Loại</th><th class="text-end">Giá bán</th><th class="text-end">Tồn</th><th class="text-end">Đã bán</th><th>Trạng thái</th><th></th></tr></thead>
-                        <tbody>
-                        <tr th:if="${page.empty}"><td colspan="8" class="text-center text-muted py-4">Không có sản phẩm.</td></tr>
-                        <tr th:each="p : ${page.content}">
-                            <td><div class="fw-semibold" th:text="${p.name}"></div><small class="text-muted" th:text="${p.activeIngredient}"></small></td>
-                            <td class="small" th:text="${p.category != null ? p.category.name : '-'}"></td>
-                            <td><span class="badge" th:classappend="'text-bg-' + ${p.drugType.color}" th:text="${p.drugType.shortLabel}"></span></td>
-                            <td class="text-end text-nowrap" th:text="${@fmt.money(p.price)} + '/' + ${p.unit}"></td>
-                            <td class="text-end" th:classappend="${p.lowStock} ? 'text-danger fw-semibold'" th:text="${p.onHand}"></td>
-                            <td class="text-end" th:text="${p.sold}"></td>
-                            <td><span class="badge" th:classappend="${p.active} ? 'text-bg-success' : 'text-bg-secondary'" th:text="${p.active} ? 'Đang bán' : 'Ngừng bán'"></span></td>
-                            <td class="text-nowrap">
-                                <a th:href="@{/admin/products/{id}/edit(id=${p.id})}" class="btn btn-sm btn-outline-primary">Sửa</a>
-                                <a th:href="@{/staff/inventory/{id}(id=${p.id})}" class="btn btn-sm btn-outline-secondary" title="Lô hàng"><i class="bi bi-box-seam"></i></a>
-                                <form th:action="@{/admin/products/{id}/toggle(id=${p.id})}" method="post" class="d-inline">
-                                    <button class="btn btn-sm btn-outline-dark" th:text="${p.active} ? 'Ẩn' : 'Bán lại'"></button></form>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <nav th:replace="~{fragments/layout :: pagination(${page})}"></nav>
-        </main>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/admin :: layout(~{::content}, ~{})}">
+<body>
+<th:block th:fragment="content">
+    <div class="d-flex flex-wrap align-items-start gap-2 mb-3">
+        <form class="d-flex flex-wrap flex-md-nowrap gap-2 flex-grow-1" style="min-width: 0; max-width: 760px" method="get" th:action="@{/admin/products}">
+            <input name="q" th:value="${q}" class="form-control" style="flex: 1 1 140px; min-width: 0" placeholder="Tên, hoạt chất, SĐK" aria-label="Tìm">
+            <select name="category" class="form-select" style="flex: 1 1 140px; min-width: 0" aria-label="Danh mục"><option value="">Mọi danh mục</option>
+                <option th:each="c : ${categories}" th:value="${c.id}" th:selected="${category == c.id}" th:text="${#strings.repeat('— ', c.depth)} + ${c.name}"></option></select>
+            <select name="type" class="form-select" style="flex: 1 1 110px; min-width: 0" aria-label="Loại"><option value="">Mọi loại</option>
+                <option th:each="t : ${drugTypes}" th:value="${t.name()}" th:selected="${type == t}" th:text="${t.shortLabel}"></option></select>
+            <button class="btn btn-primary flex-shrink-0" aria-label="Lọc"><i class="bi bi-funnel"></i></button>
+        </form>
+        <div class="ms-auto d-flex flex-wrap gap-2">
+            <a th:href="@{/admin/products/export}" class="btn btn-outline-success text-nowrap"><i class="bi bi-file-earmark-excel"></i> Xuất Excel</a>
+            <button class="btn btn-outline-success text-nowrap" data-bs-toggle="collapse" data-bs-target="#importBox"><i class="bi bi-upload"></i> Nhập Excel</button>
+            <a th:href="@{/admin/products/create}" class="btn btn-primary text-nowrap"><i class="bi bi-plus-lg"></i> Thêm sản phẩm</a>
+        </div>
     </div>
-</div>
-<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+    <form id="importBox" th:action="@{/admin/products/import}" method="post" enctype="multipart/form-data" class="collapse card card-body mb-3">
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            <input type="file" name="file" accept=".xlsx" class="form-control" style="max-width: 360px" required aria-label="File Excel">
+            <button class="btn btn-success">Nhập</button>
+            <span class="small text-muted">Dùng file "Xuất Excel" làm mẫu: có cột ID thì cập nhật, trống ID thì thêm mới. Có lỗi ở bất kỳ dòng nào thì không nhập dòng nào.</span>
+        </div>
+    </form>
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead><tr><th>Sản phẩm</th><th>Loại</th><th>Danh mục</th><th class="text-end">Giá</th><th class="text-end">Có thể bán</th><th>Trạng thái</th><th></th></tr></thead>
+                <tbody>
+                <tr th:each="p : ${page.items}" th:class="${p.active} ? '' : 'text-muted'">
+                    <td><div class="d-flex gap-2 align-items-center" th:with="img=${p.imageUrl()}">
+                        <img th:src="${img}" alt="" width="40" height="40" class="rounded object-fit-cover bg-light">
+                        <div><div class="fw-semibold" th:text="${p.name}"></div><div class="small text-muted"
+                            th:text="(${p.activeIngredient} ?: '') + ' ' + (${p.strength} ?: '') + (${p.registrationNo != null} ? ' · SĐK ' + ${p.registrationNo} : '')"></div></div></div></td>
+                    <td><span th:class="'badge text-bg-' + ${p.drugType.color}" th:text="${p.drugType.shortLabel}"></span></td>
+                    <td class="small" th:text="${p.category != null} ? ${p.category.name} : ''"></td>
+                    <td class="text-end text-nowrap"><th:block th:text="${@h.money(p.price)} + '/' + ${p.unit}"/><div th:if="${p.oldPrice != null}" class="small text-muted"><del th:text="${@h.money(p.oldPrice)}"></del></div></td>
+                    <td th:class="'text-end ' + (${p.isLowStock()} ? 'text-danger fw-semibold' : '')" th:text="${@h.num(p.available)}"></td>
+                    <td><span th:if="${p.active}" class="badge text-bg-success">Đang bán</span><span th:unless="${p.active}" class="badge text-bg-secondary">Ngừng bán</span></td>
+                    <td class="text-nowrap"><a th:href="@{/admin/products/{id}/edit(id=${p.id})}" class="btn btn-sm btn-outline-primary">Sửa</a>
+                        <form th:action="@{/admin/products/{id}/toggle(id=${p.id})}" method="post" class="d-inline">
+                            <button class="btn btn-sm btn-light" th:title="${p.active} ? 'Ngừng bán' : 'Mở bán'" th:aria-label="${p.active} ? 'Ngừng bán' : 'Mở bán'"><i th:class="'bi ' + (${p.active} ? 'bi-eye-slash' : 'bi-eye')"></i></button></form>
+                        <form th:action="@{/admin/products/{id}/delete(id=${p.id})}" method="post" class="d-inline" th:data-confirm="'Xóa vĩnh viễn sản phẩm ' + ${p.name} + '?'">
+                            <button class="btn btn-sm btn-light text-danger" title="Xóa" th:aria-label="'Xóa ' + ${p.name}"><i class="bi bi-trash"></i></button></form>
+                        <a th:if="${p.active}" th:href="@{/products/{s}(s=${p.slug})}" target="_blank" class="btn btn-sm btn-light" aria-label="Xem trên web"><i class="bi bi-box-arrow-up-right"></i></a></td>
+                </tr>
+                <tr th:if="${page.isEmpty()}"><td colspan="7" class="text-center text-muted py-4">Không có sản phẩm.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="mt-3"><th:block th:replace="~{partials/pagination :: links(${page})}"/></div>
+</th:block>
 </body>
 </html>

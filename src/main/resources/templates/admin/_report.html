@@ -1,0 +1,54 @@
+<!--/* Phần chung của báo cáo (trang báo cáo + bản in): r = ReportService.Report */-->
+<th:block xmlns:th="http://www.thymeleaf.org" th:fragment="body(r)">
+    <div class="row g-3 mb-4" th:with="l1='Doanh thu thuần: ' + ${r.orders} + ' đơn hoàn thành' + (${r.returnsCount > 0} ? ', trừ ' + ${@h.money(r.returnsValue)} + ' hàng trả (' + ${r.returnsCount} + ' đơn)' : '') + ' · không gồm phí ship ' + ${@h.money(r.shipping)},
+            v1=${@h.money(r.revenue)}, v2=${@h.money(r.grossProfit)}, l2='Lợi nhuận gộp ' + ${@h.dec(r.marginRate)} + '% (giá vốn ' + ${@h.money(r.cost)} + ')',
+            v3=${@h.money(r.aov)}, v4=${@h.dec(r.cancelOnlyRate)} + '% / ' + ${@h.dec(r.returnRate)} + '%',
+            l4='Tỷ lệ hủy / trả (' + ${r.cancelledOnly} + ' hủy, ' + ${r.returned} + ' trả / ' + ${r.created} + ' đơn)', anchor='#byday'">
+        <th:block th:replace="~{staff/_parts :: stat(${anchor}, 'green', 'bi-cash-stack', ${v1}, ${l1})}"/>
+        <th:block th:replace="~{staff/_parts :: stat(${anchor}, 'blue', 'bi-graph-up-arrow', ${v2}, ${l2})}"/>
+        <th:block th:replace="~{staff/_parts :: stat(${anchor}, 'violet', 'bi-basket', ${v3}, 'Giá trị đơn trung bình')}"/>
+        <th:block th:replace="~{staff/_parts :: stat(${anchor}, 'red', 'bi-x-circle', ${v4}, ${l4})}"/>
+    </div>
+    <div class="row g-3 mb-4">
+        <div class="col-md-4" th:each="e : ${r.byChannel}" th:with="online=${e.key == 'Online'}"><div class="stat-card"><div th:class="'icon ' + (${online} ? 'icon-blue' : 'icon-amber')"><i th:class="'bi ' + (${online} ? 'bi-globe' : 'bi-shop-window')"></i></div>
+            <div><div class="value fs-5" th:text="${@h.money(e.value[1])}"></div><div class="label" th:text="'Kênh ' + ${e.key} + ' · ' + ${e.value[0]} + ' đơn'"></div></div></div></div>
+        <div class="col-md-4"><div class="stat-card"><div class="icon icon-violet"><i class="bi bi-people"></i></div>
+            <div><div class="value fs-5" th:text="${r.newCustomers} + ' mới · ' + ${r.returningCustomers} + ' quay lại'"></div>
+                <div class="label" th:text="'Tỷ lệ khách quay lại ' + ${@h.dec(r.returningRate)} + '% · ' + ${r.registrations} + ' tài khoản đăng ký mới'"></div></div></div></div>
+    </div>
+</th:block>
+
+<th:block xmlns:th="http://www.thymeleaf.org" th:fragment="tables(r, inventory, nearDays)">
+    <div class="row g-4">
+        <div class="col-xl-8">
+            <div class="card h-100"><div class="card-header">Hiệu suất dược sĩ / nhân viên</div>
+                <div class="table-responsive"><table class="table table-sm mb-0">
+                    <thead><tr><th>Nhân viên</th><th class="text-end">Duyệt đơn thuốc</th><th class="text-end">Từ chối</th><th class="text-end">TG duyệt TB</th><th class="text-end">Cuộc tư vấn</th><th class="text-end">Tin nhắn</th><th class="text-end">Đơn xử lý</th></tr></thead>
+                    <tbody>
+                    <tr th:each="p : ${r.pharmacists}"><td><th:block th:text="${p.name()}"/><div class="small text-muted" th:text="${p.license()}"></div></td><td class="text-end" th:text="${p.approved()}"></td>
+                        <td class="text-end"><th:block th:text="${p.rejected()}"/> <small class="text-muted" th:text="'(' + ${@h.dec(p.rejectRate())} + '%)'"></small></td>
+                        <td class="text-end" th:text="${p.avgMinutes() != null} ? ${p.avgMinutes()} + ' phút' : '-'"></td><td class="text-end" th:text="${p.consultations()}"></td>
+                        <td class="text-end" th:text="${p.messages()}"></td><td class="text-end"><th:block th:text="${p.orders()}"/><div class="small text-muted" th:text="${@h.money(p.revenue())}"></div></td></tr>
+                    </tbody></table></div></div>
+        </div>
+        <div class="col-xl-4">
+            <div class="card h-100"><div class="card-header">Giá trị tồn kho (giá nhập)</div>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between"><span>Còn hạn</span><strong th:text="${@h.money(inventory[0])}"></strong></li>
+                    <li class="list-group-item d-flex justify-content-between"><span th:text="'Trong đó cận hạn (' + ${nearDays} + ' ngày)'"></span><strong class="text-warning" th:text="${@h.money(inventory[1])}"></strong></li>
+                    <li class="list-group-item d-flex justify-content-between"><span>Đã hết hạn (cần hủy)</span><strong class="text-danger" th:text="${@h.money(inventory[2])}"></strong></li>
+                </ul></div>
+        </div>
+    </div>
+    <div class="card mt-4"><div class="card-header" th:text="'Hàng cận hạn (' + ${nearDays} + ' ngày) và hết hạn'"></div>
+        <div class="table-responsive"><table class="table table-sm mb-0">
+            <thead><tr><th>Tình trạng</th><th>Sản phẩm</th><th>Số lô</th><th>HSD</th><th class="text-end">Tồn</th><th class="text-end">Giá trị (giá nhập)</th></tr></thead>
+            <tbody>
+            <tr th:each="e : ${r.expired}" class="table-danger"><td th:text="'Hết hạn ' + ${e.days()} + ' ngày'"></td><td th:text="${e.batch().product.name}"></td><td th:text="${e.batch().batchNo}"></td>
+                <td th:text="${@h.date(e.batch().expDate)}"></td><td class="text-end" th:text="${e.batch().quantity}"></td><td class="text-end" th:text="${@h.money(e.value())}"></td></tr>
+            <tr th:each="e : ${r.nearExpiry}" class="table-warning"><td th:text="'Còn ' + ${e.days()} + ' ngày'"></td><td th:text="${e.batch().product.name}"></td><td th:text="${e.batch().batchNo}"></td>
+                <td th:text="${@h.date(e.batch().expDate)}"></td><td class="text-end" th:text="${e.batch().quantity}"></td><td class="text-end" th:text="${@h.money(e.value())}"></td></tr>
+            <tr th:if="${r.expired.isEmpty() and r.nearExpiry.isEmpty()}"><td colspan="6" class="text-center text-muted py-3">Không có lô cận hạn / hết hạn.</td></tr>
+            </tbody></table></div>
+    </div>
+</th:block>

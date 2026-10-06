@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/admin :: layout(~{::content}, ~{})}">
+<body>
+<th:block th:fragment="content">
+    <div class="d-flex mb-3">
+        <a th:href="@{/staff/stocktake}" class="btn btn-primary ms-auto"><i class="bi bi-clipboard-check"></i> Kiểm kê mới</a>
+    </div>
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead><tr><th>Mã phiếu</th><th>Thời gian</th><th>Người kiểm</th><th class="text-end">Số lô</th><th class="text-end">Lô chênh lệch</th><th>Ghi chú</th><th></th></tr></thead>
+                <tbody>
+                <tr th:each="st : ${list.items}">
+                    <td><a th:href="@{/staff/stocktake/{id}(id=${st.id})}" class="fw-semibold" th:text="${st.code}"></a></td>
+                    <td class="small text-nowrap" th:text="${@h.dt(st.createdAt)}"></td>
+                    <td class="small" th:text="${st.user != null} ? ${st.user.fullName} : '-'"></td>
+                    <td class="text-end" th:text="${@h.num(st.totalLines)}"></td>
+                    <td class="text-end"><span th:if="${st.diffLines > 0}" class="badge text-bg-warning" th:text="${@h.num(st.diffLines)}"></span><span th:unless="${st.diffLines > 0}" class="badge text-bg-success">Khớp</span></td>
+                    <td class="small" th:text="${st.note}"></td>
+                    <td class="text-nowrap"><a th:href="@{/staff/stocktake/{id}/export(id=${st.id})}" class="btn btn-sm btn-outline-success"><i class="bi bi-file-earmark-excel"></i> Excel</a></td>
+                </tr>
+                <tr th:if="${list.isEmpty()}"><td colspan="7" class="text-center text-muted py-4">Chưa có phiếu kiểm kê.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="mt-3"><th:block th:replace="~{partials/pagination :: links(${list})}"/></div>
+</th:block>
+</body>
+</html>

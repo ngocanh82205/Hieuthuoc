@@ -1,187 +1,191 @@
 package com.hieuthuoc.web;
 
 import com.hieuthuoc.entity.*;
-import com.hieuthuoc.repository.AddressRepository;
-import com.hieuthuoc.repository.ProductRepository;
 import com.hieuthuoc.service.*;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
+/** Giỏ hàng (lưu trong phiên) và thanh toán. */
 @Controller
 @RequiredArgsConstructor
 public class CartController {
     private final Cart cart;
-    private final CartService cartService;
-    private final OrderService orderService;
-    private final CustomerCareService care;
-    private final ProductRepository productRepo;
-    private final AddressRepository addressRepo;
-    private final CurrentUser currentUser;
+    private final CartService carts;
     private final SettingService settings;
+    private final CurrentUser currentUser;
+    private final GhnService ghn;
+    private final SafetyService safety;
+    private final OrderService orders;
 
-    private void savedVouchers(Model model, User u) {
-        model.addAttribute("savedVouchers", u == null || u.isStaff() ? List.of() : care.savedVouchers(u));
-    }
+    @PersistenceContext
+    private EntityManager em;
 
     @GetMapping("/cart")
-    public String view(Model model) {
-        User u = currentUser.getOrNull();
-        model.addAttribute("cart", cartService.build(cart, ShippingMethod.DELIVERY, u));
-        savedVouchers(model, u);
+    @Transactional(readOnly = true)
+    public String index(Model model) {
         model.addAttribute("title", "Giỏ hàng");
+        model.addAttribute("cart", carts.build(cart, ShippingMethod.DELIVERY, currentUser.getOrNull()));
         return "shop/cart";
     }
 
     @PostMapping("/cart/add")
-    public Object add(@RequestParam Long productId, @RequestParam(defaultValue = "0") Long unitId,
-                      @RequestParam(defaultValue = "1") int qty,
-                      @RequestParam(required = false) String buyNow,
-                      @RequestHeader(value = "Accept", required = false) String accept,
-                      RedirectAttributes ra) {
-        boolean json = accept != null && accept.contains("application/json");
+    @Transactional(readOnly = true)
+    public Object add(@RequestParam(name = "product_id", required = false) Long productId, @RequestParam(name = "unit_id", defaultValue = "0") Long unitId,
+                      @RequestParam(defaultValue = "1") int qty, @RequestParam(required = false) String buyNow, HttpServletRequest req, RedirectAttributes ra) {
         User u = currentUser.getOrNull();
+        Product p = productId == null ? null : em.find(Product.class, productId);
+        int q = Math.max(1, Math.min(qty, 999));
         String error;
         String message = null;
-        Product p = productRepo.findById(productId).orElse(null);
-        UnitOption unit = p == null ? null : p.findUnit(unitId);
-        if (u != null && u.isStaff()) error = "Tài khoản nhân viên không thể đặt hàng online.";
-        else {
-            qty = Math.max(1, Math.min(qty, 999));
-            error = cartService.checkAdd(cart, p, unit, qty);
+        if (u != null && u.isStaff()) {
+            error = "Tài khoản nhân viên không thể đặt hàng online.";
+        } else {
+            UnitOption unit = p == null ? null : p.findUnit(unitId);
+            error = carts.checkAdd(cart, p, unit, q);
             if (error == null) {
-                cart.add(productId, unit.id(), qty);
-                message = "Đã thêm " + qty + " " + unit.name() + " \"" + p.getName() + "\" vào giỏ hàng."
+                cart.add(p.getId(), unit.id(), q);
+                message = "Đã thêm " + q + " " + unit.name() + " \"" + p.getName() + "\" vào giỏ hàng."
                         + (p.getDrugType().isPrescription() ? " Đây là thuốc kê đơn - bạn cần tải lên đơn thuốc khi đặt hàng." : "");
             }
         }
-        if (json) {
+        if (Web.wantsJson(req)) {
             return ResponseEntity.status(error == null ? 200 : 400)
-                    .body(Map.of("ok", error == null, "message", error == null ? message : error, "count", cart.getCount()));
+                    .body(Map.of("ok", error == null, "message", error != null ? error : message, "count", cart.count()));
         }
-        if (error != null) Flash.error(ra, error);
-        else Flash.success(ra, message);
-        if (error == null && buyNow != null) return "redirect:/cart";
+        if (error == null && buyNow != null && !buyNow.isEmpty()) {
+            Web.success(ra, message);
+            return "redirect:/cart";
+        }
+        ra.addFlashAttribute(error != null ? "error" : "success", error != null ? error : message);
         return "redirect:" + (p != null ? "/products/" + p.getSlug() : "/cart");
     }
 
     @PostMapping("/cart/update")
-    public String update(@RequestParam Map<String, String> params, RedirectAttributes ra) {
-        params.forEach((k, v) -> {
-            if (!k.startsWith("qty_")) return;
-            String key = k.substring(4).replace('_', ':');
-            if (!cart.getItems().containsKey(key)) return;
-            try {
-                int q = Integer.parseInt(v.trim());
-                if (q <= 0) cart.getItems().remove(key);
-                else cart.getItems().put(key, Math.min(q, 999));
-            } catch (NumberFormatException ignored) {
-            }
+    public String update(@RequestParam MultiValueMap<String, String> params, RedirectAttributes ra) {
+        Map<String, Integer> items = cart.items();
+        new Form(params).map("qty").forEach((key, q) -> {
+            if (items.containsKey(key) && q != null && q.trim().matches("-?\\d+")) cart.set(key, Math.min(Integer.parseInt(q.trim()), 999));
         });
-        Flash.info(ra, "Đã cập nhật giỏ hàng.");
+        Web.info(ra, "Đã cập nhật giỏ hàng.");
+        return "redirect:/cart";
+    }
+
+    /** Tích chọn sản phẩm sẽ đặt hàng. */
+    @PostMapping("/cart/select")
+    public String select(@RequestParam MultiValueMap<String, String> params) {
+        cart.select(new Form(params).list("keys"));
         return "redirect:/cart";
     }
 
     @PostMapping("/cart/remove")
-    public String remove(@RequestParam String key) {
-        cart.getItems().remove(key);
+    public String remove(@RequestParam(required = false) String key) {
+        if (key != null) cart.remove(key);
         return "redirect:/cart";
     }
 
     @PostMapping("/cart/points")
-    public String points(@RequestParam(defaultValue = "false") boolean use, @RequestParam(defaultValue = "/cart") String back) {
-        cart.setUsePoints(use);
-        return "redirect:" + (back.startsWith("/checkout") ? "/checkout" : "/cart");
+    public String points(@RequestParam(required = false) String use, @RequestParam(required = false) String back) {
+        cart.setUsePoints("1".equals(use) || "true".equals(use) || "on".equals(use));
+        return back != null && back.startsWith("checkout") ? "redirect:/checkout" : "redirect:/cart";
     }
 
     @PostMapping("/cart/voucher")
+    @Transactional(readOnly = true)
     public String voucher(@RequestParam(required = false) String code, @RequestParam(required = false) String remove,
-                          @RequestParam(defaultValue = "/cart") String back, RedirectAttributes ra) {
-        String target = back.startsWith("/checkout") ? "/checkout" : "/cart";
-        if (remove != null || Texts.isBlank(code)) {
-            cart.setVoucherCode(null);
-            return "redirect:" + target;
+                          @RequestParam(required = false) String back, RedirectAttributes ra) {
+        String target = back != null && back.startsWith("checkout") ? "redirect:/checkout" : "redirect:/cart";
+        String c = Texts.trim(code);
+        if ((remove != null && !remove.isEmpty()) || c.isEmpty()) {
+            cart.setVoucher(null);
+            return target;
         }
-        String c = code.trim().toUpperCase();
-        String prev = cart.getVoucherCode();
-        cart.setVoucherCode(c);
-        CartService.View v = cartService.build(cart, ShippingMethod.DELIVERY, currentUser.getOrNull());
+        String prev = cart.voucherCode();
+        cart.setVoucher(c);
+        CartService.View v = carts.build(cart, ShippingMethod.DELIVERY, currentUser.getOrNull());
         if (v.getVoucherError() != null) {
-            cart.setVoucherCode(prev);
-            Flash.error(ra, v.getVoucherError());
-        } else {
-            Flash.success(ra, "Áp dụng mã " + c + " thành công.");
+            cart.setVoucher(prev);
+            Web.error(ra, v.getVoucherError());
+            return target;
         }
-        return "redirect:" + target;
+        Web.success(ra, "Áp dụng mã " + c.toUpperCase() + " thành công.");
+        return target;
     }
 
     /* ---------------- Thanh toán ---------------- */
 
-    private void checkoutModel(Model model, User u, OrderService.CheckoutForm form) {
-        model.addAttribute("cart", cartService.build(cart, form.getShippingMethod() == null ? ShippingMethod.DELIVERY : form.getShippingMethod(), u));
-        model.addAttribute("addresses", addressRepo.findByUserOrderByDefaultAddressDescIdAsc(u));
-        model.addAttribute("form", form);
-        model.addAttribute("shippingMethods", ShippingMethod.values());
-        model.addAttribute("paymentMethods", settings.enabledPaymentMethods());
-        model.addAttribute("provinceFees", settings.provinceFees());
-        savedVouchers(model, u);
-        model.addAttribute("title", "Thanh toán");
-    }
-
     @GetMapping("/checkout")
-    public String checkout(@RequestParam(required = false) ShippingMethod shipping, Model model, RedirectAttributes ra) {
-        cart.setProvince(null);
-        if (cart.getItems().isEmpty()) {
-            Flash.warning(ra, "Giỏ hàng đang trống.");
+    @Transactional(readOnly = true)
+    public String checkout(@RequestParam(required = false) String shipping, Model model, RedirectAttributes ra) {
+        if (cart.items().isEmpty()) {
+            Web.warning(ra, "Giỏ hàng đang trống.");
+            return "redirect:/cart";
+        }
+        if (cart.selectedItems().isEmpty()) {
+            Web.warning(ra, "Vui lòng tích chọn ít nhất một sản phẩm để đặt hàng.");
             return "redirect:/cart";
         }
         User u = currentUser.get();
-        List<Address> addresses = addressRepo.findByUserOrderByDefaultAddressDescIdAsc(u);
-        OrderService.CheckoutForm form = new OrderService.CheckoutForm();
-        if (!addresses.isEmpty()) {
-            form.setRecipient(addresses.get(0).getRecipient());
-            form.setPhone(addresses.get(0).getPhone());
-            form.setAddress(addresses.get(0).getAddressLine());
-            form.setProvince(ShippingZone.detect(addresses.get(0).getAddressLine()));
-            if (form.getProvince() != null && settings.deliversTo(form.getProvince())) cart.setProvince(form.getProvince());
-        } else {
-            form.setRecipient(u.getFullName());
-            form.setPhone(u.getPhone());
-        }
-        if (shipping != null) form.setShippingMethod(shipping);
-        if (!settings.enabledPaymentMethods().contains(form.getPaymentMethod())) form.setPaymentMethod(settings.enabledPaymentMethods().get(0));
-        checkoutModel(model, u, form);
+        List<Address> addresses = em.createQuery("select a from Address a where a.user.id = :u order by a.isDefault desc, a.id", Address.class)
+                .setParameter("u", u.getId()).getResultList();
+        Address first = addresses.isEmpty() ? null : addresses.get(0);
+        Map<String, Object> defaults = new HashMap<>();
+        defaults.put("recipient", first != null ? first.getRecipient() : u.getFullName());
+        defaults.put("phone", first != null ? first.getPhone() : u.getPhone());
+        defaults.put("address", first != null ? first.getAddressLine() : null);
+        defaults.put("province", first != null ? first.getProvince() : null);
+        defaults.put("ghn_province_id", first != null ? first.getGhnProvinceId() : null);
+        defaults.put("ghn_district_id", first != null ? first.getGhnDistrictId() : null);
+        defaults.put("ghn_ward_code", first != null ? first.getGhnWardCode() : null);
+        defaults.put("shipping_method", shipping != null ? shipping : "DELIVERY");
+        defaults.put("payment_method", settings.enabledPaymentMethods().get(0).name());
+        // Ưu tiên dữ liệu khách vừa nhập (khi quay lại vì lỗi)
+        @SuppressWarnings("unchecked")
+        Map<String, String> old = model.getAttribute("old") instanceof Map<?, ?> m ? (Map<String, String>) m : Map.of();
+        old.forEach((k, v) -> {
+            if (v != null) defaults.put(k, v);
+        });
+        String province = (String) defaults.get("province");
+        cart.setProvince(province == null || province.isEmpty() ? null : province);
+        CartService.View cv = carts.build(cart, ShippingMethod.DELIVERY, u);
+        model.addAttribute("title", "Thanh toán");
+        model.addAttribute("cart", cv);
+        // Cảnh báo dị ứng / chống chỉ định / tương tác theo hồ sơ sức khỏe khách tự khai báo
+        model.addAttribute("safetyWarnings", safety.check(u, cv.getLines().stream().map(CartService.Line::getProduct).toList(), safety.recentProducts(u)));
+        model.addAttribute("addresses", addresses);
+        model.addAttribute("form", defaults);
+        model.addAttribute("paymentMethods", settings.enabledPaymentMethods());
+        model.addAttribute("shippingMethods", ShippingMethod.values());
+        model.addAttribute("provinceFees", settings.provinceFees());
+        model.addAttribute("ghnEnabled", ghn.enabled());
         return "shop/checkout";
     }
 
     @PostMapping("/checkout")
-    public String placeOrder(@ModelAttribute("form") OrderService.CheckoutForm form,
-                             @RequestParam(value = "prescription", required = false) MultipartFile prescription,
-                             Model model, RedirectAttributes ra) {
-        User u = currentUser.get();
-        Order o;
-        try {
-            o = orderService.placeOrder(u, cart, form, prescription);
-        } catch (OrderService.CheckoutException e) {
-            checkoutModel(model, u, form);
-            model.addAttribute("errors", e.getErrors());
-            return "shop/checkout";
+    @Transactional
+    public String placeOrder(@RequestParam MultiValueMap<String, String> params, @RequestParam(required = false) MultipartFile prescription,
+                             RedirectAttributes ra) {
+        Map<String, List<String>> data = new LinkedHashMap<>(params);
+        data.remove("_token");
+        Order order = orders.placeOrder(currentUser.get(), cart, new Form(new org.springframework.util.LinkedMultiValueMap<>(data)), prescription);
+        if (!order.isNeedsPrescription() && order.getPaymentMethod().isGateway()) {
+            return "redirect:/account/orders/" + order.getCode() + "/pay";
         }
-        if (!o.isNeedsPrescription() && o.getPaymentMethod() == PaymentMethod.ONLINE) {
-            return "redirect:/account/orders/" + o.getCode() + "/pay";
-        }
-        String payNote = !o.isNeedsPrescription() && o.getPaymentMethod() == PaymentMethod.BANK_TRANSFER
-                ? " Vui lòng chuyển khoản theo hướng dẫn bên dưới." : "";
-        Flash.success(ra, o.isNeedsPrescription()
-                ? "Đặt hàng thành công (mã " + o.getCode() + "). Dược sĩ sẽ kiểm tra đơn thuốc và phản hồi sớm nhất."
-                : "Đặt hàng thành công! Mã đơn hàng: " + o.getCode() + "." + payNote);
-        return "redirect:/account/orders/" + o.getCode();
+        String payNote = !order.isNeedsPrescription() && order.getPaymentMethod() == PaymentMethod.BANK_TRANSFER ? " Vui lòng chuyển khoản theo hướng dẫn bên dưới." : "";
+        Web.success(ra, order.isNeedsPrescription()
+                ? "Đặt hàng thành công (mã " + order.getCode() + "). Dược sĩ sẽ kiểm tra đơn thuốc và phản hồi sớm nhất."
+                : "Đặt hàng thành công! Mã đơn hàng: " + order.getCode() + "." + payNote);
+        return "redirect:/account/orders/" + order.getCode();
     }
 }

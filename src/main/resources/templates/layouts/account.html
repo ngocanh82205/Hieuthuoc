@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<!--/* Layout trang tài khoản khách: menu bên trái + nội dung. Trang dùng: th:replace="~{layouts/account :: layout(~{::content}, ~{})}" */-->
+<html xmlns:th="http://www.thymeleaf.org" th:fragment="layout(accountContent, accountScripts)"
+      th:replace="~{layouts/app :: page(~{layouts/account :: accountBody}, ${accountScripts}, false, 'container py-4')}">
+<body>
+<div th:fragment="accountBody" class="row g-4">
+    <aside class="col-lg-3"><th:block th:replace="~{partials/account-menu :: menu}"/></aside>
+    <section class="col-lg-9">
+        <th:block th:replace="~{partials/flash :: flash}"/>
+        <th:block th:replace="${accountContent}"/>
+    </section>
+</div>
+</body>
+</html>

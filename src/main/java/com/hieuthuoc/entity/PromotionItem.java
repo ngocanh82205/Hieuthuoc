@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/** Sản phẩm trong combo (số lượng theo đơn vị gốc). */
+/** Sản phẩm trong combo. */
 @Entity
 @Table(name = "promotion_items")
 @Getter
@@ -17,16 +17,16 @@ public class PromotionItem {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "promotion_id")
     private Promotion promotion;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "product_id")
     private Product product;
 
-    private int quantity = 1;
+    @Column(name = "product_id", insertable = false, updatable = false)
+    private Long productId;
 
-    public PromotionItem(Promotion promotion, Product product, int quantity) {
-        this.promotion = promotion;
-        this.product = product;
-        this.quantity = quantity;
-    }
+    @Column(nullable = false)
+    private int quantity = 1;
 }

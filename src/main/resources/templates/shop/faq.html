@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/app :: layout(~{::content}, ~{})}">
+<body>
+<th:block th:fragment="content">
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <h1 class="h4 fw-bold mb-1">Câu hỏi thường gặp</h1>
+            <p class="text-muted">Giải đáp nhanh về đặt hàng, thanh toán, giao hàng, đổi trả và tài khoản.</p>
+            <form class="d-flex gap-2 mb-4" th:action="@{/faq}" method="get">
+                <input class="form-control" name="q" th:value="${q}" placeholder="Tìm câu hỏi... (VD: hủy đơn, hoàn tiền, thuốc kê đơn)">
+                <button class="btn btn-primary"><i class="bi bi-search"></i></button>
+            </form>
+            <th:block th:each="g, gs : ${groups}">
+                <h2 class="h6 fw-bold text-primary mt-3 mb-2" th:text="${g.key}"></h2>
+                <div class="accordion mb-3" th:id="'faq' + ${gs.index}">
+                    <div class="accordion-item faq-item" th:each="f, fs : ${g.value}">
+                        <h3 class="accordion-header">
+                            <button th:class="'accordion-button ' + (${q.isEmpty() or !fs.first} ? 'collapsed' : '')" type="button" data-bs-toggle="collapse"
+                                    th:with="target=${'#faq-' + f.id}" th:data-bs-target="${target}" th:text="${f.question}"></button>
+                        </h3>
+                        <div th:id="'faq-' + ${f.id}" th:class="'accordion-collapse collapse ' + (${!q.isEmpty() and fs.first} ? 'show' : '')" th:with="parent=${'#faq' + gs.index}" th:data-bs-parent="${parent}">
+                            <div class="accordion-body" th:with="html=${@h.nl2br(f.answer)}" th:utext="${html}"></div>
+                        </div>
+                    </div>
+                </div>
+            </th:block>
+            <div th:if="${groups.isEmpty()}" class="card card-body text-center text-muted">Không tìm thấy câu hỏi phù hợp.</div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h2 class="h6 fw-semibold"><i class="bi bi-life-preserver text-primary me-1"></i>Chưa tìm thấy câu trả lời?</h2>
+                    <p class="small text-muted">Chat với dược sĩ để được hỗ trợ (tư vấn thuốc, đổi trả, thanh toán, giao hàng...).</p>
+                    <a th:href="@{/consult}" class="btn btn-primary btn-sm w-100"><i class="bi bi-chat-dots"></i> Chat với dược sĩ</a>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-body small">
+                    <div class="fw-semibold mb-1"><i class="bi bi-telephone me-1"></i>Hotline <th:block th:text="${settings['store_phone']}"/></div>
+                    <div class="text-muted" th:text="${settings['store_email']}"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</th:block>
+</body>
+</html>

@@ -1,103 +1,163 @@
 package com.hieuthuoc.service;
 
 import com.hieuthuoc.entity.*;
-import com.hieuthuoc.repository.*;
-import lombok.Getter;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 
+/** Kho: phiếu nhập & duyệt, khóa lô, hủy / điều chỉnh, kiểm kê, thu hồi. */
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class InventoryService {
-    private final BatchRepository batchRepo;
-    private final ReceiptRepository receiptRepo;
-    private final ProductRepository productRepo;
-    private final SupplierRepository supplierRepo;
-    private final StockAdjustmentRepository adjustmentRepo;
-    private final OrderItemBatchRepository allocationRepo;
+    private static final DateTimeFormatter DF = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
     private final NotificationService notifications;
-    private final CustomerCareService care;
-    private final WarehouseRepository warehouseRepo;
-    private final TransferSlipRepository transferRepo;
-    private final SupplierPaymentRepository paymentRepo;
-    private final StockService stockService;
+    private final StockService stock;
+    private final MailService mail;
 
-    @Getter
-    @Setter
-    public static class ReceiptForm {
-        private Long supplierId;
-        private Long warehouseId;
-        private String note;
-        private List<Row> rows = new ArrayList<>();
+    @PersistenceContext
+    private EntityManager em;
 
-        @Getter
-        @Setter
-        public static class Row {
-            private Long productId;
-            private String batchNo;
-            private LocalDate mfgDate;
-            private LocalDate expDate;
-            private Integer quantity;
-            private Long importPrice;
+    private static String clean(String v, int max) {
+        String t = Texts.trim(v);
+        return t.isEmpty() ? null : Texts.limit(t, max, "");
+    }
+
+    private static String fmt(LocalDate d) {
+        return d == null ? "" : d.format(DF);
+    }
+
+    private static LocalDate parseDate(String s, String prefix) {
+        try {
+            return LocalDate.parse(s.trim().substring(0, 10));
+        } catch (RuntimeException e) {
+            throw new BusinessException(prefix + "ngày không hợp lệ.");
         }
     }
 
-    public Batch batch(Long id) {
-        return batchRepo.findById(id).orElseThrow(() -> BusinessException.notFound("Không tìm thấy lô hàng."));
-    }
+    /* ======================= Phiếu nhập ======================= */
 
-    /** Nhân viên tạo phiếu nhập (chờ admin duyệt). */
-    public Receipt createReceipt(ReceiptForm form, User user) {
+    /** Nhân viên tạo phiếu nhập (chờ người có quyền duyệt phiếu kho duyệt). rows[i][product_id, batch_no, mfg_date, exp_date, quantity, import_price] */
+    public Receipt createReceipt(Form f, User user) {
+        List<ReceiptItem> items = new ArrayList<>();
+        Map<String, Integer> seen = new HashMap<>();
+        List<Map<String, String>> rows = f.rows("rows");
+        for (int i = 0; i < rows.size(); i++) {
+            Map<String, String> row = rows.get(i);
+            int n = i + 1;
+            if (Texts.isBlank(row.get("product_id"))) continue;
+            int qty = Texts.toInt(row.get("quantity"), 0);
+            if (Texts.trim(row.get("batch_no")).isEmpty() || Texts.isBlank(row.get("exp_date")) || qty <= 0) {
+                throw new BusinessException("Dòng " + n + ": cần số lô, hạn dùng và số lượng > 0.");
+            }
+            LocalDate exp = parseDate(row.get("exp_date"), "Dòng " + n + ": ");
+            LocalDate mfg = !Texts.isBlank(row.get("mfg_date")) ? parseDate(row.get("mfg_date"), "Dòng " + n + ": ") : null;
+            LocalDate today = LocalDate.now();
+            if (mfg != null && mfg.isAfter(today)) throw new BusinessException("Dòng " + n + ": ngày sản xuất không được sau ngày hôm nay.");
+            if (mfg != null && !mfg.isBefore(exp)) throw new BusinessException("Dòng " + n + ": ngày sản xuất phải trước hạn dùng.");
+            if (!exp.isAfter(today)) throw new BusinessException("Dòng " + n + ": không nhập hàng đã hết hạn.");
+            Long pid = Texts.toLong(row.get("product_id"));
+            Product p = pid == null ? null : em.find(Product.class, pid);
+            if (p == null) throw new BusinessException("Dòng " + n + ": sản phẩm không tồn tại.");
+            String batchNo = Texts.trim(row.get("batch_no"), 50);
+            String dupKey = p.getId() + "|" + batchNo.toLowerCase();
+            if (seen.containsKey(dupKey)) {
+                throw new BusinessException("Dòng " + n + ": trùng lô " + batchNo + " của " + p.getName() + " với dòng " + seen.get(dupKey)
+                        + " - hãy gộp số lượng vào một dòng.");
+            }
+            seen.put(dupKey, n);
+            assertSameLot(p, batchNo, exp, mfg, "Dòng " + n + ": ");
+            ReceiptItem it = new ReceiptItem();
+            it.setProduct(p);
+            it.setBatchNo(batchNo);
+            it.setMfgDate(mfg);
+            it.setExpDate(exp);
+            it.setQuantity(qty);
+            it.setImportPrice(Math.max(0, Texts.toInt(row.get("import_price"), 0)));
+            items.add(it);
+        }
+        if (items.isEmpty()) throw new BusinessException("Phiếu nhập cần ít nhất 1 sản phẩm.");
         Receipt r = new Receipt();
         r.setCode(Texts.code("PN"));
-        r.setCreatedBy(user);
-        r.setNote(Texts.emptyToNull(Texts.trim(form.getNote(), 500)));
-        if (form.getSupplierId() != null) r.setSupplier(supplierRepo.findById(form.getSupplierId()).orElse(null));
-        if (form.getWarehouseId() != null) r.setWarehouse(warehouseRepo.findById(form.getWarehouseId()).orElse(null));
-        int i = 0;
-        for (ReceiptForm.Row row : form.getRows()) {
-            i++;
-            if (row.getProductId() == null) continue;
-            if (Texts.isBlank(row.getBatchNo()) || row.getExpDate() == null || row.getQuantity() == null || row.getQuantity() <= 0) {
-                throw new BusinessException("Dòng " + i + ": cần số lô, hạn dùng và số lượng > 0.");
-            }
-            if (row.getMfgDate() != null && !row.getMfgDate().isBefore(row.getExpDate())) {
-                throw new BusinessException("Dòng " + i + ": ngày sản xuất phải trước hạn dùng.");
-            }
-            if (!row.getExpDate().isAfter(LocalDate.now())) throw new BusinessException("Dòng " + i + ": không nhập hàng đã hết hạn.");
-            ReceiptItem it = new ReceiptItem();
+        r.setCreator(user);
+        r.setStatus(ApprovalStatus.PENDING);
+        r.setNote(clean(f.get("note"), 500));
+        Long sid = f.longVal("supplier_id");
+        r.setSupplier(sid == null ? null : em.find(Supplier.class, sid));
+        for (ReceiptItem it : items) {
             it.setReceipt(r);
-            it.setProduct(productRepo.findById(row.getProductId()).orElseThrow(() -> new BusinessException("Sản phẩm không tồn tại.")));
-            it.setBatchNo(Texts.trim(row.getBatchNo(), 50));
-            it.setMfgDate(row.getMfgDate());
-            it.setExpDate(row.getExpDate());
-            it.setQuantity(row.getQuantity());
-            it.setImportPrice(row.getImportPrice() == null ? 0 : Math.max(0, row.getImportPrice()));
             r.getItems().add(it);
         }
-        if (r.getItems().isEmpty()) throw new BusinessException("Phiếu nhập cần ít nhất 1 sản phẩm.");
-        receiptRepo.save(r);
+        em.persist(r);
         notifications.log(user, "receipt.create", r.getCode());
-        notifications.notifyAdmins("Phiếu nhập " + r.getCode() + " chờ duyệt", "/staff/receipts/" + r.getId());
+        notifications.notifyPermission("APPROVE_STOCK", "Phiếu nhập " + r.getCode() + " chờ duyệt", "/staff/receipts/" + r.getId());
         return r;
     }
 
-    /** Admin duyệt phiếu nhập -> tạo các lô hàng trong kho. */
-    public Receipt decideReceipt(Long id, User admin, boolean approve) {
-        Receipt r = receiptRepo.findById(id).orElseThrow(() -> BusinessException.notFound("Không tìm thấy phiếu nhập."));
+    /**
+     * Số lô là duy nhất trong từng thuốc: cùng thuốc + cùng số lô thì phải cùng NSX / HSD với lô đã có trong kho.
+     * (Thuốc khác trùng số lô là hợp lệ - mỗi hãng tự đánh số lô.)
+     */
+    private void assertSameLot(Product p, String batchNo, LocalDate exp, LocalDate mfg, String prefix) {
+        List<Batch> l = em.createQuery("select b from Batch b where b.product.id = :p and lower(b.batchNo) = :n order by b.id", Batch.class)
+                .setParameter("p", p.getId()).setParameter("n", batchNo.toLowerCase()).setMaxResults(1).getResultList();
+        if (l.isEmpty()) return;
+        Batch old = l.get(0);
+        if (!old.getExpDate().equals(exp) || (mfg != null && old.getMfgDate() != null && !old.getMfgDate().equals(mfg))) {
+            throw new BusinessException(prefix + "lô " + batchNo + " của " + p.getName() + " đã có trong kho với NSX " + fmt(old.getMfgDate())
+                    + " / HSD " + fmt(old.getExpDate()) + " - cùng một lô thì ngày phải trùng khớp, hãy kiểm tra lại số lô hoặc ngày.");
+        }
+    }
+
+    /** Dòng của phiếu có số lô trùng với thuốc khác (trong phiếu hoặc trong kho): item_id => [tên thuốc...] - để cảnh báo người duyệt. */
+    @Transactional(readOnly = true)
+    public Map<Long, List<String>> batchNoClashes(Receipt r) {
+        Map<Long, List<String>> out = new HashMap<>();
+        for (ReceiptItem it : r.getItems()) {
+            String key = it.getBatchNo().toLowerCase();
+            LinkedHashSet<String> names = new LinkedHashSet<>();
+            for (ReceiptItem x : r.getItems()) {
+                if (!x.getProduct().getId().equals(it.getProduct().getId()) && x.getBatchNo().toLowerCase().equals(key)) names.add(x.getProduct().getName());
+            }
+            for (Batch b : em.createQuery("select b from Batch b join fetch b.product where b.product.id <> :p and lower(b.batchNo) = :n", Batch.class)
+                    .setParameter("p", it.getProduct().getId()).setParameter("n", key).getResultList()) {
+                names.add(b.getProduct().getName());
+            }
+            if (!names.isEmpty()) out.put(it.getId(), new ArrayList<>(names));
+        }
+        return out;
+    }
+
+    /** Duyệt phiếu nhập -> tạo các lô hàng trong kho; từ chối -> không nhập. */
+    public Receipt decideReceipt(Receipt r, User admin, boolean approve) {
         if (r.getStatus() != ApprovalStatus.PENDING) throw new BusinessException("Phiếu nhập không ở trạng thái chờ duyệt.");
-        if (!admin.hasPermission(StaffPermission.APPROVE_STOCK)) throw new BusinessException("Bạn chưa được cấp quyền duyệt phiếu nhập.", 403);
+        if (!admin.hasPermission(StaffPermission.APPROVE_STOCK)) throw BusinessException.forbidden("Bạn chưa được cấp quyền duyệt phiếu nhập.");
+        if (approve) {
+            // Kiểm tra lại khi duyệt (chặn cả phiếu lập trước khi có ràng buộc ngày)
+            for (ReceiptItem it : r.getItems()) {
+                String name = it.getProduct() != null ? it.getProduct().getName() : "";
+                if (it.getMfgDate() != null && it.getMfgDate().isAfter(LocalDate.now())) {
+                    throw new BusinessException(name + " - lô " + it.getBatchNo() + ": ngày sản xuất " + fmt(it.getMfgDate())
+                            + " ở tương lai. Hãy từ chối phiếu này và lập lại phiếu nhập.");
+                }
+                if (!it.getExpDate().isAfter(LocalDate.now())) {
+                    throw new BusinessException(name + " - lô " + it.getBatchNo() + ": đã hết hạn dùng, không thể nhập kho.");
+                }
+                assertSameLot(it.getProduct(), it.getBatchNo(), it.getExpDate(), it.getMfgDate(), "");
+            }
+        }
+        // Khóa phiếu: bấm duyệt 2 lần / 2 người cùng duyệt thì lần sau bị chặn, không tạo lô trùng
+        em.refresh(r, LockModeType.PESSIMISTIC_WRITE);
+        if (r.getStatus() != ApprovalStatus.PENDING) throw new BusinessException("Phiếu nhập " + r.getCode() + " đã được xử lý.");
         if (approve) {
             for (ReceiptItem it : r.getItems()) {
                 Batch b = new Batch();
@@ -109,55 +169,60 @@ public class InventoryService {
                 b.setImportPrice(it.getImportPrice());
                 b.setSupplier(r.getSupplier());
                 b.setReceipt(r);
-                b.setWarehouse(r.getWarehouse());
-                batchRepo.save(b);
+                em.persist(b);
             }
         }
-        if (approve) {
-            batchRepo.flush();
-            r.getItems().stream().map(ReceiptItem::getProduct).distinct().forEach(care::notifyBackInStock);
-        }
         r.setStatus(approve ? ApprovalStatus.APPROVED : ApprovalStatus.REJECTED);
-        r.setApprovedBy(admin);
-        r.setApprovedAt(LocalDateTime.now());
-        if (r.getCreatedBy() != null) {
-            notifications.notify(r.getCreatedBy(), "Phiếu nhập " + r.getCode() + (approve ? " đã được duyệt" : " bị từ chối"), "/staff/receipts/" + r.getId());
-        }
-        if (approve && r.getSupplier() != null) {
-            notifications.log(admin, "supplier.debt", r.getSupplier().getName() + ": +" + r.getTotal() + " (" + r.getCode() + ")");
+        r.setApprover(admin);
+        r.setApprovedAt(LocalDateTime.now().withNano(0));
+        if (r.getCreator() != null && !r.getCreator().getId().equals(admin.getId())) {
+            notifications.notify(r.getCreator(), "Phiếu nhập " + r.getCode() + (approve ? " đã được duyệt" : " bị từ chối"), "/staff/receipts/" + r.getId());
         }
         notifications.log(admin, approve ? "receipt.approve" : "receipt.reject", r.getCode());
         return r;
     }
 
-    /** Khóa / mở khóa lô (thu hồi, nghi ngờ chất lượng). */
-    public Batch toggleLock(Long batchId, User user, String reason) {
-        Batch b = batch(batchId);
-        if (!b.isLocked() && Texts.isBlank(reason)) throw new BusinessException("Vui lòng nhập lý do khóa lô (VD: thu hồi theo công văn...).");
-        b.setLocked(!b.isLocked());
-        b.setLockReason(b.isLocked() ? Texts.trim(reason, 300) : null);
-        if (!b.isLocked()) {
-            batchRepo.flush();
-            care.notifyBackInStock(b.getProduct());
+    /* ======================= Lô hàng ======================= */
+
+    /** Khóa / mở khóa lô (thu hồi, nghi ngờ chất lượng): lô khóa không được xuất bán. */
+    public Batch toggleLock(Batch b, User user, String reason) {
+        if (!b.isLocked() && Texts.trim(reason).isEmpty()) {
+            throw new BusinessException("Vui lòng nhập lý do khóa lô (VD: thu hồi theo công văn...).");
         }
-        notifications.log(user, b.isLocked() ? "batch.lock" : "batch.unlock",
-                b.getProduct().getName() + " - lô " + b.getBatchNo() + (b.isLocked() ? ": " + reason : ""));
+        boolean locking = !b.isLocked();
+        b.setLocked(locking);
+        b.setLockReason(locking ? Texts.trim(reason, 300) : null);
+        notifications.log(user, locking ? "batch.lock" : "batch.unlock", b.getProduct().getName() + " - lô " + b.getBatchNo() + (locking ? ": " + reason : ""));
+        if (locking) {
+            for (Order o : pendingOrdersWithBatch(b)) {
+                notifications.notifyPermission("ORDER", "Đơn " + o.getCode() + " có hàng thuộc lô " + b.getBatchNo() + " vừa bị khóa - đổi lô trước khi giao",
+                        "/staff/orders/" + o.getId());
+            }
+        }
         return b;
     }
 
+    /** Đơn đang soạn / đã đóng gói (chưa giao đi) có hàng xuất từ lô này. */
+    @Transactional(readOnly = true)
+    public List<Order> pendingOrdersWithBatch(Batch b) {
+        return em.createQuery("select distinct o from Order o join o.items i join i.allocations a where o.status in :st and a.batch.id = :b order by o.id", Order.class)
+                .setParameter("st", List.of(OrderStatus.PREPARING, OrderStatus.PACKED)).setParameter("b", b.getId()).getResultList();
+    }
+
     /**
-     * Phiếu hủy thuốc (số âm) / điều chỉnh (số dương). Người có quyền duyệt phiếu kho: áp dụng ngay.
-     * Người không có quyền duyệt phiếu kho: tạo phiếu chờ admin / quản lý duyệt (chưa trừ tồn).
+     * Phiếu hủy (số âm) / điều chỉnh (số dương). Có quyền duyệt phiếu kho: áp dụng ngay;
+     * không có: tạo phiếu chờ duyệt (chưa trừ tồn).
      */
-    public StockAdjustment adjust(Long batchId, User user, int quantity, String reason) {
-        Batch b = batch(batchId);
+    public StockAdjustment adjust(Batch b, User user, int quantity, String reason) {
         if (quantity == 0) throw new BusinessException("Số lượng điều chỉnh phải khác 0.");
-        if (Texts.isBlank(reason)) throw new BusinessException("Vui lòng nhập lý do.");
+        if (Texts.trim(reason).isEmpty()) throw new BusinessException("Vui lòng nhập lý do.");
         if (b.getQuantity() + quantity < 0) throw new BusinessException("Lô chỉ còn " + b.getQuantity() + " " + b.getProduct().getUnit() + ".");
         StockAdjustment a = newAdjustment(b, quantity, Texts.trim(reason, 300), quantity < 0 ? "WRITE_OFF" : "MANUAL", user);
         if (user.hasPermission(StaffPermission.APPROVE_STOCK)) apply(a, user);
-        else notifications.notifyAdmins((quantity < 0 ? "Phiếu hủy " : "Phiếu điều chỉnh ") + b.getProduct().getName() + " lô " + b.getBatchNo()
-                + " chờ duyệt", "/admin/stock-approvals");
+        if (a.getStatus() == ApprovalStatus.PENDING) {
+            notifications.notifyPermission("APPROVE_STOCK", (quantity < 0 ? "Phiếu hủy " : "Phiếu điều chỉnh ") + b.getProduct().getName() + " lô "
+                    + b.getBatchNo() + " chờ duyệt", "/admin/stock-approvals");
+        }
         notifications.log(user, "batch.adjust", b.getProduct().getName() + " - lô " + b.getBatchNo() + ": " + (quantity > 0 ? "+" : "") + quantity
                 + " (" + reason + ")" + (a.getStatus() == ApprovalStatus.PENDING ? " - chờ duyệt" : ""));
         return a;
@@ -171,187 +236,141 @@ public class InventoryService {
         a.setType(type);
         a.setUser(user);
         a.setStatus(ApprovalStatus.PENDING);
-        return adjustmentRepo.save(a);
+        em.persist(a);
+        return a;
     }
 
-    /** Áp dụng phiếu vào tồn kho. */
     private void apply(StockAdjustment a, User approver) {
-        Batch b = a.getBatch();
+        Batch b = em.find(Batch.class, a.getBatch().getId(), LockModeType.PESSIMISTIC_WRITE);
+        em.refresh(b);
         if (b.getQuantity() + a.getQuantity() < 0) {
             throw new BusinessException("Lô " + b.getBatchNo() + " hiện chỉ còn " + b.getQuantity() + " - không đủ để trừ " + (-a.getQuantity()) + ".");
         }
         b.setQuantity(b.getQuantity() + a.getQuantity());
         a.setStatus(ApprovalStatus.APPROVED);
-        a.setApprovedBy(approver);
-        a.setApprovedAt(LocalDateTime.now());
-        if (a.getQuantity() > 0) {
-            batchRepo.flush();
-            care.notifyBackInStock(b.getProduct());
-        }
+        a.setApprover(approver);
+        a.setApprovedAt(LocalDateTime.now().withNano(0));
     }
 
-    /** Admin / quản lý duyệt hoặc từ chối phiếu hủy / điều chỉnh kiểm kê. */
-    public StockAdjustment decideAdjustment(Long id, User approver, boolean approve, String reason) {
-        StockAdjustment a = adjustmentRepo.findById(id).orElseThrow(() -> BusinessException.notFound("Không tìm thấy phiếu."));
-        if (a.getStatusValue() != ApprovalStatus.PENDING) throw new BusinessException("Phiếu đã được xử lý.");
-        if (!approver.hasPermission(StaffPermission.APPROVE_STOCK)) throw new BusinessException("Bạn chưa được cấp quyền duyệt phiếu kho.", 403);
+    public StockAdjustment decideAdjustment(StockAdjustment a, User approver, boolean approve, String reason) {
+        if (!approver.hasPermission(StaffPermission.APPROVE_STOCK)) throw BusinessException.forbidden("Bạn chưa được cấp quyền duyệt phiếu kho.");
+        if (!approve && Texts.trim(reason).isEmpty()) throw new BusinessException("Vui lòng nhập lý do từ chối.");
+        // Khóa phiếu: bấm duyệt 2 lần thì lần sau thấy đã xử lý, không cộng / trừ kho lần nữa
+        em.refresh(a, LockModeType.PESSIMISTIC_WRITE);
+        if (a.getStatus() != ApprovalStatus.PENDING) throw new BusinessException("Phiếu đã được xử lý.");
         if (approve) {
             apply(a, approver);
         } else {
-            if (Texts.isBlank(reason)) throw new BusinessException("Vui lòng nhập lý do từ chối.");
             a.setStatus(ApprovalStatus.REJECTED);
-            a.setApprovedBy(approver);
-            a.setApprovedAt(LocalDateTime.now());
+            a.setApprover(approver);
+            a.setApprovedAt(LocalDateTime.now().withNano(0));
             a.setRejectReason(Texts.trim(reason, 300));
         }
         if (a.getUser() != null && !a.getUser().getId().equals(approver.getId())) {
-            notifications.notify(a.getUser(), a.getTypeLabel() + " lô " + a.getBatch().getBatchNo() + (approve ? " đã được duyệt" : " bị từ chối: " + reason),
-                    "/staff/adjustments");
+            notifications.notify(a.getUser(), a.typeLabel() + " lô " + a.getBatch().getBatchNo() + (approve ? " đã được duyệt" : " bị từ chối: " + reason), "/staff/adjustments");
         }
-        notifications.log(approver, approve ? "stock.approve" : "stock.reject", a.getTypeLabel() + " #" + a.getId() + " - " + a.getBatch().getProduct().getName()
+        notifications.log(approver, approve ? "stock.approve" : "stock.reject", a.typeLabel() + " #" + a.getId() + " - " + a.getBatch().getProduct().getName()
                 + " lô " + a.getBatch().getBatchNo() + " (" + (a.getQuantity() > 0 ? "+" : "") + a.getQuantity() + ")");
         return a;
     }
 
     /**
-     * Kiểm kê: nhập số lượng thực đếm cho từng lô; chênh lệch được lập thành phiếu điều chỉnh kiểm kê.
-     * Người có quyền duyệt phiếu kho: áp dụng ngay; nhân viên khác: phiếu chờ duyệt. Trả về số lô có chênh lệch.
+     * Lập phiếu kiểm kê: ghi lại mọi lô đã kiểm (ô bỏ trống = khớp sổ sách); lô chênh lệch sinh phiếu điều chỉnh
+     * (người có quyền duyệt phiếu kho thì áp dụng ngay, còn lại chờ duyệt).
+     *
+     * @param counted batch_id => số thực đếm
      */
-    public int stocktake(Map<Long, Integer> counted, User user, String note) {
-        String reason = "Kiểm kê " + java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))
-                + (Texts.isBlank(note) ? "" : " - " + Texts.trim(note, 150));
+    public Stocktake stocktake(Map<String, String> counted, User user, String note0) {
+        String note = note0 != null && !note0.trim().isEmpty() ? Texts.trim(note0, 150) : null;
         boolean approver = user.hasPermission(StaffPermission.APPROVE_STOCK);
-        int n = 0;
-        for (Map.Entry<Long, Integer> e : counted.entrySet()) {
-            if (e.getValue() == null) continue;
-            if (e.getValue() < 0) throw new BusinessException("Số lượng kiểm kê không được âm.");
-            Batch b = batch(e.getKey());
-            int diff = e.getValue() - b.getQuantity();
-            if (diff == 0) continue;
-            StockAdjustment a = newAdjustment(b, diff, reason + " (sổ sách " + b.getQuantity() + ", thực tế " + e.getValue() + ")", "STOCKTAKE", user);
-            if (approver) apply(a, user);
-            n++;
-        }
-        if (n > 0 && !approver) notifications.notifyAdmins("Phiếu điều chỉnh kiểm kê (" + n + " lô) chờ duyệt", "/admin/stock-approvals");
-        notifications.log(user, "inventory.stocktake", n + " lô chênh lệch" + (approver ? "" : " - chờ duyệt"));
-        return n;
-    }
-
-    /* ======================= Chuyển kho ======================= */
-
-    /** Chuyển hàng giữa các kho: tách lô sang kho đích (giữ số lô, hạn dùng, giá nhập). */
-    public TransferSlip transfer(Long fromId, Long toId, Map<Long, Integer> quantities, String note, User user) {
-        Warehouse from = warehouseRepo.findById(fromId == null ? -1 : fromId).orElseThrow(() -> new BusinessException("Chọn kho xuất."));
-        Warehouse to = warehouseRepo.findById(toId == null ? -1 : toId).orElseThrow(() -> new BusinessException("Chọn kho nhận."));
-        if (from.getId().equals(to.getId())) throw new BusinessException("Kho xuất và kho nhận phải khác nhau.");
-        if (!to.isActive()) throw new BusinessException("Kho nhận đang ngừng hoạt động.");
-        TransferSlip slip = new TransferSlip();
-        slip.setCode(Texts.code("CK"));
-        slip.setFromWarehouse(from);
-        slip.setToWarehouse(to);
-        slip.setCreatedBy(user);
-        slip.setNote(Texts.emptyToNull(Texts.trim(note, 500)));
-        Map<Long, Integer> movedOutOfSale = new java.util.HashMap<>();
-        for (Map.Entry<Long, Integer> e : quantities.entrySet()) {
-            Integer q = e.getValue();
-            if (q == null || q == 0) continue;
-            if (q < 0) throw new BusinessException("Số lượng chuyển không được âm.");
-            Batch src = batch(e.getKey());
-            boolean inFrom = src.getWarehouse() == null ? from.isMain() : src.getWarehouse().getId().equals(from.getId());
-            if (!inFrom) throw new BusinessException("Lô " + src.getBatchNo() + " không thuộc " + from.getName() + ".");
-            if (src.isLocked()) throw new BusinessException("Lô " + src.getBatchNo() + " đang bị khóa, không được chuyển.");
-            if (q > src.getQuantity()) throw new BusinessException("Lô " + src.getBatchNo() + " chỉ còn " + src.getQuantity() + ".");
-            src.setQuantity(src.getQuantity() - q);
-            Batch dst = batchRepo.findFirstByProductAndBatchNoIgnoreCaseAndWarehouse(src.getProduct(), src.getBatchNo(), to).orElse(null);
-            if (dst == null && to.isMain()) {
-                dst = batchRepo.findByProductOrderByExpDateAsc(src.getProduct()).stream()
-                        .filter(x -> x.getWarehouse() == null && x.getBatchNo().equalsIgnoreCase(src.getBatchNo())).findFirst().orElse(null);
-            }
-            if (dst == null) {
-                dst = new Batch();
-                dst.setProduct(src.getProduct());
-                dst.setBatchNo(src.getBatchNo());
-                dst.setMfgDate(src.getMfgDate());
-                dst.setExpDate(src.getExpDate());
-                dst.setImportPrice(src.getImportPrice());
-                dst.setSupplier(src.getSupplier());
-                dst.setReceipt(src.getReceipt());
-                dst.setWarehouse(to);
-                dst = batchRepo.save(dst);
-            }
-            dst.setQuantity(dst.getQuantity() + q);
-            TransferItem it = new TransferItem();
-            it.setSlip(slip);
-            it.setSourceBatch(src);
-            it.setTargetBatch(dst);
-            it.setQuantity(q);
-            slip.getItems().add(it);
-            if (from.isSellable() && !to.isSellable()) movedOutOfSale.merge(src.getProduct().getId(), q, Integer::sum);
-        }
-        if (slip.getItems().isEmpty()) throw new BusinessException("Nhập số lượng cần chuyển cho ít nhất 1 lô.");
-        // Không được chuyển hàng đang giữ chỗ cho đơn ra khỏi kho bán
-        batchRepo.flush();
-        for (Map.Entry<Long, Integer> e : movedOutOfSale.entrySet()) {
-            Product p = stockService.fill(productRepo.findById(e.getKey()).orElseThrow());
-            if (p.getAvailable() < 0) {
-                throw new BusinessException("\"" + p.getName() + "\" đang giữ chỗ cho đơn hàng - chỉ được chuyển tối đa " + (p.getAvailable() + e.getValue())
-                        + " " + p.getUnit() + " ra khỏi kho bán.");
+        for (String real : counted.values()) {
+            if (real != null && !real.isEmpty() && (!real.trim().matches("-?\\d+(\\.\\d+)?") || Double.parseDouble(real.trim()) < 0)) {
+                throw new BusinessException("Số lượng kiểm kê không hợp lệ: " + real);
             }
         }
-        transferRepo.save(slip);
-        if (!from.isSellable() && to.isSellable()) {
-            slip.getItems().stream().map(i -> i.getTargetBatch().getProduct()).distinct().forEach(care::notifyBackInStock);
+        Stocktake st = new Stocktake();
+        st.setCode(Texts.code("KK"));
+        st.setUser(user);
+        st.setNote(note);
+        em.persist(st);
+        String reason = "Kiểm kê " + st.getCode() + (note != null ? " - " + note : "");
+        int total = 0, diffs = 0;
+        List<Long> ids = counted.keySet().stream().map(Texts::toLong).filter(Objects::nonNull).toList();
+        Map<Long, Batch> batches = new HashMap<>();
+        if (!ids.isEmpty()) {
+            for (Batch b : em.createQuery("select b from Batch b join fetch b.product where b.id in :ids", Batch.class).setParameter("ids", ids)
+                    .setLockMode(LockModeType.PESSIMISTIC_WRITE).getResultList()) batches.put(b.getId(), b);
         }
-        notifications.log(user, "stock.transfer", slip.getCode() + ": " + from.getName() + " → " + to.getName() + " (" + slip.getTotalQuantity() + ")");
-        return slip;
+        Map<Long, Long> pendingOut = stock.pendingOutMap(ids);
+        for (Map.Entry<String, String> e : counted.entrySet()) {
+            Long id = Texts.toLong(e.getKey());
+            Batch b = id == null ? null : batches.get(id);
+            if (b == null) throw BusinessException.notFound("Không tìm thấy lô hàng.");
+            // Hàng đã xuất cho đơn đang soạn / đóng gói vẫn nằm trên kệ: phải có = sổ sách + chờ giao
+            int pending = (int) (long) pendingOut.getOrDefault(b.getId(), 0L);
+            int expected = b.getQuantity() + pending;
+            String rv = e.getValue();
+            int real = rv == null || rv.isEmpty() ? expected : (int) Double.parseDouble(rv.trim());
+            if (real < pending) {
+                throw new BusinessException(b.getProduct().getName() + " - lô " + b.getBatchNo() + ": thực đếm " + real + " ít hơn " + pending
+                        + " đã soạn cho đơn chờ giao. Kiểm tra lại cả hàng ở khu đóng gói.");
+            }
+            int bookQty = b.getQuantity();
+            StockAdjustment adjustment = null;
+            if (real != expected) {
+                adjustment = newAdjustment(b, real - expected, reason + " (sổ sách " + bookQty + (pending > 0 ? " + " + pending + " chờ giao" : "")
+                        + ", thực tế " + real + ")", "STOCKTAKE", user);
+                if (approver) apply(adjustment, user);
+                diffs++;
+            }
+            StocktakeItem si = new StocktakeItem();
+            si.setStocktake(st);
+            si.setBatch(b);
+            si.setProduct(b.getProduct());
+            si.setProductName(b.getProduct().getName());
+            si.setUnit(b.getProduct().getUnit());
+            si.setBatchNo(b.getBatchNo());
+            si.setExpDate(b.getExpDate());
+            si.setBookQty(bookQty);
+            si.setPendingOutQty(pending);
+            si.setCountedQty(real);
+            si.setAdjustment(adjustment);
+            st.getItems().add(si);
+            em.persist(si);
+            total++;
+        }
+        st.setTotalLines(total);
+        st.setDiffLines(diffs);
+        if (st.getDiffLines() > 0 && !approver) {
+            notifications.notifyPermission("APPROVE_STOCK", "Phiếu điều chỉnh kiểm kê " + st.getCode() + " (" + st.getDiffLines() + " lô) chờ duyệt", "/admin/stock-approvals");
+        }
+        notifications.log(user, "inventory.stocktake", st.getCode() + ": " + st.getTotalLines() + " lô, " + st.getDiffLines() + " lô chênh lệch"
+                + (approver || st.getDiffLines() == 0 ? "" : " - chờ duyệt"));
+        return st;
     }
 
-    /* ======================= Công nợ nhà cung cấp ======================= */
-
-    public record DebtRow(Receipt receipt, LocalDate dueDate, boolean overdue) {
-    }
-
-    public record Debt(long purchased, long paid, long balance, long overdue) {
-    }
+    /* ======================= Thu hồi ======================= */
 
     @Transactional(readOnly = true)
-    public Debt debt(Supplier s) {
-        long purchased = receiptRepo.findBySupplierAndStatus(s, ApprovalStatus.APPROVED).stream().mapToLong(Receipt::getTotal).sum();
-        long paid = paymentRepo.totalPaid(s);
-        long balance = purchased - paid;
-        // Nợ quá hạn: phần phiếu nhập đã quá hạn thanh toán chưa được trả (trả trước cho phiếu cũ trước - FIFO)
-        long dueAmount = receiptRepo.findBySupplierAndStatus(s, ApprovalStatus.APPROVED).stream()
-                .filter(r -> r.getApprovedAt() != null && r.getApprovedAt().toLocalDate().plusDays(s.getTermDays()).isBefore(LocalDate.now()))
-                .mapToLong(Receipt::getTotal).sum();
-        return new Debt(purchased, paid, balance, Math.max(0, Math.min(balance, dueAmount - paid)));
+    public List<OrderItemBatch> buyers(Batch b) {
+        return em.createQuery("select a from OrderItemBatch a join fetch a.orderItem oi join fetch oi.order o join fetch o.user where a.batch.id = :b"
+                + " order by o.createdAt desc", OrderItemBatch.class).setParameter("b", b.getId()).getResultList();
     }
 
-    public SupplierPayment pay(Long supplierId, long amount, LocalDate date, String method, String note, User user) {
-        Supplier s = supplierRepo.findById(supplierId).orElseThrow(() -> BusinessException.notFound("Không tìm thấy nhà cung cấp."));
-        if (amount <= 0) throw new BusinessException("Số tiền phải lớn hơn 0.");
-        long balance = debt(s).balance();
-        if (amount > balance) throw new BusinessException("Số tiền trả vượt công nợ hiện tại (" + String.format("%,d", balance).replace(',', '.') + " đ).");
-        SupplierPayment p = new SupplierPayment();
-        p.setSupplier(s);
-        p.setAmount(amount);
-        p.setPaidDate(date == null ? LocalDate.now() : date);
-        p.setMethod(Texts.emptyToNull(Texts.trim(method, 30)));
-        p.setNote(Texts.emptyToNull(Texts.trim(note, 300)));
-        p.setCreatedBy(user);
-        paymentRepo.save(p);
-        notifications.log(user, "supplier.payment", s.getName() + ": " + amount);
-        return p;
-    }
-
-    /** Gửi thông báo thu hồi tới tất cả khách đã mua lô. */
-    public int notifyRecall(Long batchId, User user, String message) {
-        Batch b = batch(batchId);
-        message = Texts.trim(message, 400);
-        if (message.length() < 10) throw new BusinessException("Vui lòng nhập nội dung thông báo.");
-        Set<User> buyers = new LinkedHashSet<>();
-        for (OrderItemBatch a : allocationRepo.findByBatchWithOrder(b)) buyers.add(a.getOrderItem().getOrder().getUser());
-        for (User u : buyers) {
-            notifications.notify(u, "[Thu hồi thuốc] " + b.getProduct().getName() + " lô " + b.getBatchNo() + ": " + message, "/consult");
+    /** Gửi thông báo thu hồi (web popup + email) tới tất cả khách đã mua lô. */
+    public int notifyRecall(Batch b, User user, String message0) {
+        String message = Texts.trim(message0, 400);
+        if (Texts.mbLen(message) < 10) throw new BusinessException("Vui lòng nhập nội dung thông báo.");
+        Map<Long, User> buyers = new LinkedHashMap<>();
+        for (OrderItemBatch a : buyers(b)) {
+            User u = a.getOrderItem().getOrder().getUser();
+            if (u != null && !u.isLocked()) buyers.putIfAbsent(u.getId(), u);
+        }
+        for (User u : buyers.values()) {
+            String text = "[Thu hồi thuốc] " + b.getProduct().getName() + " lô " + b.getBatchNo() + ": " + message;
+            notifications.notify(u, text, "/consult", true);
+            mail.send(u, "Thông báo thu hồi thuốc " + b.getProduct().getName(),
+                    List.of(text, "Vui lòng ngừng sử dụng và liên hệ nhà thuốc để được hỗ trợ đổi / hoàn tiền."), "Liên hệ dược sĩ", mail.url("/consult"));
         }
         notifications.log(user, "batch.recall_notify", b.getProduct().getName() + " lô " + b.getBatchNo() + " - " + buyers.size() + " khách");
         return buyers.size();

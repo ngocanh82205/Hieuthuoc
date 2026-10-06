@@ -1,3 +1,8 @@
+function baseUrl() {
+    var m = document.querySelector('meta[name="base-url"]');
+    return m ? m.content.replace(/\/$/, '') : '';
+}
+
 (function () {
     'use strict';
 
@@ -97,14 +102,32 @@
         });
     });
 
-    // Chat tư vấn: polling tin nhắn mới mỗi 4 giây
-    var chat = document.getElementById('chat');
-    if (chat) {
+    // Chat tư vấn: chỉ khởi tạo khi đã đăng nhập và có đầy đủ thành phần giao diện
+    function initConsultChat() {
+        var chat = document.getElementById('chat');
+        if (!chat) return;
+
         var box = chat.querySelector('.chat-box');
         var form = chat.querySelector('form');
-        var me = chat.getAttribute('data-me');
-        var lastId = parseInt(chat.getAttribute('data-last-id') || '0', 10);
+        var me = (chat.getAttribute('data-me') || '').trim();
         var fetchUrl = chat.getAttribute('data-fetch-url');
+
+        // Chỉ khởi tạo logic chat khi tồn tại đầy đủ:
+        // #chat, .chat-box, form, data-me có giá trị (khách hàng đã đăng nhập).
+        // Nếu thiếu form hoặc thiếu data-me (khách chưa đăng nhập / tài khoản nhân viên):
+        // widget chỉ hiển thị thông báo tĩnh/nút đăng nhập, không gọi API chat và không polling.
+        if (!box || !form || !me || !fetchUrl) {
+            return;
+        }
+
+        var lastId = parseInt(chat.getAttribute('data-last-id') || '0', 10);
+
+        // Tập hợp các ID tin nhắn đã hiển thị để chống duplicate tuyệt đối
+        var renderedIds = new Set();
+        box.querySelectorAll('.chat-msg[data-id]').forEach(function (el) {
+            var mid = parseInt(el.getAttribute('data-id'), 10);
+            if (mid) renderedIds.add(mid);
+        });
 
         var typing = document.getElementById('typing');
         var waitingSince = 0;
@@ -112,10 +135,20 @@
             if (!typing) return;
             waitingSince = on ? Date.now() : 0;
             typing.classList.toggle('d-none', !on);
-            if (on) { box.appendChild(typing); box.scrollTop = box.scrollHeight; }
+            typing.setAttribute('aria-busy', on ? 'true' : 'false');
+            typing.setAttribute('aria-live', 'polite');
+            if (on) {
+                box.appendChild(typing);
+                box.scrollTop = box.scrollHeight;
+            }
         };
+
         var render = function (m) {
-            var mine = String(m.senderId) === me;
+            if (!m) return;
+            if (m.id && renderedIds.has(m.id)) return;
+            if (m.id) renderedIds.add(m.id);
+
+            var mine = String(m.senderId) === me || m.kind === 'USER';
             var empty0 = box.querySelector('.chat-empty');
             if (m.kind === 'SYSTEM') {
                 if (empty0) empty0.remove();
@@ -126,9 +159,11 @@
                 box.scrollTop = box.scrollHeight;
                 return;
             }
-            if (!mine) setTyping(false);
+
             var wrap = document.createElement('div');
             wrap.className = 'chat-msg' + (mine ? ' mine' : (m.kind === 'AI' ? ' ai' : ''));
+            if (m.id) wrap.setAttribute('data-id', m.id);
+
             var bubble = document.createElement('div');
             bubble.className = 'bubble';
             if (m.body) bubble.appendChild(document.createTextNode(m.body));
@@ -164,7 +199,7 @@
                     if (tk) {
                         var hid = document.createElement('input');
                         hid.type = 'hidden';
-                        hid.name = '_csrf';
+                        hid.name = '_token';
                         hid.value = tk.content;
                         f.appendChild(hid);
                     }
@@ -181,28 +216,48 @@
             meta.textContent = (mine ? '' : (m.kind === 'AI' ? '🤖 ' : '') + m.senderName + (m.fromStaff ? ' (Dược sĩ)' : '') + ' · ') + m.time;
             wrap.appendChild(bubble);
             wrap.appendChild(meta);
+
             var empty = box.querySelector('.chat-empty');
             if (empty) empty.remove();
-            if (typing && !typing.classList.contains('d-none')) box.insertBefore(wrap, typing);
-            else box.appendChild(wrap);
+
+            // Nếu typing bubble đang bật, render tin nhắn phía trên typing bubble để không bị giật vị trí
+            if (typing && !typing.classList.contains('d-none')) {
+                box.insertBefore(wrap, typing);
+            } else {
+                box.appendChild(wrap);
+            }
+
+            // Khi nhận được tin nhắn từ AI hoặc dược sĩ (!mine), tắt typing sau khi đã hiển thị tin nhắn
+            if (!mine) {
+                setTyping(false);
+            }
+
             box.scrollTop = box.scrollHeight;
         };
 
         // Chế độ trợ lý AI / dược sĩ: cập nhật tiêu đề khi được chuyển
         var handoffBtn = document.getElementById('handoffBtn');
+        var resumeAiBtn = document.getElementById('resumeAiBtn');
         var setMode = function (mode, pharmacist) {
-            if (!mode || chat.getAttribute('data-mode') === mode && !pharmacist) return;
+            if (!mode) return;
+            var currentMode = chat.getAttribute('data-mode');
+            if (currentMode === mode && !pharmacist) return;
             chat.setAttribute('data-mode', mode);
             var ai = mode === 'AI';
             var header = document.getElementById('chatHeader');
             if (header) {
-                header.querySelector('[data-title]').textContent = ai ? chat.getAttribute('data-ai-name') : (pharmacist || 'Dược sĩ VinaPharma');
-                header.querySelector('[data-subtitle]').textContent = ai ? 'Trợ lý tự động · trả lời ngay' : (pharmacist ? 'Dược sĩ phụ trách' : 'Đang chờ dược sĩ tiếp nhận');
+                var titleEl = header.querySelector('[data-title]');
+                var subEl = header.querySelector('[data-subtitle]');
+                if (titleEl) titleEl.textContent = ai ? chat.getAttribute('data-ai-name') : (pharmacist || 'Dược sĩ VinaPharma');
+                if (subEl) subEl.textContent = ai ? 'Trợ lý tự động · trả lời ngay' : (pharmacist ? 'Dược sĩ phụ trách' : 'Đang chờ dược sĩ phản hồi');
                 var av = header.querySelector('.chat-avatar');
-                av.classList.toggle('ai', ai);
-                av.innerHTML = ai ? '<i class="bi bi-robot"></i>' : '<i class="bi bi-person-badge"></i>';
+                if (av) {
+                    av.classList.toggle('ai', ai);
+                    av.innerHTML = ai ? '<i class="bi bi-robot"></i>' : '<i class="bi bi-person-badge"></i>';
+                }
             }
             if (handoffBtn) handoffBtn.classList.toggle('d-none', !ai);
+            if (resumeAiBtn) resumeAiBtn.classList.toggle('d-none', ai);
             var note = document.getElementById('aiNote');
             if (note) note.classList.toggle('d-none', !ai);
             if (!ai) setTyping(false);
@@ -213,7 +268,12 @@
                 .then(function (r) { return r.json(); })
                 .then(function (data) {
                     (data.messages || []).forEach(function (m) {
-                        if (m.id > lastId) { render(m); lastId = m.id; }
+                        if (m.id > lastId) {
+                            lastId = m.id;
+                        }
+                        if (!renderedIds.has(m.id)) {
+                            render(m);
+                        }
                     });
                     if (data.mode) setMode(data.mode, data.pharmacist);
                 })
@@ -223,20 +283,73 @@
         box.scrollTop = box.scrollHeight;
         // Đang chờ trợ lý trả lời: hỏi nhanh hơn (1,5 giây), tối đa 60 giây
         setInterval(function () {
-            if (waitingSince && Date.now() - waitingSince > 60000) setTyping(false);
+            if (waitingSince && Date.now() - waitingSince > 60000) {
+                setTyping(false);
+                toast('Trợ lý AI đang phản hồi chậm, vui lòng chờ trong giây lát hoặc gửi lại câu hỏi.', false);
+            }
             if (waitingSince) poll();
         }, 1500);
-        setInterval(function () { if (!waitingSince) poll(); }, 4000);
+        setInterval(function () { if (!waitingSince) poll(); }, 3000);
 
         if (handoffBtn) handoffBtn.addEventListener('click', function () {
+            var url = chat.getAttribute('data-handoff-url');
+            if (!url) return;
             handoffBtn.disabled = true;
-            fetch(chat.getAttribute('data-handoff-url'), {method: 'POST', headers: csrfHeaders()})
-                .then(function () { poll(); })
-                .finally(function () { handoffBtn.disabled = false; });
+            fetch(url, {method: 'POST', headers: csrfHeaders()})
+                .then(function (r) {
+                    return r.json().then(function (data) {
+                        return { status: r.status, ok: r.ok, data: data };
+                    }).catch(function () {
+                        return { status: r.status, ok: r.ok, data: {} };
+                    });
+                })
+                .then(function (res) {
+                    if (!res.ok || res.data.ok === false) {
+                        toast(res.data.message || 'Không thể kết nối dược sĩ lúc này.', false);
+                        return;
+                    }
+                    setMode('HUMAN');
+                    poll();
+                })
+                .catch(function () {
+                    toast('Lỗi kết nối máy chủ khi chuyển dược sĩ.', false);
+                })
+                .finally(function () {
+                    handoffBtn.disabled = false;
+                });
+        });
+
+        if (resumeAiBtn) resumeAiBtn.addEventListener('click', function () {
+            var url = chat.getAttribute('data-resume-ai-url');
+            if (!url) return;
+            resumeAiBtn.disabled = true;
+            fetch(url, {method: 'POST', headers: csrfHeaders()})
+                .then(function (r) {
+                    return r.json().then(function (data) {
+                        return { status: r.status, ok: r.ok, data: data };
+                    }).catch(function () {
+                        return { status: r.status, ok: r.ok, data: {} };
+                    });
+                })
+                .then(function (res) {
+                    if (!res.ok || res.data.ok === false) {
+                        toast(res.data.message || 'Không thể chuyển sang Trợ lý AI lúc này.', false);
+                        return;
+                    }
+                    setMode('AI');
+                    poll();
+                })
+                .catch(function () {
+                    toast('Lỗi kết nối máy chủ khi quay lại Trợ lý AI.', false);
+                })
+                .finally(function () {
+                    resumeAiBtn.disabled = false;
+                });
         });
         chat.querySelectorAll('.quick-reply').forEach(function (b) {
             b.addEventListener('click', function () {
-                form.querySelector('textarea[name=body]').value = b.getAttribute('data-quick');
+                var ta = form.querySelector('textarea[name=body]');
+                if (ta) ta.value = b.getAttribute('data-quick');
                 form.requestSubmit ? form.requestSubmit() : form.dispatchEvent(new Event('submit', {cancelable: true}));
             });
         });
@@ -247,21 +360,69 @@
             var text = (fd.get('body') || '').trim();
             var file = fd.get('image');
             if (!text && !(file && file.size)) return;
+
+            var ta = form.querySelector('textarea[name=body]');
+            var fileInput = form.querySelector('input[type=file]');
             var btn = form.querySelector('button[type=submit]');
-            btn.disabled = true;
+            var prev = form.querySelector('img[id]');
+            var prevWrap = document.getElementById('consultImgPreviewWrap');
+
+            // 1. Khóa tạm thời ô nhập và nút gửi trong lúc request đang xử lý
+            if (ta) ta.readOnly = true;
+            if (fileInput) fileInput.disabled = true;
+            if (btn) btn.disabled = true;
+
+            var unlockForm = function () {
+                if (ta) ta.readOnly = false;
+                if (fileInput) fileInput.disabled = false;
+                if (btn) btn.disabled = false;
+            };
+
             fetch(form.action, {method: 'POST', headers: csrfHeaders(), body: fd})
-                .then(function (r) { return r.json(); })
+                .then(function (r) {
+                    if (!r.ok) {
+                        return r.json().catch(function () {
+                            return { ok: false, message: 'Lỗi kết nối máy chủ (' + r.status + ')' };
+                        });
+                    }
+                    return r.json();
+                })
                 .then(function (data) {
-                    if (data.ok === false) { toast(data.message, false); return; }
-                    if (data.mode) setMode(data.mode);
-                    if (data.mode === 'AI') setTyping(true);
+                    if (data.ok === false) {
+                        unlockForm();
+                        toast(data.message || 'Không gửi được tin nhắn.', false);
+                        return;
+                    }
+
+                    // 2. Server xác nhận lưu thành công: render ngay tin nhắn user
+                    if (data.message) {
+                        render(data.message);
+                        if (data.message.id && data.message.id > lastId) {
+                            lastId = data.message.id;
+                        }
+                    }
+
+                    // 3. Xóa nội dung form và reset kích thước ô nhập
                     form.reset();
-                    var prev = form.querySelector('img[id]');
-                    if (prev) prev.classList.add('d-none');
+                    if (ta) ta.style.height = '36px';
+                    if (prev) prev.src = '';
+                    if (prevWrap) prevWrap.classList.add('d-none');
+                    unlockForm();
+
+                    // 4. Cập nhật mode và hiển thị bubble suy nghĩ nếu là AI
+                    if (data.mode) setMode(data.mode);
+                    var currentMode = chat.getAttribute('data-mode') || data.mode;
+                    if (currentMode === 'AI') {
+                        setTyping(true);
+                    }
+
+                    // 5. Bắt đầu poll ngay để đón câu trả lời
                     poll();
                 })
-                .catch(function () { toast('Không gửi được tin nhắn.', false); })
-                .finally(function () { btn.disabled = false; });
+                .catch(function () {
+                    unlockForm();
+                    toast('Không gửi được tin nhắn. Vui lòng kiểm tra kết nối và thử lại.', false);
+                });
         });
 
         form.querySelectorAll('[data-insert]').forEach(function (el) {
@@ -273,6 +434,12 @@
                 ta.focus();
             });
         });
+    }
+
+    try {
+        initConsultChat();
+    } catch (e) {
+        console.error('Lỗi khởi tạo chat tư vấn:', e);
     }
 
     // Phiếu nhập: thêm dòng sản phẩm
@@ -289,7 +456,7 @@
             var btn = e.target.closest('.js-remove-row');
             if (btn && document.querySelectorAll('#receiptRows tr').length > 1) {
                 var row = btn.closest('tr');
-                row.querySelector('select').value = '';
+                row.querySelectorAll('.js-product-id, .js-product-search').forEach(function (el) { el.value = ''; });
                 row.classList.add('d-none');
             }
         });
@@ -316,17 +483,21 @@
     onScroll();
     if (toTop) toTop.addEventListener('click', function () { window.scrollTo({top: 0, behavior: 'smooth'}); });
 
-    // Hiện dần các khối khi cuộn tới
-    var items = document.querySelectorAll('.reveal, .reveal-stagger');
-    if ('IntersectionObserver' in window) {
-        var io = new IntersectionObserver(function (entries) {
-            entries.forEach(function (e) {
-                if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
-            });
-        }, {threshold: 0.12, rootMargin: '0px 0px -40px 0px'});
-        items.forEach(function (el) { io.observe(el); });
-    } else {
-        items.forEach(function (el) { el.classList.add('in'); });
+    // Hiện dần các khối khi cuộn tới (độc lập, luôn hiển thị sản phẩm kể cả khi có lỗi script khác)
+    try {
+        var items = document.querySelectorAll('.reveal, .reveal-stagger');
+        if ('IntersectionObserver' in window) {
+            var io = new IntersectionObserver(function (entries) {
+                entries.forEach(function (e) {
+                    if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+                });
+            }, {threshold: 0.12, rootMargin: '0px 0px -40px 0px'});
+            items.forEach(function (el) { io.observe(el); });
+        } else {
+            items.forEach(function (el) { el.classList.add('in'); });
+        }
+    } catch (e) {
+        document.querySelectorAll('.reveal, .reveal-stagger').forEach(function (el) { el.classList.add('in'); });
     }
 
     // Đồng hồ đếm ngược flash sale (đến hết ngày)
@@ -397,7 +568,7 @@
     var first = true;
     var box = document.getElementById('toastBox');
     var check = function () {
-        fetch('/notifications/unread', {headers: {'Accept': 'application/json'}})
+        fetch(baseUrl() + '/notifications/unread', {headers: {'Accept': 'application/json'}})
             .then(function (r) { return r.ok ? r.json() : null; })
             .then(function (d) {
                 if (!d) return;
@@ -420,7 +591,7 @@
                     el.className = 'toast border-0';
                     var body = document.createElement('a');
                     body.className = 'toast-body d-block text-reset';
-                    body.href = n.link || '/notifications';
+                    body.href = n.link ? (n.link.charAt(0) === '/' ? baseUrl() + n.link : n.link) : baseUrl() + '/notifications';
                     var icon = document.createElement('i');
                     icon.className = 'bi bi-bell-fill text-primary me-2';
                     body.appendChild(icon);
@@ -439,3 +610,46 @@
 })();
 
 
+
+/* ===== Chia sẻ mạng xã hội ===== */
+(function () {
+    'use strict';
+    document.addEventListener('click', function (e) {
+        var a = e.target.closest('.js-share');
+        if (!a) return;
+        if (a.classList.contains('js-copy-link')) {
+            var url = a.getAttribute('data-url');
+            if (navigator.share) { navigator.share({url: url}).catch(function () {}); return; }
+            if (navigator.clipboard) navigator.clipboard.writeText(url);
+            a.innerHTML = '<i class="bi bi-check2 text-success"></i>';
+            setTimeout(function () { a.innerHTML = '<i class="bi bi-link-45deg"></i>'; }, 1500);
+        }
+    });
+
+    // Gợi ý tìm kiếm
+    var input = document.querySelector('.search-form input[name=q]');
+    if (input) {
+        var list = document.createElement('datalist');
+        list.id = 'searchSuggest';
+        document.body.appendChild(list);
+        var timer;
+        input.addEventListener('input', function () {
+            clearTimeout(timer);
+            var q = input.value.trim();
+            if (q.length < 2) return;
+            timer = setTimeout(function () {
+                fetch(baseUrl() + '/products/suggest?q=' + encodeURIComponent(q), {headers: {'Accept': 'application/json'}})
+                    .then(function (r) { return r.json(); })
+                    .then(function (items) {
+                        list.innerHTML = '';
+                        items.forEach(function (it) {
+                            var o = document.createElement('option');
+                            o.value = it.name;
+                            o.label = it.price;
+                            list.appendChild(o);
+                        });
+                    }).catch(function () {});
+            }, 250);
+        });
+    }
+})();

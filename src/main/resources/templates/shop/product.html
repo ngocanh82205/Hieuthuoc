@@ -1,97 +1,97 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head}"></head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/app :: layout(~{::content}, ~{::scripts})}">
 <body>
-<header th:replace="~{fragments/layout :: navbar}"></header>
-<main class="container py-4" th:with="p=${product}">
+<th:block th:fragment="content" th:with="p=${product}, canShop=${currentUser == null or currentUser.customer}, type=${product.drugType.name()}">
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb small">
             <li class="breadcrumb-item"><a th:href="@{/}">Trang chủ</a></li>
-            <li class="breadcrumb-item" th:each="c : ${categoryPath}">
-                <a th:href="@{/products(category=${c.slug})}" th:text="${c.name}">Danh mục</a></li>
-            <li class="breadcrumb-item active" th:text="${p.name}">Sản phẩm</li>
+            <li class="breadcrumb-item" th:each="c : ${categoryPath}"><a th:href="@{/products(category=${c.slug})}" th:text="${c.name}"></a></li>
+            <li class="breadcrumb-item active" th:text="${p.name}"></li>
         </ol>
     </nav>
-    <div th:replace="~{fragments/layout :: flash}"></div>
 
     <div class="card mb-4">
         <div class="card-body p-md-4">
             <div class="row g-4">
                 <div class="col-md-5">
                     <div class="product-hero-img">
-                        <img th:if="${p.image != null}" th:src="@{${p.image}}" th:alt="${p.name}">
-                        <i th:unless="${p.image != null}" class="bi" th:classappend="${p.category != null ? p.category.icon : 'bi-capsule'}"></i>
+                        <img th:if="${p.imageUrl() != null}" th:src="${p.imageUrl()}" th:alt="${p.name}">
+                        <i th:unless="${p.imageUrl() != null}" th:class="'bi ' + (${p.category != null and p.category.icon != null} ? ${p.category.icon} : 'bi-capsule')"></i>
                     </div>
                 </div>
                 <div class="col-md-7">
-                    <span class="badge mb-2" th:classappend="'text-bg-' + ${p.drugType.color}" th:text="${p.drugType.label}">OTC</span>
-                    <h1 class="h3 fw-bold" th:text="${p.name}">Tên sản phẩm</h1>
+                    <span th:class="'badge mb-2 text-bg-' + ${p.drugType.color}" th:text="${p.drugType.label}"></span>
+                    <h1 class="h3 fw-bold" th:text="${p.name}"></h1>
                     <div class="small text-muted mb-3">
-                        <span th:if="${p.avgRating != null}"><span class="text-warning" th:text="${@fmt.stars(p.avgRating)}"></span>
-                            <span th:text="${p.avgRating} + '/5 (' + ${reviews.size()} + ' đánh giá)'"></span> · </span>
-                        <span th:text="'Đã bán ' + ${p.sold}"></span>
-                        <span th:if="${p.registrationNo != null}"> · SĐK: <span th:text="${p.registrationNo}"></span></span>
+                        <th:block th:if="${p.avgRating != null}"><a href="#reviews" class="text-reset"><span class="text-warning" th:text="${@h.stars(p.avgRating)}"></span>
+                            <th:block th:text="${p.avgRating} + '/5 (' + ${reviews.size()} + ' đánh giá)'"/></a> ·</th:block>
+                        Đã bán <th:block th:text="${@h.num(p.sold)}"/>
+                        <th:block th:if="${p.registrationNo != null}" th:text="' · SĐK: ' + ${p.registrationNo}"/>
                     </div>
                     <div th:if="${p.flashSale}" class="flash-box mb-2">
-                        <span><i class="bi bi-lightning-charge-fill"></i> FLASH SALE -<span th:text="${p.flashPercent}"></span>%</span>
-                        <span class="small">Kết thúc sau <strong data-countdown th:attr="data-end=${p.flashEndsAt}"></strong>
-                            <span th:if="${p.flashRemaining != null}" th:text="' · còn ' + ${p.flashRemaining} + ' suất'"></span></span>
+                        <span><i class="bi bi-lightning-charge-fill"></i> FLASH SALE -<th:block th:text="${p.flashPercent()}"/>%</span>
+                        <span class="small">Kết thúc sau <strong data-countdown th:data-end="${flashEnd}"></strong>
+                            <th:block th:if="${p.flashRemaining != null}" th:text="' · còn ' + ${p.flashRemaining} + ' suất'"/></span>
                     </div>
-                    <div class="alert alert-success py-2 small mb-2" th:each="lb : ${p.promoLabels}"><i class="bi bi-gift"></i> <span th:text="${lb}"></span></div>
-                    <div class="d-flex align-items-baseline gap-2 mb-3">
-                        <span th:if="${p.flashSale}" class="price fs-3" th:text="${@fmt.money(p.flashPrice)}">0 ₫</span>
-                        <del th:if="${p.flashSale}" class="text-muted" th:text="${@fmt.money(p.price)}"></del>
-                        <span th:unless="${p.flashSale}" class="price fs-3" th:text="${@fmt.money(p.price)}">0 ₫</span>
-                        <span class="text-muted">/ <span th:text="${p.unit}"></span></span>
-                        <span th:each="u : ${p.units}" class="badge text-bg-light border ms-1" th:text="${u.name} + ' ' + ${@fmt.money(u.price)}"></span>
-                        <del th:if="${p.onSale && !p.flashSale}" class="text-muted" th:text="${@fmt.money(p.oldPrice)}"></del>
-                        <span th:if="${p.onSale && !p.flashSale}" class="badge bg-danger" th:text="'-' + ${p.discountPercent} + '%'"></span>
+                    <div th:each="lb : ${p.promoLabels}" class="alert alert-success py-2 small mb-2"><i class="bi bi-gift"></i> <th:block th:text="${lb}"/></div>
+                    <div class="d-flex align-items-baseline flex-wrap gap-2 mb-3">
+                        <th:block th:if="${p.flashSale}">
+                            <span class="price fs-3" th:text="${@h.money(p.flashPrice)}"></span>
+                            <del class="text-muted" th:text="${@h.money(p.price)}"></del>
+                        </th:block>
+                        <span th:unless="${p.flashSale}" class="price fs-3" th:text="${@h.money(p.price)}"></span>
+                        <span class="text-muted" th:text="'/ ' + ${p.unit}"></span>
+                        <span th:each="u : ${p.units}" class="badge text-bg-light border ms-1" th:text="${u.name} + ' ' + ${@h.money(u.price)}"></span>
+                        <th:block th:if="${p.onSale and !p.flashSale}">
+                            <del class="text-muted" th:text="${@h.money(p.oldPrice)}"></del>
+                            <span class="badge bg-danger" th:text="'-' + ${p.discountPercent()} + '%'"></span>
+                        </th:block>
                     </div>
                     <table class="table table-sm spec-table mb-3">
                         <tr th:if="${p.activeIngredient != null}"><th>Hoạt chất</th><td th:text="${p.activeIngredient}"></td></tr>
                         <tr th:if="${p.strength != null}"><th>Hàm lượng</th><td th:text="${p.strength}"></td></tr>
                         <tr th:if="${p.dosageForm != null}"><th>Dạng bào chế</th><td th:text="${p.dosageForm}"></td></tr>
                         <tr th:if="${p.packaging != null}"><th>Quy cách</th><td th:text="${p.packaging}"></td></tr>
-                        <tr th:if="${p.manufacturer != null}"><th>Nhà sản xuất</th><td th:text="${p.manufacturer} + (${p.country != null} ? ' (' + ${p.country} + ')' : '')"></td></tr>
+                        <tr th:if="${p.manufacturer != null}"><th>Nhà sản xuất</th>
+                            <td><a th:href="@{/products(brand=${p.manufacturer})}" th:text="${p.manufacturer}"></a><th:block th:if="${p.country != null}" th:text="' (' + ${p.country} + ')'"/></td></tr>
                         <tr><th>Tình trạng</th>
                             <td>
-                                <span th:if="${p.drugType.name() == 'SPECIAL'}" class="text-danger">Không bán online</span>
-                                <span th:if="${p.drugType.name() != 'SPECIAL' && p.available > 0}" class="text-success">
-                                    <i class="bi bi-check-circle"></i> Còn hàng</span>
-                                <span th:if="${p.drugType.name() != 'SPECIAL' && p.available <= 0}" class="text-muted">Tạm hết hàng</span>
-                                <span th:if="${p.drugType.name() != 'SPECIAL' && p.available > 0}" class="text-muted small"
-                                      th:text="'(' + ${p.available} + ' ' + ${p.unit} + ')'"></span>
-                                <span th:if="${p.maxPerOrder != null && p.drugType.name() != 'SPECIAL'}" class="text-muted small">
-                                    · Tối đa <span th:text="${p.maxPerOrder}"></span> <span th:text="${p.unit}"></span>/đơn</span>
+                                <span th:if="${type == 'SPECIAL'}" class="text-danger">Không bán online</span>
+                                <th:block th:if="${type != 'SPECIAL' and p.available > 0}">
+                                    <span class="text-success"><i class="bi bi-check-circle"></i> Còn hàng</span>
+                                    <span class="text-muted small" th:text="'(' + ${@h.num(p.available)} + ' ' + ${p.unit} + ')'"></span>
+                                </th:block>
+                                <span th:if="${type != 'SPECIAL' and p.available <= 0}" class="text-muted">Tạm hết hàng</span>
+                                <span th:if="${p.maxPerOrder != null and type != 'SPECIAL'}" class="text-muted small" th:text="'· Tối đa ' + ${p.maxPerOrder} + ' ' + ${p.unit} + '/đơn'"></span>
                             </td>
                         </tr>
                     </table>
 
-                    <div th:if="${p.drugType.name() == 'ETC'}" class="rx-notice p-3 mb-3 small">
+                    <div th:if="${type == 'ETC'}" class="rx-notice p-3 mb-3 small">
                         <i class="bi bi-file-earmark-medical text-danger me-1"></i>
                         <strong>Thuốc kê đơn:</strong> bạn cần tải lên ảnh đơn thuốc của bác sĩ khi đặt hàng.
                         Dược sĩ sẽ kiểm tra đơn trước khi xác nhận. Thuốc kê đơn không áp dụng mã giảm giá.
                     </div>
-                    <div th:if="${p.drugType.name() == 'SPECIAL'}" class="alert alert-dark small">
+                    <div th:if="${type == 'SPECIAL'}" class="alert alert-dark small">
                         <i class="bi bi-slash-circle me-1"></i>Thuốc thuộc danh mục kiểm soát đặc biệt, theo quy định không bán qua mạng.
                         Vui lòng mang đơn thuốc đến trực tiếp nhà thuốc.
                     </div>
 
-                    <form th:if="${p.drugType.name() != 'SPECIAL' && p.available > 0}" th:action="@{/cart/add}" method="post" class="js-add-cart">
-                        <input type="hidden" name="productId" th:value="${p.id}">
-                        <div class="mb-3 unit-picker" th:if="${p.unitOptions.size() > 1}">
+                    <form th:if="${canShop and type != 'SPECIAL' and p.available > 0}" th:action="@{/cart/add}" method="post" class="js-add-cart">
+                        <input type="hidden" name="product_id" th:value="${p.id}">
+                        <div th:if="${p.unitOptions().size() > 1}" class="mb-3 unit-picker">
                             <div class="small fw-semibold mb-2">Chọn đơn vị tính</div>
                             <div class="d-flex flex-wrap gap-2">
-                                <th:block th:each="u, st : ${p.unitOptions}">
-                                    <input type="radio" class="btn-check" name="unitId" th:id="'unit' + ${st.index}" th:value="${u.id()}" th:checked="${st.first}">
+                                <th:block th:each="u, st : ${p.unitOptions()}">
+                                    <input type="radio" class="btn-check" name="unit_id" th:id="'unit' + ${st.index}" th:value="${u.id()}" th:checked="${st.index == 0}">
                                     <label class="btn btn-outline-primary" th:for="'unit' + ${st.index}">
-                                        <strong th:text="${u.name()}">Vỉ</strong>
-                                        <small th:text="${@fmt.money(u.price())} + (${u.factor() > 1} ? ' · ' + ${u.factor()} + ' ' + ${p.unit} : '')"></small>
+                                        <strong th:text="${u.name()}"></strong>
+                                        <small th:text="${@h.money(u.price())} + (${u.factor() > 1} ? ' · ' + ${u.factor()} + ' ' + ${p.unit} : '')"></small>
                                     </label>
                                 </th:block>
                             </div>
                         </div>
-                        <input th:if="${p.unitOptions.size() == 1}" type="hidden" name="unitId" value="0">
+                        <input th:unless="${p.unitOptions().size() > 1}" type="hidden" name="unit_id" value="0">
                         <div class="d-flex flex-wrap gap-2">
                             <div class="input-group" style="width: 140px">
                                 <span class="input-group-text">SL</span>
@@ -102,25 +102,14 @@
                         </div>
                     </form>
 
-                    <!-- Hết hàng: đăng ký nhận thông báo -->
-                    <div th:if="${p.drugType.name() != 'SPECIAL' && p.available <= 0}" class="alert alert-info d-flex flex-wrap justify-content-between align-items-center gap-2">
-                        <span><i class="bi bi-bell me-1"></i>Sản phẩm tạm hết hàng.
-                            <span th:if="${subscribed}">Bạn đã đăng ký nhận thông báo khi có hàng.</span></span>
-                        <form th:action="@{/stock-alert/{id}(id=${p.id})}" method="post">
-                            <input th:if="${subscribed}" type="hidden" name="cancel" value="true">
-                            <button class="btn btn-sm" th:classappend="${subscribed} ? 'btn-outline-secondary' : 'btn-primary'"
-                                    th:text="${subscribed} ? 'Hủy đăng ký' : 'Báo khi có hàng'"></button>
-                        </form>
-                    </div>
+                    <div th:if="${canShop and type != 'SPECIAL' and p.available <= 0}" class="alert alert-info"><i class="bi bi-info-circle me-1"></i>Sản phẩm tạm hết hàng. Bạn có thể thêm vào yêu thích để mua sau.</div>
 
-                    <div class="d-flex flex-wrap gap-2 mt-3">
-                        <form th:if="${currentUser == null || currentUser.role.name() == 'CUSTOMER'}" th:action="@{/wishlist/toggle/{id}(id=${p.id})}" method="post">
-                            <button class="btn btn-light" th:with="on=${wishlistIds.contains(p.id)}">
-                                <i class="bi" th:classappend="${on} ? 'bi-heart-fill text-danger' : 'bi-heart'"></i>
-                                <span th:text="${on} ? 'Đã yêu thích' : 'Yêu thích'"></span></button>
+                    <div class="d-flex flex-wrap gap-2 mt-3 align-items-center">
+                        <form th:if="${canShop}" th:action="@{/wishlist/toggle/{id}(id=${p.id})}" method="post" th:with="on=${wishlistIds.contains(p.id)}">
+                            <button class="btn btn-light"><i th:class="'bi ' + (${on} ? 'bi-heart-fill text-danger' : 'bi-heart')"></i> <th:block th:text="${on} ? 'Đã yêu thích' : 'Yêu thích'"/></button>
                         </form>
                         <a th:href="@{/consult}" class="btn btn-light"><i class="bi bi-chat-dots"></i> Chat với dược sĩ</a>
-                        <button type="button" class="btn btn-light" data-bs-toggle="modal" data-bs-target="#callbackModal"><i class="bi bi-telephone"></i> Yêu cầu gọi lại</button>
+                        <th:block th:with="shareUrl=${@h.abs('/products/' + p.slug)}"><th:block th:replace="~{partials/misc :: share(${shareUrl}, ${p.name}, ${p.id})}"/></th:block>
                     </div>
                 </div>
             </div>
@@ -133,26 +122,20 @@
                 <div class="card-header">Thông tin sản phẩm</div>
                 <div class="card-body">
                     <h2 class="h6 fw-semibold">Công dụng</h2>
-                    <p th:text="${p.description ?: 'Đang cập nhật.'}"></p>
-                    <th:block th:if="${p.usageInstruction != null}">
-                        <h2 class="h6 fw-semibold">Liều dùng - cách dùng</h2>
-                        <p th:text="${p.usageInstruction}"></p>
-                    </th:block>
-                    <th:block th:if="${p.contraindications != null}">
-                        <h2 class="h6 fw-semibold">Chống chỉ định</h2>
-                        <p th:text="${p.contraindications}"></p>
-                    </th:block>
-                    <th:block th:if="${p.sideEffects != null}">
-                        <h2 class="h6 fw-semibold">Tác dụng phụ</h2>
-                        <p th:text="${p.sideEffects}"></p>
-                    </th:block>
+                    <p th:text="${p.description} ?: 'Đang cập nhật.'"></p>
+                    <th:block th:if="${p.usageInstruction != null}"><h2 class="h6 fw-semibold">Liều dùng - cách dùng</h2><p th:text="${p.usageInstruction}"></p></th:block>
+                    <th:block th:if="${p.contraindications != null}"><h2 class="h6 fw-semibold">Chống chỉ định</h2><p th:text="${p.contraindications}"></p></th:block>
+                    <th:block th:if="${p.sideEffects != null}"><h2 class="h6 fw-semibold">Tác dụng phụ</h2><p th:text="${p.sideEffects}"></p></th:block>
                     <p class="small text-muted mb-0"><i class="bi bi-info-circle"></i> Đọc kỹ hướng dẫn sử dụng trước khi dùng.
                         Thông tin chỉ mang tính tham khảo, không thay thế tư vấn của bác sĩ/dược sĩ.</p>
                 </div>
             </div>
 
             <div class="card" id="reviews">
-                <div class="card-header">Đánh giá từ khách hàng</div>
+                <div class="card-header d-flex justify-content-between">
+                    <span>Đánh giá từ khách hàng</span>
+                    <span th:if="${p.avgRating != null}" class="text-warning"><th:block th:text="${@h.stars(p.avgRating)}"/> <span class="text-muted small" th:text="${p.avgRating} + '/5'"></span></span>
+                </div>
                 <div class="card-body">
                     <form th:if="${canReview}" th:action="@{/products/{s}/reviews(s=${p.slug})}" method="post" class="border rounded p-3 mb-4">
                         <div class="mb-2">
@@ -168,96 +151,66 @@
                         <textarea name="comment" class="form-control mb-2" rows="2" maxlength="1000" placeholder="Chia sẻ trải nghiệm của bạn"></textarea>
                         <button class="btn btn-primary btn-sm">Gửi đánh giá</button>
                     </form>
-                    <p th:if="${reviews.isEmpty()}" class="text-muted mb-0">Chưa có đánh giá nào.</p>
+                    <p th:if="${!canReview and currentUser != null and currentUser.customer}" class="small text-muted"><i class="bi bi-info-circle"></i> Bạn có thể đánh giá sau khi đơn hàng có sản phẩm này được giao thành công.</p>
                     <div th:each="r : ${reviews}" class="border-bottom py-2">
                         <div class="d-flex justify-content-between">
-                            <strong th:text="${r.user.fullName}">Khách</strong>
-                            <small class="text-muted" th:text="${@fmt.date(r.createdAt)}"></small>
+                            <strong><th:block th:text="${r.user.fullName}"/> <span th:if="${r.order != null}" class="badge text-bg-success fw-normal ms-1"><i class="bi bi-bag-check"></i> Đã mua hàng</span></strong>
+                            <small class="text-muted" th:text="${@h.date(r.createdAt)}"></small>
                         </div>
-                        <div class="text-warning small" th:text="${@fmt.stars(r.rating)}"></div>
+                        <div class="text-warning small" th:text="${@h.stars(r.rating)}"></div>
                         <p class="mb-0" th:text="${r.comment}"></p>
                     </div>
-                </div>
-            </div>
-
-            <div class="card mt-4" id="qa">
-                <div class="card-header"><i class="bi bi-question-circle text-primary me-1"></i>Hỏi đáp với dược sĩ</div>
-                <div class="card-body">
-                    <form th:if="${currentUser != null && currentUser.role.name() == 'CUSTOMER'}" th:action="@{/products/{s}/questions(s=${p.slug})}" method="post" class="mb-4">
-                        <textarea name="question" class="form-control mb-2" rows="2" minlength="10" maxlength="1000" required
-                                  placeholder="Đặt câu hỏi về sản phẩm (cách dùng, đối tượng dùng, tương tác thuốc...)"></textarea>
-                        <button class="btn btn-primary btn-sm"><i class="bi bi-send"></i> Gửi câu hỏi</button>
-                    </form>
-                    <p th:if="${currentUser == null}" class="small"><a th:href="@{/login}">Đăng nhập</a> để đặt câu hỏi cho dược sĩ.</p>
-                    <div th:each="q : ${myPendingQuestions}" class="qa-item mb-3">
-                        <div><i class="bi bi-person-circle text-muted me-1"></i><strong>Bạn</strong> <span class="text-muted small" th:text="${@fmt.dateTime(q.createdAt)}"></span></div>
-                        <div th:text="${q.question}"></div>
-                        <span class="badge text-bg-warning mt-1">Đang chờ dược sĩ trả lời</span>
-                    </div>
-                    <p th:if="${questions.isEmpty() && myPendingQuestions.isEmpty()}" class="text-muted mb-0">Chưa có câu hỏi nào.</p>
-                    <div th:each="q : ${questions}" class="qa-item mb-3">
-                        <div><i class="bi bi-person-circle text-muted me-1"></i><strong th:text="${q.user.fullName}"></strong>
-                            <span class="text-muted small" th:text="${@fmt.dateTime(q.createdAt)}"></span></div>
-                        <div th:text="${q.question}"></div>
-                        <div class="qa-answer small">
-                            <div class="fw-semibold text-primary"><i class="bi bi-patch-check-fill me-1"></i><span th:text="${q.answeredBy != null ? q.answeredBy.fullName : 'Dược sĩ'}"></span></div>
-                            <div th:text="${q.answer}"></div>
-                        </div>
-                    </div>
+                    <p th:if="${reviews.isEmpty()}" class="text-muted mb-0">Chưa có đánh giá nào.</p>
                 </div>
             </div>
         </div>
         <div class="col-lg-4">
-            <div class="card mb-4" th:if="${!equivalents.isEmpty()}">
+            <div th:if="${!equivalents.isEmpty()}" class="card mb-4">
                 <div class="card-header">Sản phẩm cùng hoạt chất</div>
                 <ul class="list-group list-group-flush">
                     <li class="list-group-item" th:each="e : ${equivalents}">
                         <a th:href="@{/products/{s}(s=${e.slug})}" class="fw-semibold" th:text="${e.name}"></a>
                         <div class="small d-flex justify-content-between">
                             <span class="text-muted" th:text="${e.manufacturer}"></span>
-                            <span class="price small" th:text="${@fmt.money(e.price)}"></span>
+                            <span class="price small" th:text="${@h.money(e.price)}"></span>
                         </div>
                     </li>
                 </ul>
             </div>
-            <div class="card" th:if="${!related.isEmpty()}">
-                <div class="card-header">Sản phẩm liên quan</div>
+            <div th:if="${!boughtTogether.isEmpty()}" class="card mb-4">
+                <div class="card-header"><i class="bi bi-bag-plus text-primary me-1"></i>Thường được mua cùng</div>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item" th:each="e : ${boughtTogether}">
+                        <a th:href="@{/products/{s}(s=${e.slug})}" class="fw-semibold" th:text="${e.name}"></a>
+                        <div class="small d-flex justify-content-between">
+                            <span th:class="'badge text-bg-' + ${e.drugType.color}" th:text="${e.drugType.shortLabel}"></span>
+                            <span class="price small" th:text="${@h.money(e.effectivePrice())}"></span>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+            <div th:if="${!related.isEmpty()}" class="card">
+                <div class="card-header">Sản phẩm tương tự</div>
                 <ul class="list-group list-group-flush">
                     <li class="list-group-item" th:each="e : ${related}">
                         <a th:href="@{/products/{s}(s=${e.slug})}" class="fw-semibold" th:text="${e.name}"></a>
                         <div class="small d-flex justify-content-between">
-                            <span class="badge" th:classappend="'text-bg-' + ${e.drugType.color}" th:text="${e.drugType.shortLabel}"></span>
-                            <span class="price small" th:text="${@fmt.money(e.price)}"></span>
+                            <span th:class="'badge text-bg-' + ${e.drugType.color}" th:text="${e.drugType.shortLabel}"></span>
+                            <span class="price small" th:text="${@h.money(e.effectivePrice())}"></span>
                         </div>
                     </li>
                 </ul>
             </div>
         </div>
     </div>
-    <div class="modal fade" id="callbackModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <form class="modal-content" th:action="@{/callback}" method="post">
-                <div class="modal-header"><h5 class="modal-title"><i class="bi bi-telephone-inbound text-primary me-1"></i>Yêu cầu dược sĩ gọi lại</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
-                <div class="modal-body">
-                    <input type="hidden" name="productId" th:value="${p.id}">
-                    <div class="mb-2"><label class="form-label small">Họ tên</label>
-                        <input name="name" class="form-control" required th:value="${currentUser != null ? currentUser.fullName : ''}"></div>
-                    <div class="mb-2"><label class="form-label small">Số điện thoại</label>
-                        <input name="phone" class="form-control" required pattern="0[0-9]{9,10}" th:value="${currentUser != null ? currentUser.phone : ''}"></div>
-                    <div class="mb-2"><label class="form-label small">Khung giờ thuận tiện</label>
-                        <select name="preferredTime" class="form-select">
-                            <option>Càng sớm càng tốt</option><option>Sáng (8h - 11h)</option><option>Trưa (11h - 14h)</option>
-                            <option>Chiều (14h - 17h)</option><option>Tối (17h - 21h)</option></select></div>
-                    <div><label class="form-label small">Nội dung cần tư vấn</label>
-                        <textarea name="note" class="form-control" rows="2" maxlength="500" th:text="'Tư vấn về ' + ${p.name}"></textarea></div>
-                </div>
-                <div class="modal-footer"><button class="btn btn-primary">Gửi yêu cầu</button></div>
-            </form>
-        </div>
+
+    <div th:if="${!recentlyViewed.isEmpty()}" class="mt-5">
+        <th:block th:replace="~{partials/product-row :: row(${recentlyViewed.size() > 4 ? recentlyViewed.subList(0, 4) : recentlyViewed}, 'Bạn đã xem gần đây', null, 'bi-clock-history')}"/>
     </div>
-</main>
-<footer th:replace="~{fragments/layout :: footer}"></footer>
-<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</th:block>
+<th:block th:fragment="scripts">
+    <link rel="canonical" th:with="u=${@h.abs('/products/' + product.slug)}" th:href="${u}">
+    <script type="application/ld+json" th:utext="${jsonLd}"></script>
+</th:block>
 </body>
 </html>

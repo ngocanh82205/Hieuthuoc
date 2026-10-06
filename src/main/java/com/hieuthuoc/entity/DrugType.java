@@ -31,13 +31,24 @@ public enum DrugType {
         return color;
     }
 
-    /** Thuốc kê đơn: phải có đơn thuốc được dược sĩ duyệt. */
+    /** Phải có đơn thuốc: thuốc kê đơn và thuốc kiểm soát đặc biệt (gây nghiện, hướng thần, tiền chất). */
     public boolean isPrescription() {
-        return this == ETC;
+        return this == ETC || this == SPECIAL;
     }
 
-    /** Thuốc kiểm soát đặc biệt không được bán online. */
+    /** Thuốc kiểm soát đặc biệt không bán online. */
     public boolean isSellableOnline() {
         return this != SPECIAL;
+    }
+
+    /** Chỉ OTC / TPCN / dụng cụ / mỹ phẩm được khuyến mãi. */
+    public boolean isPromotable() {
+        return this != ETC && this != SPECIAL;
+    }
+
+    public static DrugType tryFrom(String s) {
+        if (s == null) return null;
+        for (DrugType t : values()) if (t.name().equals(s)) return t;
+        return null;
     }
 }

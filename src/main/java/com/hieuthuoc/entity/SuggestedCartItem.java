@@ -5,10 +5,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-
 @Entity
 @Table(name = "suggested_cart_items")
 @Getter
@@ -20,18 +16,23 @@ public class SuggestedCartItem {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    private SuggestedCart cart;
+    @JoinColumn(name = "suggested_cart_id")
+    private SuggestedCart suggestedCart;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "product_id")
     private Product product;
 
-    /** Id đơn vị bán (0 = đơn vị gốc). */
+    /** Đơn vị quy đổi (null / 0 = đơn vị gốc). */
+    @Column(name = "unit_id")
     private Long unitId;
 
-    @Column(length = 30)
+    @Column(name = "unit_name", length = 30)
     private String unitName;
 
+    @Column(nullable = false)
     private long price;
 
+    @Column(nullable = false)
     private int quantity;
 }

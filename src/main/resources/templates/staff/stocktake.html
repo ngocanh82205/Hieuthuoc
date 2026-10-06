@@ -1,52 +1,42 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head}"></head>
-<body class="staff-body">
-<div class="staff-shell">
-    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
-    <div class="staff-main">
-        <header th:replace="~{fragments/staff :: topbar}"></header>
-        <main class="p-3 p-lg-4">
-            <div th:replace="~{fragments/layout :: flash}"></div>
-            <form method="get" class="d-flex gap-2 mb-3 no-print">
-                <select name="warehouse" class="form-select form-select-sm" style="max-width: 280px" onchange="this.form.submit()">
-                    <option value="">Tất cả kho</option>
-                    <option th:each="w : ${warehouses}" th:value="${w.id}" th:text="${w.name}" th:selected="${warehouse == w.id}"></option>
-                </select>
-                <a th:href="@{/staff/adjustments}" class="btn btn-sm btn-outline-secondary">Phiếu điều chỉnh đã lập</a>
-            </form>
-            <form th:action="@{/staff/stocktake}" method="post" class="card">
-                <div class="card-header d-flex flex-wrap justify-content-between gap-2 align-items-center">
-                    <span><i class="bi bi-clipboard-check text-primary me-1"></i>Phiếu kiểm kê - nhập số lượng đếm thực tế (bỏ trống = khớp sổ sách)</span>
-                    <button type="button" class="btn btn-sm btn-outline-secondary no-print" onclick="window.print()"><i class="bi bi-printer"></i> In phiếu đếm</button>
-                </div>
-                <div class="table-responsive">
-                    <table class="table table-sm mb-0">
-                        <thead><tr><th>Sản phẩm</th><th>Kho</th><th>Số lô</th><th>HSD</th><th class="text-end">Sổ sách</th><th style="width: 130px">Thực đếm</th><th>Trạng thái</th></tr></thead>
-                        <tbody>
-                        <tr th:each="b : ${batches}" th:classappend="${b.expired} ? 'table-danger'">
-                            <td th:text="${b.product.name}"></td>
-                            <td class="small" th:text="${b.warehouse != null ? b.warehouse.name : 'Kho chính'}"></td>
-                            <td class="fw-semibold" th:text="${b.batchNo}"></td>
-                            <td class="small" th:text="${@fmt.date(b.expDate)}"></td>
-                            <td class="text-end" th:text="${b.quantity} + ' ' + ${b.product.unit}"></td>
-                            <td><input type="number" min="0" class="form-control form-control-sm" th:name="'count_' + ${b.id}"></td>
-                            <td class="small"><span th:if="${b.expired}" class="badge text-bg-danger">Hết hạn</span>
-                                <span th:if="${b.locked}" class="badge text-bg-dark">Khóa</span></td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div class="card-footer bg-white d-flex flex-wrap gap-2 justify-content-between align-items-center">
-                    <input name="note" class="form-control form-control-sm" style="max-width: 360px" placeholder="Ghi chú đợt kiểm kê (VD: kiểm kê cuối tháng)">
-                    <span class="small text-muted" th:if="${currentUser.can('APPROVE_STOCK')}">Bạn có quyền duyệt phiếu kho: chênh lệch được điều chỉnh ngay.</span>
-                    <span class="small text-muted" th:unless="${currentUser.can('APPROVE_STOCK')}">Chênh lệch sẽ lập thành phiếu điều chỉnh kiểm kê, chờ admin / quản lý duyệt.</span>
-                    <button class="btn btn-primary" data-confirm="Ghi nhận kết quả kiểm kê?">Ghi nhận kiểm kê</button>
-                </div>
-            </form>
-        </main>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/admin :: layout(~{::content}, ~{})}">
+<body>
+<th:block th:fragment="content">
+    <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+        <span class="small text-muted">Kết quả được lưu thành <strong>phiếu kiểm kê</strong> (biên bản) gồm mọi lô trong danh sách.</span>
+        <a th:href="@{/staff/stocktake/history}" class="btn btn-sm btn-outline-secondary ms-auto"><i class="bi bi-clock-history"></i> Lịch sử kiểm kê</a>
     </div>
-</div>
-<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+    <div th:if="${!recent.isEmpty()}" class="small mb-3">Gần đây:
+        <a th:each="r : ${recent}" th:href="@{/staff/stocktake/{id}(id=${r.id})}" class="badge text-bg-light border text-decoration-none fw-normal"
+           th:text="${r.code} + ' · ' + ${@h.date(r.createdAt)} + ' · ' + (${r.diffLines > 0} ? ${r.diffLines} + ' lô lệch' : 'khớp')"></a>
+    </div>
+    <form th:action="@{/staff/stocktake}" method="post">
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead><tr><th>Sản phẩm</th><th>Lô</th><th>HSD</th><th class="text-end">Sổ sách</th>
+                        <th class="text-end" title="Đã xuất lô cho đơn đang soạn / đóng gói, hàng còn trong nhà thuốc">Chờ giao</th>
+                        <th class="text-end">Phải có</th><th style="width: 140px">Thực đếm</th></tr></thead>
+                    <tbody>
+                    <tr th:each="b : ${batches}" th:with="pending=${pendingOut.getOrDefault(b.id, 0L)}">
+                        <td><th:block th:text="${b.product.name}"/> <span class="small text-muted" th:text="'(' + ${b.product.unit} + ')'"></span></td><td th:text="${b.batchNo}"></td>
+                        <td class="small" th:text="${@h.date(b.expDate)}"></td>
+                        <td class="text-end" th:text="${@h.num(b.quantity)}"></td>
+                        <td th:class="'text-end ' + (${pending > 0} ? 'text-warning fw-semibold' : 'text-muted')" th:text="${pending > 0} ? ${@h.num(pending)} : '-'"></td>
+                        <td class="text-end fw-semibold" th:text="${@h.num(b.quantity + pending)}"></td>
+                        <td><input type="number" min="0" th:name="'count[' + ${b.id} + ']'" th:value="${old['count[' + b.id + ']']}" class="form-control form-control-sm"
+                                   th:placeholder="${b.quantity + pending}" th:aria-label="'Thực đếm lô ' + ${b.batchNo}"></td></tr>
+                    <tr th:if="${batches.isEmpty()}"><td colspan="7" class="text-center text-muted py-4">Không có lô hàng.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer bg-white d-flex flex-wrap gap-2 align-items-center">
+                <input name="note" th:value="${old['note']}" class="form-control" style="max-width: 360px" maxlength="150" placeholder="Ghi chú đợt kiểm kê" aria-label="Ghi chú">
+                <span class="small text-muted">Đếm cả hàng đã soạn chờ giao. Chỉ nhập ô có chênh lệch; ô trống = khớp cột "Phải có".</span>
+                <button class="btn btn-primary ms-auto" data-confirm="Lưu phiếu kiểm kê? Lô chênh lệch sẽ được lập phiếu điều chỉnh.">Lưu kết quả kiểm kê</button>
+            </div>
+        </div>
+    </form>
+</th:block>
 </body>
 </html>

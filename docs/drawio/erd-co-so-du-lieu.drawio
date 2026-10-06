@@ -1,0 +1,542 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="erd-tong-quat" name="ERD tổng quát">
+    <mxGraphModel dx="2275" dy="953" grid="0" gridSize="10" guides="0" tooltips="0" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="2150" pageHeight="1350" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="ov-addresses" parent="1" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;collapsible=0;html=1;fontSize=14;fillColor=#dae8fc;strokeColor=#1f4e79;swimlaneFillColor=#ffffff;" value="Địa chỉ (addresses)" vertex="1">
+          <mxGeometry height="117" width="220" x="59" y="121" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-addresses-0" parent="ov-addresses" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;PK&lt;/b&gt;&amp;nbsp;&lt;u&gt;id&lt;/u&gt;" vertex="1">
+          <mxGeometry height="17" width="220" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-addresses-1" parent="ov-addresses" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;FK&lt;/b&gt;&amp;nbsp;user_id" vertex="1">
+          <mxGeometry height="17" width="220" y="43" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-addresses-2" parent="ov-addresses" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;recipient" vertex="1">
+          <mxGeometry height="17" width="220" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-addresses-3" parent="ov-addresses" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;phone" vertex="1">
+          <mxGeometry height="17" width="220" y="77" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-addresses-4" parent="ov-addresses" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;address_line" vertex="1">
+          <mxGeometry height="17" width="220" y="94" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-promotions" parent="1" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;collapsible=0;html=1;fontSize=14;fillColor=#ffe6cc;strokeColor=#b46504;swimlaneFillColor=#ffffff;" value="Khuyến mãi (promotions)" vertex="1">
+          <mxGeometry height="134" width="220" x="639" y="121" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-promotions-0" parent="ov-promotions" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;PK&lt;/b&gt;&amp;nbsp;&lt;u&gt;id&lt;/u&gt;" vertex="1">
+          <mxGeometry height="17" width="220" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-promotions-1" parent="ov-promotions" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;FK&lt;/b&gt;&amp;nbsp;product_id" vertex="1">
+          <mxGeometry height="17" width="220" y="43" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-promotions-2" parent="ov-promotions" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;type" vertex="1">
+          <mxGeometry height="17" width="220" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-promotions-3" parent="ov-promotions" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;start_at, end_at" vertex="1">
+          <mxGeometry height="17" width="220" y="77" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-promotions-4" parent="ov-promotions" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;quantity_limit" vertex="1">
+          <mxGeometry height="17" width="220" y="94" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-promotions-5" parent="ov-promotions" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;sold_count" vertex="1">
+          <mxGeometry height="17" width="220" y="111" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-promotion_items" parent="1" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;collapsible=0;html=1;fontSize=14;fillColor=#ffe6cc;strokeColor=#b46504;swimlaneFillColor=#ffffff;" value="SP trong combo (promotion_items)" vertex="1">
+          <mxGeometry height="100" width="238" x="929" y="121" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-promotion_items-0" parent="ov-promotion_items" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;PK&lt;/b&gt;&amp;nbsp;&lt;u&gt;id&lt;/u&gt;" vertex="1">
+          <mxGeometry height="17" width="238" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-promotion_items-1" parent="ov-promotion_items" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;FK&lt;/b&gt;&amp;nbsp;promotion_id" vertex="1">
+          <mxGeometry height="17" width="238" y="43" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-promotion_items-2" parent="ov-promotion_items" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;FK&lt;/b&gt;&amp;nbsp;product_id" vertex="1">
+          <mxGeometry height="17" width="238" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-promotion_items-3" parent="ov-promotion_items" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;quantity" vertex="1">
+          <mxGeometry height="17" width="238" y="77" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-categories" parent="1" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;collapsible=0;html=1;fontSize=14;fillColor=#d5e8d4;strokeColor=#2d7600;swimlaneFillColor=#ffffff;" value="Danh mục (categories)" vertex="1">
+          <mxGeometry height="100" width="220" x="1215" y="125" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-categories-0" parent="ov-categories" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;PK&lt;/b&gt;&amp;nbsp;&lt;u&gt;id&lt;/u&gt;" vertex="1">
+          <mxGeometry height="17" width="220" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-categories-1" parent="ov-categories" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;FK&lt;/b&gt;&amp;nbsp;parent_id" vertex="1">
+          <mxGeometry height="17" width="220" y="43" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-categories-2" parent="ov-categories" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;name" vertex="1">
+          <mxGeometry height="17" width="220" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-categories-3" parent="ov-categories" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;slug (UQ)" vertex="1">
+          <mxGeometry height="17" width="220" y="77" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-vouchers" parent="1" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;collapsible=0;html=1;fontSize=14;fillColor=#ffe6cc;strokeColor=#b46504;swimlaneFillColor=#ffffff;" value="Mã giảm giá (vouchers)" vertex="1">
+          <mxGeometry height="134" width="220" x="1530" y="102" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-vouchers-0" parent="ov-vouchers" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;PK&lt;/b&gt;&amp;nbsp;&lt;u&gt;id&lt;/u&gt;" vertex="1">
+          <mxGeometry height="17" width="220" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-vouchers-1" parent="ov-vouchers" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;FK&lt;/b&gt;&amp;nbsp;category_id" vertex="1">
+          <mxGeometry height="17" width="220" y="43" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-vouchers-2" parent="ov-vouchers" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;code (UQ)" vertex="1">
+          <mxGeometry height="17" width="220" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-vouchers-3" parent="ov-vouchers" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;discount_value" vertex="1">
+          <mxGeometry height="17" width="220" y="77" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-vouchers-4" parent="ov-vouchers" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;usage_limit" vertex="1">
+          <mxGeometry height="17" width="220" y="94" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-vouchers-5" parent="ov-vouchers" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;used_count" vertex="1">
+          <mxGeometry height="17" width="220" y="111" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-users" parent="1" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;collapsible=0;html=1;fontSize=14;fillColor=#dae8fc;strokeColor=#1f4e79;swimlaneFillColor=#ffffff;" value="Người dùng (users)" vertex="1">
+          <mxGeometry height="134" width="220" x="60" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-users-0" parent="ov-users" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;PK&lt;/b&gt;&amp;nbsp;&lt;u&gt;id&lt;/u&gt;" vertex="1">
+          <mxGeometry height="17" width="220" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-users-1" parent="ov-users" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;full_name" vertex="1">
+          <mxGeometry height="17" width="220" y="43" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-users-2" parent="ov-users" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;email (UQ)" vertex="1">
+          <mxGeometry height="17" width="220" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-users-3" parent="ov-users" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;phone (UQ)" vertex="1">
+          <mxGeometry height="17" width="220" y="77" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-users-4" parent="ov-users" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;role" vertex="1">
+          <mxGeometry height="17" width="220" y="94" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-users-5" parent="ov-users" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;points" vertex="1">
+          <mxGeometry height="17" width="220" y="111" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-orders" parent="1" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;collapsible=0;html=1;fontSize=14;fillColor=#ffe6cc;strokeColor=#b46504;swimlaneFillColor=#ffffff;" value="Đơn hàng (orders)" vertex="1">
+          <mxGeometry height="134" width="220" x="350" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-orders-0" parent="ov-orders" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;PK&lt;/b&gt;&amp;nbsp;&lt;u&gt;id&lt;/u&gt;" vertex="1">
+          <mxGeometry height="17" width="220" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-orders-1" parent="ov-orders" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;code (UQ)" vertex="1">
+          <mxGeometry height="17" width="220" y="43" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-orders-2" parent="ov-orders" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;FK&lt;/b&gt;&amp;nbsp;user_id" vertex="1">
+          <mxGeometry height="17" width="220" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-orders-3" parent="ov-orders" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;status" vertex="1">
+          <mxGeometry height="17" width="220" y="77" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-orders-4" parent="ov-orders" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;payment_status" vertex="1">
+          <mxGeometry height="17" width="220" y="94" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-orders-5" parent="ov-orders" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;total" vertex="1">
+          <mxGeometry height="17" width="220" y="111" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-order_items" parent="1" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;collapsible=0;html=1;fontSize=14;fillColor=#ffe6cc;strokeColor=#b46504;swimlaneFillColor=#ffffff;" value="Dòng đơn hàng (order_items)" vertex="1">
+          <mxGeometry height="134" width="220" x="640" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-order_items-0" parent="ov-order_items" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;PK&lt;/b&gt;&amp;nbsp;&lt;u&gt;id&lt;/u&gt;" vertex="1">
+          <mxGeometry height="17" width="220" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-order_items-1" parent="ov-order_items" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;FK&lt;/b&gt;&amp;nbsp;order_id" vertex="1">
+          <mxGeometry height="17" width="220" y="43" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-order_items-2" parent="ov-order_items" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;FK&lt;/b&gt;&amp;nbsp;product_id" vertex="1">
+          <mxGeometry height="17" width="220" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-order_items-3" parent="ov-order_items" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;FK&lt;/b&gt;&amp;nbsp;flash_promotion_id" vertex="1">
+          <mxGeometry height="17" width="220" y="77" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-order_items-4" parent="ov-order_items" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;price" vertex="1">
+          <mxGeometry height="17" width="220" y="94" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-order_items-5" parent="ov-order_items" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;quantity" vertex="1">
+          <mxGeometry height="17" width="220" y="111" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-products" parent="1" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;collapsible=0;html=1;fontSize=14;fillColor=#d5e8d4;strokeColor=#2d7600;swimlaneFillColor=#ffffff;" value="Sản phẩm (products)" vertex="1">
+          <mxGeometry height="134" width="220" x="930" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-products-0" parent="ov-products" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;PK&lt;/b&gt;&amp;nbsp;&lt;u&gt;id&lt;/u&gt;" vertex="1">
+          <mxGeometry height="17" width="220" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-products-1" parent="ov-products" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;FK&lt;/b&gt;&amp;nbsp;category_id" vertex="1">
+          <mxGeometry height="17" width="220" y="43" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-products-2" parent="ov-products" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;name" vertex="1">
+          <mxGeometry height="17" width="220" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-products-3" parent="ov-products" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;drug_type" vertex="1">
+          <mxGeometry height="17" width="220" y="77" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-products-4" parent="ov-products" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;unit" vertex="1">
+          <mxGeometry height="17" width="220" y="94" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-products-5" parent="ov-products" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;price" vertex="1">
+          <mxGeometry height="17" width="220" y="111" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-product_units" parent="1" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;collapsible=0;html=1;fontSize=14;fillColor=#d5e8d4;strokeColor=#2d7600;swimlaneFillColor=#ffffff;" value="Đơn vị tính (product_units)" vertex="1">
+          <mxGeometry height="117" width="220" x="1300" y="310" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-product_units-0" parent="ov-product_units" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;PK&lt;/b&gt;&amp;nbsp;&lt;u&gt;id&lt;/u&gt;" vertex="1">
+          <mxGeometry height="17" width="220" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-product_units-1" parent="ov-product_units" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;FK&lt;/b&gt;&amp;nbsp;product_id" vertex="1">
+          <mxGeometry height="17" width="220" y="43" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-product_units-2" parent="ov-product_units" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;name" vertex="1">
+          <mxGeometry height="17" width="220" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-product_units-3" parent="ov-product_units" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;factor" vertex="1">
+          <mxGeometry height="17" width="220" y="77" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-product_units-4" parent="ov-product_units" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;price" vertex="1">
+          <mxGeometry height="17" width="220" y="94" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-prescriptions" parent="1" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;collapsible=0;html=1;fontSize=14;fillColor=#ffe6cc;strokeColor=#b46504;swimlaneFillColor=#ffffff;" value="Đơn thuốc (prescriptions)" vertex="1">
+          <mxGeometry height="117" width="220" x="60" y="550" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-prescriptions-0" parent="ov-prescriptions" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;PK&lt;/b&gt;&amp;nbsp;&lt;u&gt;id&lt;/u&gt;" vertex="1">
+          <mxGeometry height="17" width="220" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-prescriptions-1" parent="ov-prescriptions" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;FK&lt;/b&gt;&amp;nbsp;order_id" vertex="1">
+          <mxGeometry height="17" width="220" y="43" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-prescriptions-2" parent="ov-prescriptions" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;FK&lt;/b&gt;&amp;nbsp;user_id" vertex="1">
+          <mxGeometry height="17" width="220" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-prescriptions-3" parent="ov-prescriptions" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;image" vertex="1">
+          <mxGeometry height="17" width="220" y="77" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-prescriptions-4" parent="ov-prescriptions" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;status" vertex="1">
+          <mxGeometry height="17" width="220" y="94" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-payment_transactions" parent="1" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;collapsible=0;html=1;fontSize=14;fillColor=#ffe6cc;strokeColor=#b46504;swimlaneFillColor=#ffffff;" value="Giao dịch thanh toán (payment_transactions)" vertex="1">
+          <mxGeometry height="134" width="302" x="293" y="550" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-payment_transactions-0" parent="ov-payment_transactions" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;PK&lt;/b&gt;&amp;nbsp;&lt;u&gt;id&lt;/u&gt;" vertex="1">
+          <mxGeometry height="17" width="302" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-payment_transactions-1" parent="ov-payment_transactions" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;FK&lt;/b&gt;&amp;nbsp;order_id" vertex="1">
+          <mxGeometry height="17" width="302" y="43" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-payment_transactions-2" parent="ov-payment_transactions" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;gateway" vertex="1">
+          <mxGeometry height="17" width="302" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-payment_transactions-3" parent="ov-payment_transactions" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;type" vertex="1">
+          <mxGeometry height="17" width="302" y="77" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-payment_transactions-4" parent="ov-payment_transactions" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;amount" vertex="1">
+          <mxGeometry height="17" width="302" y="94" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-payment_transactions-5" parent="ov-payment_transactions" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;status" vertex="1">
+          <mxGeometry height="17" width="302" y="111" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-order_item_batches" parent="1" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;collapsible=0;html=1;fontSize=14;fillColor=#ffe6cc;strokeColor=#b46504;swimlaneFillColor=#ffffff;" value="Xuất kho theo lô (order_item_batches)" vertex="1">
+          <mxGeometry height="100" width="258" x="614" y="550" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-order_item_batches-0" parent="ov-order_item_batches" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;PK&lt;/b&gt;&amp;nbsp;&lt;u&gt;id&lt;/u&gt;" vertex="1">
+          <mxGeometry height="17" width="258" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-order_item_batches-1" parent="ov-order_item_batches" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;FK&lt;/b&gt;&amp;nbsp;order_item_id" vertex="1">
+          <mxGeometry height="17" width="258" y="43" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-order_item_batches-2" parent="ov-order_item_batches" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;FK&lt;/b&gt;&amp;nbsp;batch_id" vertex="1">
+          <mxGeometry height="17" width="258" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-order_item_batches-3" parent="ov-order_item_batches" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;quantity" vertex="1">
+          <mxGeometry height="17" width="258" y="77" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-batches" parent="1" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;collapsible=0;html=1;fontSize=14;fillColor=#e1d5e7;strokeColor=#5a3e9b;swimlaneFillColor=#ffffff;" value="Lô thuốc (batches)" vertex="1">
+          <mxGeometry height="151" width="220" x="930" y="550" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-batches-0" parent="ov-batches" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;PK&lt;/b&gt;&amp;nbsp;&lt;u&gt;id&lt;/u&gt;" vertex="1">
+          <mxGeometry height="17" width="220" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-batches-1" parent="ov-batches" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;FK&lt;/b&gt;&amp;nbsp;product_id" vertex="1">
+          <mxGeometry height="17" width="220" y="43" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-batches-2" parent="ov-batches" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;FK&lt;/b&gt;&amp;nbsp;receipt_id" vertex="1">
+          <mxGeometry height="17" width="220" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-batches-3" parent="ov-batches" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;FK&lt;/b&gt;&amp;nbsp;supplier_id" vertex="1">
+          <mxGeometry height="17" width="220" y="77" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-batches-4" parent="ov-batches" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;batch_no" vertex="1">
+          <mxGeometry height="17" width="220" y="94" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-batches-5" parent="ov-batches" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;exp_date" vertex="1">
+          <mxGeometry height="17" width="220" y="111" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-batches-6" parent="ov-batches" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;quantity" vertex="1">
+          <mxGeometry height="17" width="220" y="128" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-receipt_items" parent="1" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;collapsible=0;html=1;fontSize=14;fillColor=#e1d5e7;strokeColor=#5a3e9b;swimlaneFillColor=#ffffff;" value="Dòng phiếu nhập (receipt_items)" vertex="1">
+          <mxGeometry height="134" width="220" x="1210" y="527" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-receipt_items-0" parent="ov-receipt_items" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;PK&lt;/b&gt;&amp;nbsp;&lt;u&gt;id&lt;/u&gt;" vertex="1">
+          <mxGeometry height="17" width="220" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-receipt_items-1" parent="ov-receipt_items" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;FK&lt;/b&gt;&amp;nbsp;receipt_id" vertex="1">
+          <mxGeometry height="17" width="220" y="43" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-receipt_items-2" parent="ov-receipt_items" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;FK&lt;/b&gt;&amp;nbsp;product_id" vertex="1">
+          <mxGeometry height="17" width="220" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-receipt_items-3" parent="ov-receipt_items" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;batch_no" vertex="1">
+          <mxGeometry height="17" width="220" y="77" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-receipt_items-4" parent="ov-receipt_items" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;exp_date" vertex="1">
+          <mxGeometry height="17" width="220" y="94" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-receipt_items-5" parent="ov-receipt_items" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;quantity" vertex="1">
+          <mxGeometry height="17" width="220" y="111" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-receipts" parent="1" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;collapsible=0;html=1;fontSize=14;fillColor=#e1d5e7;strokeColor=#5a3e9b;swimlaneFillColor=#ffffff;" value="Phiếu nhập (receipts)" vertex="1">
+          <mxGeometry height="100" width="220" x="1523" y="545" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-receipts-0" parent="ov-receipts" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;PK&lt;/b&gt;&amp;nbsp;&lt;u&gt;id&lt;/u&gt;" vertex="1">
+          <mxGeometry height="17" width="220" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-receipts-1" parent="ov-receipts" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;code (UQ)" vertex="1">
+          <mxGeometry height="17" width="220" y="43" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-receipts-2" parent="ov-receipts" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;FK&lt;/b&gt;&amp;nbsp;supplier_id" vertex="1">
+          <mxGeometry height="17" width="220" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-receipts-3" parent="ov-receipts" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;status" vertex="1">
+          <mxGeometry height="17" width="220" y="77" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-conversations" parent="1" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;collapsible=0;html=1;fontSize=14;fillColor=#f8cecc;strokeColor=#ae4132;swimlaneFillColor=#ffffff;" value="Cuộc tư vấn (conversations)" vertex="1">
+          <mxGeometry height="100" width="220" x="28" y="789" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-conversations-0" parent="ov-conversations" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;PK&lt;/b&gt;&amp;nbsp;&lt;u&gt;id&lt;/u&gt;" vertex="1">
+          <mxGeometry height="17" width="220" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-conversations-1" parent="ov-conversations" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;FK&lt;/b&gt;&amp;nbsp;customer_id" vertex="1">
+          <mxGeometry height="17" width="220" y="43" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-conversations-2" parent="ov-conversations" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;mode" vertex="1">
+          <mxGeometry height="17" width="220" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-conversations-3" parent="ov-conversations" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;closed" vertex="1">
+          <mxGeometry height="17" width="220" y="77" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-suggested_carts" parent="1" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;collapsible=0;html=1;fontSize=14;fillColor=#f8cecc;strokeColor=#ae4132;swimlaneFillColor=#ffffff;" value="Giỏ hàng gợi ý (suggested_carts)" vertex="1">
+          <mxGeometry height="94" width="223" x="357" y="785" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-suggested_carts-0" parent="ov-suggested_carts" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;PK&lt;/b&gt;&amp;nbsp;&lt;u&gt;id&lt;/u&gt;" vertex="1">
+          <mxGeometry height="17" width="223" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="hq0l18lj_1Ib9wpm7OzT-2" parent="ov-suggested_carts" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;PK&lt;/b&gt;&amp;nbsp;&lt;u&gt;id&lt;/u&gt;" vertex="1">
+          <mxGeometry height="17" width="223" y="43" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-suggested_carts-1" parent="ov-suggested_carts" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;FK&lt;/b&gt;&amp;nbsp;conversation_id" vertex="1">
+          <mxGeometry height="17" width="223" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-suggested_carts-2" parent="ov-suggested_carts" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;note" vertex="1">
+          <mxGeometry height="17" width="223" y="77" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-suggested_cart_items" parent="1" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;collapsible=0;html=1;fontSize=14;fillColor=#f8cecc;strokeColor=#ae4132;swimlaneFillColor=#ffffff;" value="Dòng giỏ gợi ý (suggested_cart_items)" vertex="1">
+          <mxGeometry height="100" width="257" x="638" y="786" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-suggested_cart_items-0" parent="ov-suggested_cart_items" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;PK&lt;/b&gt;&amp;nbsp;&lt;u&gt;id&lt;/u&gt;" vertex="1">
+          <mxGeometry height="17" width="257" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-suggested_cart_items-1" parent="ov-suggested_cart_items" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;FK&lt;/b&gt;&amp;nbsp;suggested_cart_id" vertex="1">
+          <mxGeometry height="17" width="257" y="43" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-suggested_cart_items-2" parent="ov-suggested_cart_items" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;FK&lt;/b&gt;&amp;nbsp;product_id" vertex="1">
+          <mxGeometry height="17" width="257" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-suggested_cart_items-3" parent="ov-suggested_cart_items" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;quantity" vertex="1">
+          <mxGeometry height="17" width="257" y="77" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-stock_adjustments" parent="1" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;collapsible=0;html=1;fontSize=14;fillColor=#e1d5e7;strokeColor=#5a3e9b;swimlaneFillColor=#ffffff;" value="Phiếu hủy / điều chỉnh (stock_adjustments)" vertex="1">
+          <mxGeometry height="116" width="295" x="932" y="777" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-stock_adjustments-0" parent="ov-stock_adjustments" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;PK&lt;/b&gt;&amp;nbsp;&lt;u&gt;id&lt;/u&gt;" vertex="1">
+          <mxGeometry height="17" width="295" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-stock_adjustments-1" parent="ov-stock_adjustments" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;FK&lt;/b&gt;&amp;nbsp;batch_id" vertex="1">
+          <mxGeometry height="17" width="295" y="43" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-stock_adjustments-2" parent="ov-stock_adjustments" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;type" vertex="1">
+          <mxGeometry height="17" width="295" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-stock_adjustments-3" parent="ov-stock_adjustments" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;quantity" vertex="1">
+          <mxGeometry height="17" width="295" y="77" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-stock_adjustments-4" parent="ov-stock_adjustments" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;status" vertex="1">
+          <mxGeometry height="17" width="295" y="94" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-suppliers" parent="1" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;collapsible=0;html=1;fontSize=14;fillColor=#e1d5e7;strokeColor=#5a3e9b;swimlaneFillColor=#ffffff;" value="Nhà cung cấp (suppliers)" vertex="1">
+          <mxGeometry height="100" width="220" x="1521" y="743" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-suppliers-0" parent="ov-suppliers" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;PK&lt;/b&gt;&amp;nbsp;&lt;u&gt;id&lt;/u&gt;" vertex="1">
+          <mxGeometry height="17" width="220" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-suppliers-1" parent="ov-suppliers" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;name" vertex="1">
+          <mxGeometry height="17" width="220" y="43" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-suppliers-2" parent="ov-suppliers" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;phone" vertex="1">
+          <mxGeometry height="17" width="220" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-suppliers-3" parent="ov-suppliers" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;tax_code" vertex="1">
+          <mxGeometry height="17" width="220" y="77" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-messages" parent="1" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;collapsible=0;html=1;fontSize=14;fillColor=#f8cecc;strokeColor=#ae4132;swimlaneFillColor=#ffffff;" value="Tin nhắn (messages)" vertex="1">
+          <mxGeometry height="100" width="220" x="37" y="939" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-messages-0" parent="ov-messages" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;PK&lt;/b&gt;&amp;nbsp;&lt;u&gt;id&lt;/u&gt;" vertex="1">
+          <mxGeometry height="17" width="220" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-messages-1" parent="ov-messages" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;FK&lt;/b&gt;&amp;nbsp;conversation_id" vertex="1">
+          <mxGeometry height="17" width="220" y="43" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-messages-2" parent="ov-messages" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;b&gt;FK&lt;/b&gt;&amp;nbsp;suggested_cart_id" vertex="1">
+          <mxGeometry height="17" width="220" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ov-messages-3" parent="ov-messages" style="text;html=1;align=left;verticalAlign=middle;spacingLeft=6;fontSize=14;" value="&lt;span style=&quot;color:#fff&quot;&gt;PK&lt;/span&gt;&amp;nbsp;body" vertex="1">
+          <mxGeometry height="17" width="220" y="77" as="geometry" />
+        </mxCell>
+        <mxCell id="erd-tong-quat-2" edge="1" parent="1" source="ov-addresses" style="startArrow=ERmany;endArrow=ERmandOne;startFill=0;endFill=0;html=1;rounded=0;strokeColor=#444444;fontSize=14;fontStyle=2;labelBackgroundColor=#ffffff;" target="ov-users" value="có">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="erd-tong-quat-3" edge="1" parent="1" source="ov-orders" style="startArrow=ERmany;endArrow=ERmandOne;startFill=0;endFill=0;html=1;rounded=0;strokeColor=#444444;fontSize=14;fontStyle=2;labelBackgroundColor=#ffffff;" target="ov-users" value="đặt">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="erd-tong-quat-4" edge="1" parent="1" source="ov-order_items" style="startArrow=ERmany;endArrow=ERmandOne;startFill=0;endFill=0;html=1;rounded=0;strokeColor=#444444;fontSize=14;fontStyle=2;labelBackgroundColor=#ffffff;" target="ov-orders" value="gồm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="erd-tong-quat-5" edge="1" parent="1" source="ov-order_items" style="startArrow=ERmany;endArrow=ERmandOne;startFill=0;endFill=0;html=1;rounded=0;strokeColor=#444444;fontSize=14;fontStyle=2;labelBackgroundColor=#ffffff;" target="ov-products" value="là">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="erd-tong-quat-6" edge="1" parent="1" source="ov-product_units" style="startArrow=ERmany;endArrow=ERmandOne;startFill=0;endFill=0;html=1;rounded=0;strokeColor=#444444;fontSize=14;fontStyle=2;labelBackgroundColor=#ffffff;exitX=0;exitY=0.3;exitDx=0;exitDy=0;entryX=1;entryY=0.3;entryDx=0;entryDy=0;" target="ov-products" value="quy đổi">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="erd-tong-quat-7" edge="1" parent="1" source="ov-prescriptions" style="startArrow=ERmany;endArrow=ERmandOne;startFill=0;endFill=0;html=1;rounded=0;strokeColor=#444444;fontSize=14;fontStyle=2;labelBackgroundColor=#ffffff;" target="ov-users" value="gửi">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="erd-tong-quat-8" edge="1" parent="1" source="ov-prescriptions" style="startArrow=ERmany;endArrow=ERzeroToOne;startFill=0;endFill=0;html=1;rounded=0;strokeColor=#444444;fontSize=14;fontStyle=2;labelBackgroundColor=#ffffff;" target="ov-orders" value="kèm theo">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="erd-tong-quat-9" edge="1" parent="1" source="ov-payment_transactions" style="startArrow=ERmany;endArrow=ERmandOne;startFill=0;endFill=0;html=1;rounded=0;strokeColor=#444444;fontSize=14;fontStyle=2;labelBackgroundColor=#ffffff;" target="ov-orders" value="thanh toán">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="erd-tong-quat-10" edge="1" parent="1" source="ov-order_item_batches" style="startArrow=ERmany;endArrow=ERmandOne;startFill=0;endFill=0;html=1;rounded=0;strokeColor=#444444;fontSize=14;fontStyle=2;labelBackgroundColor=#ffffff;entryX=0.454;entryY=1.278;entryDx=0;entryDy=0;entryPerimeter=0;" target="ov-order_items-5" value="xuất cho">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="erd-tong-quat-11" edge="1" parent="1" source="ov-order_item_batches-2" style="startArrow=ERmany;endArrow=ERmandOne;startFill=0;endFill=0;html=1;rounded=0;strokeColor=#444444;fontSize=14;fontStyle=2;labelBackgroundColor=#ffffff;exitX=1;exitY=1;exitDx=0;exitDy=0;" target="ov-batches" value="lấy từ">
+          <mxGeometry relative="1" x="-0.1526" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="erd-tong-quat-12" edge="1" parent="1" source="ov-order_items" style="startArrow=ERmany;endArrow=ERzeroToOne;startFill=0;endFill=0;html=1;rounded=0;strokeColor=#444444;fontSize=14;fontStyle=2;labelBackgroundColor=#ffffff;" target="ov-promotions" value="giữ suất">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="erd-tong-quat-13" edge="1" parent="1" source="ov-promotion_items" style="startArrow=ERmany;endArrow=ERmandOne;startFill=0;endFill=0;html=1;rounded=0;strokeColor=#444444;fontSize=14;fontStyle=2;labelBackgroundColor=#ffffff;" target="ov-promotions" value="thuộc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="erd-tong-quat-14" edge="1" parent="1" source="ov-promotion_items" style="startArrow=ERmany;endArrow=ERmandOne;startFill=0;endFill=0;html=1;rounded=0;strokeColor=#444444;fontSize=14;fontStyle=2;labelBackgroundColor=#ffffff;" target="ov-products" value="là">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="erd-tong-quat-15" edge="1" parent="1" source="ov-products" style="startArrow=ERmany;endArrow=ERzeroToOne;startFill=0;endFill=0;html=1;rounded=0;strokeColor=#444444;fontSize=14;fontStyle=2;labelBackgroundColor=#ffffff;" target="ov-categories" value="thuộc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="erd-tong-quat-16" edge="1" parent="1" source="ov-vouchers" style="startArrow=ERmany;endArrow=ERzeroToOne;startFill=0;endFill=0;html=1;rounded=0;strokeColor=#444444;fontSize=14;fontStyle=2;labelBackgroundColor=#ffffff;" target="ov-categories" value="áp dụng">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="erd-tong-quat-17" edge="1" parent="1" source="ov-categories" style="startArrow=ERmany;endArrow=ERzeroToOne;html=1;rounded=0;strokeColor=#444444;fontSize=14;fontStyle=2;edgeStyle=orthogonalEdgeStyle;exitX=0.75;exitY=0;entryX=0.25;entryY=0;labelBackgroundColor=#ffffff;innerLoopWaypoints=1;entryDx=0;entryDy=0;exitDx=0;exitDy=0;" target="ov-categories" value="cha - con">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1380" y="101" />
+              <mxPoint x="1270" y="101" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="erd-tong-quat-18" edge="1" parent="1" source="ov-products" style="labelPosition=right;align=left;spacingLeft=4;startArrow=ERmany;endArrow=ERmany;html=1;rounded=0;strokeColor=#444444;fontSize=14;fontStyle=2;edgeStyle=orthogonalEdgeStyle;exitX=1;exitY=0.62;entryX=1;entryY=0.92;labelBackgroundColor=#ffffff;" target="ov-products" value="tương đương&lt;br&gt;(N-N)">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1180" y="393.08" />
+              <mxPoint x="1180" y="433.28" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="erd-tong-quat-19" edge="1" parent="1" source="ov-batches" style="startArrow=ERmany;endArrow=ERmandOne;startFill=0;endFill=0;html=1;rounded=0;strokeColor=#444444;fontSize=14;fontStyle=2;labelBackgroundColor=#ffffff;" target="ov-products" value="của">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="erd-tong-quat-20" edge="1" parent="1" source="ov-receipt_items" style="startArrow=ERmany;endArrow=ERmandOne;startFill=0;endFill=0;html=1;rounded=0;strokeColor=#444444;fontSize=14;fontStyle=2;labelBackgroundColor=#ffffff;entryX=0.793;entryY=1.301;entryDx=0;entryDy=0;entryPerimeter=0;" target="ov-products-5" value="nhập">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="erd-tong-quat-21" edge="1" parent="1" source="ov-receipt_items" style="startArrow=ERmany;endArrow=ERmandOne;startFill=0;endFill=0;html=1;rounded=0;strokeColor=#444444;fontSize=14;fontStyle=2;labelBackgroundColor=#ffffff;" target="ov-receipts" value="thuộc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="erd-tong-quat-22" edge="1" parent="1" source="ov-receipts" style="startArrow=ERmany;endArrow=ERzeroToOne;startFill=0;endFill=0;html=1;rounded=0;strokeColor=#444444;fontSize=14;fontStyle=2;labelBackgroundColor=#ffffff;" target="ov-suppliers" value="từ">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="erd-tong-quat-23" edge="1" parent="1" source="ov-stock_adjustments" style="startArrow=ERmany;endArrow=ERmandOne;startFill=0;endFill=0;html=1;rounded=0;strokeColor=#444444;fontSize=14;fontStyle=2;labelBackgroundColor=#ffffff;exitX=0.393;exitY=-0.009;exitDx=0;exitDy=0;exitPerimeter=0;" value="điều chỉnh">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1049.66" y="700.66" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="erd-tong-quat-24" edge="1" parent="1" source="ov-batches" style="startArrow=ERmany;endArrow=ERzeroToOne;startFill=0;endFill=0;html=1;rounded=0;strokeColor=#444444;fontSize=14;fontStyle=2;labelBackgroundColor=#ffffff;exitX=0.92;exitY=1;exitDx=0;exitDy=0;entryX=0.2;entryY=1;entryDx=0;entryDy=0;edgeStyle=orthogonalEdgeStyle;" target="ov-receipts" value="sinh từ">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1132.38" y="726" />
+              <mxPoint x="1567" y="726" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="erd-tong-quat-25" edge="1" parent="1" source="ov-batches" style="startArrow=ERmany;endArrow=ERzeroToOne;startFill=0;endFill=0;html=1;rounded=0;strokeColor=#444444;fontSize=14;fontStyle=2;labelBackgroundColor=#ffffff;exitX=0.72;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;edgeStyle=orthogonalEdgeStyle;" target="ov-suppliers" value="cung cấp">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1088.37" y="756" />
+              <mxPoint x="1300.12" y="756" />
+              <mxPoint x="1300.12" y="793" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="erd-tong-quat-26" edge="1" parent="1" source="ov-conversations" style="startArrow=ERmany;endArrow=ERmandOne;startFill=0;endFill=0;html=1;rounded=0;strokeColor=#444444;fontSize=14;fontStyle=2;labelBackgroundColor=#ffffff;exitX=0;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.7;entryDx=0;entryDy=0;edgeStyle=orthogonalEdgeStyle;" target="ov-users" value="mở">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="31" y="820" />
+              <mxPoint x="8" y="820" />
+              <mxPoint x="8" y="403.75" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="erd-tong-quat-27" edge="1" parent="1" source="ov-messages" style="startArrow=ERmany;endArrow=ERmandOne;startFill=0;endFill=0;html=1;rounded=0;strokeColor=#444444;fontSize=14;fontStyle=2;labelBackgroundColor=#ffffff;" target="ov-conversations" value="thuộc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="erd-tong-quat-28" edge="1" parent="1" source="ov-suggested_carts" style="startArrow=ERmany;endArrow=ERmandOne;startFill=0;endFill=0;html=1;rounded=0;strokeColor=#444444;fontSize=14;fontStyle=2;labelBackgroundColor=#ffffff;" target="ov-conversations" value="đề xuất trong">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="erd-tong-quat-29" edge="1" parent="1" source="ov-suggested_cart_items" style="startArrow=ERmany;endArrow=ERmandOne;startFill=0;endFill=0;html=1;rounded=0;strokeColor=#444444;fontSize=14;fontStyle=2;labelBackgroundColor=#ffffff;" target="ov-suggested_carts" value="thuộc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="erd-tong-quat-30" edge="1" parent="1" source="ov-messages-1" style="startArrow=ERmany;endArrow=ERzeroToOne;startFill=0;endFill=0;html=1;rounded=0;strokeColor=#444444;fontSize=14;fontStyle=2;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" value="đính kèm">
+          <mxGeometry relative="1" x="-0.0013" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="461" y="990.5" />
+            </Array>
+            <mxPoint x="461" y="880" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="erd-tong-quat-31" edge="1" parent="1" source="ov-suggested_cart_items" style="startArrow=ERmany;endArrow=ERmandOne;startFill=0;endFill=0;html=1;rounded=0;strokeColor=#444444;fontSize=14;fontStyle=2;labelBackgroundColor=#ffffff;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.85;entryDx=0;entryDy=0;edgeStyle=orthogonalEdgeStyle;" target="ov-products" value="là">
+          <mxGeometry relative="1" x="-0.75" as="geometry">
+            <Array as="points">
+              <mxPoint x="766.5" y="720.13" />
+              <mxPoint x="895" y="720.13" />
+              <mxPoint x="895" y="423.88" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

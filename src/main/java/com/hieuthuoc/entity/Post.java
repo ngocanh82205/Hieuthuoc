@@ -2,18 +2,19 @@ package com.hieuthuoc.entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
 
+/** Bài viết sức khỏe. */
 @Entity
 @Table(name = "posts")
 @Getter
 @Setter
 @NoArgsConstructor
-public class Post {
+public class Post extends Timestamped {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -27,25 +28,26 @@ public class Post {
     @Column(length = 500)
     private String summary;
 
-    @Lob
-    @Column(nullable = false, columnDefinition = "LONGTEXT")
+    @Column(nullable = false, columnDefinition = "longtext")
     private String content;
 
+    @Column(length = 300)
+    private String image;
+
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "author_id")
     private User author;
 
+    @Column(nullable = false)
     private boolean published = true;
 
-    @Column(nullable = false)
-    private LocalDateTime createdAt;
-
-    @PrePersist
-    void prePersist() {
-        if (createdAt == null) createdAt = LocalDateTime.now();
+    public List<String> paragraphs() {
+        if (content == null) return List.of();
+        return Arrays.stream(content.split("\\r?\\n\\s*\\r?\\n|\\r?\\n")).map(String::trim).filter(s -> !s.isEmpty()).toList();
     }
 
-    /** Tách nội dung thành các đoạn văn để hiển thị. */
-    public String[] getParagraphs() {
-        return content == null ? new String[0] : content.trim().split("\\r?\\n\\s*\\r?\\n");
+    public String imageUrl() {
+        if (image == null || image.isEmpty()) return null;
+        return image.startsWith("http") ? image : "/storage/" + image;
     }
 }

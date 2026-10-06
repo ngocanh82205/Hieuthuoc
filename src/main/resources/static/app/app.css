@@ -1,0 +1,15 @@
+:root { --vp-primary: #0b63e5; }
+body { background: #f3f6fb; }
+.loading-bar { position: fixed; top: 0; left: 0; height: 3px; width: 100%; z-index: 2000;
+    background: linear-gradient(90deg, transparent, #36a3ff, transparent); background-size: 50% 100%; animation: vp-load 1s linear infinite; }
+@keyframes vp-load { from { background-position: -50% 0; } to { background-position: 150% 0; } }
+.product-card img { height: 150px; object-fit: contain; background: #fff; }
+.product-card .name { min-height: 2.6em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.price { color: #d6336c; font-weight: 700; }
+.chat-box { height: 50vh; overflow-y: auto; background: #fff; border-radius: .5rem; padding: 1rem; }
+.bubble { max-width: 75%; padding: .5rem .75rem; border-radius: 1rem; margin-bottom: .5rem; white-space: pre-line; }
+.bubble.me { background: var(--vp-primary); color: #fff; margin-left: auto; border-bottom-right-radius: .25rem; }
+.bubble.other { background: #eef2f8; border-bottom-left-radius: .25rem; }
+.skeleton { background: linear-gradient(90deg, #e9edf3 25%, #f5f7fa 50%, #e9edf3 75%); background-size: 200% 100%; animation: vp-sk 1.2s infinite; border-radius: .5rem; min-height: 1rem; }
+@keyframes vp-sk { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+.img-ph { height: 150px; background: #eef4ff; }

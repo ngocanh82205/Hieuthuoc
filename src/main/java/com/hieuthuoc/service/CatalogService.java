@@ -1,7 +1,10 @@
 package com.hieuthuoc.service;
 
 import com.hieuthuoc.entity.*;
-import com.hieuthuoc.repository.*;
+import com.hieuthuoc.repository.CategoryRepository;
+import com.hieuthuoc.repository.ProductRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -12,133 +15,105 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.security.SecureRandom;
 import java.util.*;
 
-/**
- * Danh mục dữ liệu sản phẩm: hoạt chất, thương hiệu/NSX, thuốc tương đương, import/export Excel.
- */
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class CatalogService {
-    private final ProductRepository productRepo;
-    private final CategoryRepository categoryRepo;
-    private final IngredientRepository ingredientRepo;
-    private final ManufacturerRepository manufacturerRepo;
-    private final StockService stockService;
-
-    /* ======================= Hoạt chất, thương hiệu ======================= */
-
-    /** Tách thành phần "Paracetamol, Caffeine" / "A + B" thành từng hoạt chất. */
-    public static List<String> splitIngredients(String s) {
-        if (Texts.isBlank(s)) return List.of();
-        List<String> out = new ArrayList<>();
-        for (String part : s.split("\\s*[,;+]\\s*")) if (!part.isBlank()) out.add(part.trim());
-        return out;
-    }
-
-    /** Bổ sung vào danh mục các hoạt chất / thương hiệu đang dùng trong sản phẩm mà chưa có. Trả về số bản ghi thêm mới. */
-    public int syncMasters() {
-        int added = 0;
-        Set<String> ing = new HashSet<>();
-        ingredientRepo.findAll().forEach(i -> ing.add(i.getName().toLowerCase()));
-        Set<String> man = new HashSet<>();
-        manufacturerRepo.findAll().forEach(m -> man.add(m.getName().toLowerCase()));
-        for (Product p : productRepo.findAll()) {
-            for (String i : splitIngredients(p.getActiveIngredient())) {
-                if (ing.add(i.toLowerCase())) {
-                    ingredientRepo.save(new Ingredient(Texts.trim(i, 150)));
-                    added++;
-                }
-            }
-            if (!Texts.isBlank(p.getManufacturer()) && man.add(p.getManufacturer().toLowerCase())) {
-                manufacturerRepo.save(new Manufacturer(Texts.trim(p.getManufacturer(), 150), p.getCountry()));
-                added++;
-            }
-        }
-        return added;
-    }
-
-    public long countProductsWithIngredient(String name) {
-        String n = name.toLowerCase();
-        return productRepo.findAll().stream()
-                .filter(p -> splitIngredients(p.getActiveIngredient()).stream().anyMatch(i -> i.equalsIgnoreCase(n))).count();
-    }
-
-    /** Đổi tên hoạt chất: cập nhật luôn thành phần của các sản phẩm đang dùng tên cũ. Trả về số sản phẩm được cập nhật. */
-    public int renameIngredient(String oldName, String newName) {
-        if (oldName.equals(newName)) return 0;
-        int n = 0;
-        for (Product p : productRepo.findAll()) {
-            List<String> parts = splitIngredients(p.getActiveIngredient());
-            boolean hit = false;
-            for (int i = 0; i < parts.size(); i++) {
-                if (parts.get(i).equalsIgnoreCase(oldName)) {
-                    parts.set(i, newName);
-                    hit = true;
-                }
-            }
-            if (hit) {
-                p.setActiveIngredient(String.join(", ", parts));
-                n++;
-            }
-        }
-        return n;
-    }
-
-    public int renameManufacturer(String oldName, String newName) {
-        if (oldName.equals(newName)) return 0;
-        int n = 0;
-        for (Product p : productRepo.findAll()) {
-            if (oldName.equalsIgnoreCase(p.getManufacturer())) {
-                p.setManufacturer(newName);
-                n++;
-            }
-        }
-        return n;
-    }
-
-    /* ======================= Thuốc tương đương ======================= */
-
-    /**
-     * Thuốc có thể thay thế: cùng hoạt chất (và cùng hàm lượng nếu sameStrength) hoặc được admin cấu hình tương đương.
-     */
-    @Transactional(readOnly = true)
-    public List<Product> equivalents(Product p, boolean sameStrength) {
-        LinkedHashMap<Long, Product> out = new LinkedHashMap<>();
-        for (Product e : p.getEquivalents()) if (e.isActive()) out.put(e.getId(), e);
-        if (p.getActiveIngredient() != null) {
-            for (Product e : productRepo.findByActiveTrueAndActiveIngredientIgnoreCaseAndIdNot(p.getActiveIngredient(), p.getId())) {
-                if (sameStrength && p.getStrength() != null && e.getStrength() != null && !p.getStrength().equalsIgnoreCase(e.getStrength())) continue;
-                out.putIfAbsent(e.getId(), e);
-            }
-        }
-        // Quan hệ tương đương cấu hình theo chiều ngược lại
-        for (Product e : productRepo.findEquivalentOf(p)) if (e.isActive()) out.putIfAbsent(e.getId(), e);
-        out.remove(p.getId());
-        return new ArrayList<>(out.values());
-    }
-
-    /** Thuốc B có được phép thay thuốc A khi duyệt đơn: cùng hoạt chất + hàm lượng, hoặc admin cấu hình tương đương. */
-    @Transactional(readOnly = true)
-    public boolean isSubstitutable(Product a, Product b) {
-        if (a.getEquivalents().stream().anyMatch(x -> x.getId().equals(b.getId()))) return true;
-        if (b.getEquivalents().stream().anyMatch(x -> x.getId().equals(a.getId()))) return true;
-        if (a.getActiveIngredient() == null || !a.getActiveIngredient().equalsIgnoreCase(b.getActiveIngredient())) return false;
-        return a.getStrength() == null || b.getStrength() == null || a.getStrength().equalsIgnoreCase(b.getStrength());
-    }
-
-    /* ======================= Import / export Excel ======================= */
-
     public static final String[] COLUMNS = {"ID", "Tên sản phẩm", "Danh mục", "Hoạt chất", "Hàm lượng", "Dạng bào chế", "Quy cách",
             "Số đăng ký", "Thương hiệu / NSX", "Nước SX", "Loại (OTC/ETC/SPECIAL/SUPPLEMENT/DEVICE/COSMETIC)", "ĐVT gốc", "Giá bán",
             "Giá gốc (trước KM)", "Tối đa / đơn", "Tồn tối thiểu", "Đơn vị quy đổi (Hộp=10:120000; ...)", "Đang bán (1/0)",
             "Mô tả", "Cách dùng", "Chống chỉ định", "Tác dụng phụ", "SEO title", "SEO description", "Tồn kho hiện tại"};
 
+    private static final SecureRandom RANDOM = new SecureRandom();
+
+    private final StockService stock;
+    private final ProductRepository productRepo;
+    private final CategoryRepository categoryRepo;
+    private final Sql sql;
+
+    @PersistenceContext
+    private EntityManager em;
+
+    /** Gợi ý khi nhập: các hoạt chất đã có trong sản phẩm (không trùng, không phân biệt hoa thường). */
+    @Transactional(readOnly = true)
+    public List<String> ingredientSuggestions() {
+        Map<String, String> uniq = new LinkedHashMap<>();
+        for (String s : em.createQuery("select p.activeIngredient from Product p where p.activeIngredient is not null", String.class).getResultList()) {
+            for (String i : Texts.splitIngredients(s)) uniq.putIfAbsent(i.toLowerCase(), i);
+        }
+        List<String> out = new ArrayList<>(uniq.values());
+        Collections.sort(out);
+        return out;
+    }
+
+    /** Gợi ý khi nhập: các thương hiệu / nhà sản xuất đã có trong sản phẩm. */
+    @Transactional(readOnly = true)
+    public List<String> manufacturerSuggestions() {
+        Map<String, String> uniq = new LinkedHashMap<>();
+        for (String m : em.createQuery("select p.manufacturer from Product p where p.manufacturer is not null and p.manufacturer <> ''", String.class).getResultList()) {
+            uniq.putIfAbsent(m.toLowerCase(), m);
+        }
+        List<String> out = new ArrayList<>(uniq.values());
+        Collections.sort(out);
+        return out;
+    }
+
+    /** Thuốc có thể thay thế: cùng hoạt chất (và hàm lượng nếu sameStrength) hoặc admin cấu hình tương đương. */
+    @Transactional(readOnly = true)
+    public List<Product> equivalents(Product p, boolean sameStrength) {
+        Map<Long, Product> out = new LinkedHashMap<>();
+        for (Product e : p.getEquivalents()) if (e.isActive()) out.put(e.getId(), e);
+        if (p.getActiveIngredient() != null && !p.getActiveIngredient().isEmpty()) {
+            List<Product> same = em.createQuery("select x from Product x where x.active = true and x.id <> :id and lower(x.activeIngredient) = :ai", Product.class)
+                    .setParameter("id", p.getId()).setParameter("ai", p.getActiveIngredient().toLowerCase()).getResultList();
+            for (Product e : same) {
+                if (sameStrength && !sameStrength(p, e)) continue;
+                out.putIfAbsent(e.getId(), e);
+            }
+        }
+        List<Product> reverse = em.createQuery("select x from Product x join x.equivalents e where x.active = true and e.id = :id", Product.class)
+                .setParameter("id", p.getId()).getResultList();
+        for (Product e : reverse) out.putIfAbsent(e.getId(), e);
+        out.remove(p.getId());
+        return new ArrayList<>(out.values());
+    }
+
+    public List<Product> equivalents(Product p) {
+        return equivalents(p, false);
+    }
+
+    /**
+     * Cùng hàm lượng: cả hai thuốc phải ghi hàm lượng và trùng nhau (bỏ qua hoa thường, khoảng trắng: "500 mg" = "500mg").
+     * Thiếu hàm lượng thì không suy ra được là tương đương.
+     */
+    public static boolean sameStrength(Product a, Product b) {
+        String x = normStrength(a.getStrength());
+        return !x.isEmpty() && x.equals(normStrength(b.getStrength()));
+    }
+
+    private static String normStrength(String s) {
+        return Texts.trim(s).toLowerCase().replaceAll("\\s+", "");
+    }
+
+    /** B có được thay A khi duyệt đơn: cùng hoạt chất + hàm lượng, hoặc admin cấu hình tương đương. */
+    @Transactional(readOnly = true)
+    public boolean isSubstitutable(Product a, Product b) {
+        long pair = sql.scalar("select count(*) from product_equivalents where (product_id = :a and equivalent_id = :b) or (product_id = :b and equivalent_id = :a)",
+                Map.of("a", a.getId(), "b", b.getId()));
+        if (pair > 0) return true;
+        if (Texts.isBlank(a.getActiveIngredient()) || !a.getActiveIngredient().toLowerCase().equals(Texts.lower(b.getActiveIngredient()))) return false;
+        return sameStrength(a, b);
+    }
+
+    /* ======================= Import / export Excel ======================= */
+
     @Transactional(readOnly = true)
     public void exportProducts(OutputStream out) throws IOException {
-        List<Product> products = stockService.fill(new ArrayList<>(productRepo.findAll()));
-        products.sort(Comparator.comparing(Product::getId));
+        List<Product> products = new ArrayList<>(em.createQuery("select p from Product p order by p.id", Product.class).getResultList());
+        stock.fill(products, false);
         try (Workbook wb = new XSSFWorkbook()) {
             Sheet sh = wb.createSheet("San pham");
             CellStyle head = headerStyle(wb);
@@ -183,7 +158,7 @@ public class CatalogService {
         else c.setCellValue(String.valueOf(v));
     }
 
-    public record ImportResult(int created, int updated, List<String> errors) {
+    public record ImportResult(int created, int updated) {
     }
 
     private static String str(Row row, int i) {
@@ -212,87 +187,91 @@ public class CatalogService {
         }
     }
 
+    private record Plan(Product product, boolean isNew, List<ProductUnit> units) {
+    }
+
     /**
-     * Nhập sản phẩm từ file Excel theo đúng mẫu export. Có ID (hoặc trùng số đăng ký / tên) thì cập nhật, không thì tạo mới.
-     * Toàn bộ file được kiểm tra trước; có lỗi thì không ghi gì.
+     * Nhập sản phẩm từ Excel theo mẫu export. Có ID (hoặc trùng SĐK / tên) thì cập nhật, không thì tạo mới.
+     * Kiểm tra toàn bộ file trước; có lỗi thì không ghi gì.
      */
     public ImportResult importProducts(MultipartFile file) {
         if (file == null || file.isEmpty()) throw new BusinessException("Vui lòng chọn file Excel (.xlsx).");
-        String name = Objects.requireNonNullElse(file.getOriginalFilename(), "").toLowerCase();
-        if (!name.endsWith(".xlsx")) throw new BusinessException("Chỉ hỗ trợ file .xlsx (tải file mẫu bằng nút Xuất Excel).");
-        List<String> errors = new ArrayList<>();
-        List<Product> toSave = new ArrayList<>();
-        int created = 0, updated = 0;
+        String fname = Objects.requireNonNullElse(file.getOriginalFilename(), "").toLowerCase();
+        if (!fname.endsWith(".xlsx")) throw new BusinessException("Chỉ hỗ trợ file .xlsx (tải file mẫu bằng nút Xuất Excel).");
         Map<String, Category> cats = new HashMap<>();
         categoryRepo.findAll().forEach(c -> cats.put(c.getName().toLowerCase(), c));
+        List<String> errors = new ArrayList<>();
+        List<Plan> plans = new ArrayList<>();
+        Set<String> slugs = new HashSet<>();
+        Sheet sh;
         try (InputStream in = file.getInputStream(); Workbook wb = WorkbookFactory.create(in)) {
-            Sheet sh = wb.getSheetAt(0);
-            Set<String> slugs = new HashSet<>();
+            sh = wb.getSheetAt(0);
             for (int r = 1; r <= sh.getLastRowNum(); r++) {
                 Row row = sh.getRow(r);
                 int line = r + 1;
                 if (row == null || str(row, 1) == null) continue;
                 try {
                     Long id = num(row, 0, "ID", line);
-                    String regNo = str(row, 7);
-                    String pname = Texts.trim(str(row, 1), 200);
+                    String name = Texts.trim(str(row, 1), 200);
+                    String reg = str(row, 7);
                     Product p = id != null ? productRepo.findById(id).orElse(null) : null;
                     if (id != null && p == null) throw new BusinessException("Dòng " + line + ": không tìm thấy sản phẩm ID " + id + ".");
-                    if (p == null && regNo != null) p = productRepo.findFirstByRegistrationNoIgnoreCase(regNo).orElse(null);
-                    if (p == null) p = productRepo.findFirstByNameIgnoreCase(pname).orElse(null);
+                    if (p == null && reg != null) p = first("select p from Product p where lower(p.registrationNo) = :v", reg.toLowerCase());
+                    if (p == null) p = first("select p from Product p where lower(p.name) = :v", name.toLowerCase());
                     boolean isNew = p == null;
-                    if (isNew) {
-                        p = new Product();
-                        String slug = Texts.slugify(pname);
-                        if (productRepo.existsBySlug(slug) || !slugs.add(slug)) slug += "-" + Long.toString(System.nanoTime(), 36);
-                        p.setSlug(slug);
-                    }
                     String catName = str(row, 2);
-                    Category cat = catName == null ? null : cats.get(catName.toLowerCase());
+                    Category cat = catName != null ? cats.get(catName.toLowerCase()) : null;
                     if (catName != null && cat == null) throw new BusinessException("Dòng " + line + ": danh mục \"" + catName + "\" không tồn tại.");
-                    DrugType type;
-                    try {
-                        type = DrugType.valueOf(Objects.requireNonNullElse(str(row, 10), "OTC").toUpperCase());
-                    } catch (IllegalArgumentException e) {
-                        throw new BusinessException("Dòng " + line + ": loại sản phẩm không hợp lệ.");
-                    }
+                    DrugType type = DrugType.tryFrom(Objects.requireNonNullElse(str(row, 10), "OTC").toUpperCase());
+                    if (type == null) throw new BusinessException("Dòng " + line + ": loại sản phẩm không hợp lệ.");
                     Long price = num(row, 12, "Giá bán", line);
-                    Long oldPrice = num(row, 13, "Giá gốc", line);
+                    Long old = num(row, 13, "Giá gốc", line);
                     if (price == null || price <= 0) throw new BusinessException("Dòng " + line + ": giá bán phải lớn hơn 0.");
-                    if (type == DrugType.ETC && oldPrice != null && oldPrice > price) {
+                    if (!type.isPromotable() && old != null && old > price) {
                         throw new BusinessException("Dòng " + line + ": không áp dụng khuyến mại (giá gốc) cho thuốc kê đơn.");
                     }
                     String unit = str(row, 11);
                     if (unit == null) throw new BusinessException("Dòng " + line + ": thiếu đơn vị tính gốc.");
-                    p.setName(pname);
-                    p.setCategory(cat);
-                    p.setActiveIngredient(str(row, 3));
-                    p.setStrength(str(row, 4));
-                    p.setDosageForm(str(row, 5));
-                    p.setPackaging(str(row, 6));
-                    p.setRegistrationNo(regNo);
-                    p.setManufacturer(str(row, 8));
-                    p.setCountry(str(row, 9));
-                    p.setDrugType(type);
-                    p.setUnit(Texts.trim(unit, 30));
-                    p.setPrice(price);
-                    p.setOldPrice(oldPrice == null || oldPrice <= price ? null : oldPrice);
+                    List<ProductUnit> units = parseUnits(str(row, 16), unit, String.valueOf(line));
+                    if (isNew) {
+                        p = new Product();
+                        String slug = Texts.slugify(name);
+                        if (productRepo.existsBySlug(slug) || slugs.contains(slug)) slug += "-" + randomLower(5);
+                        slugs.add(slug);
+                        p.setSlug(slug);
+                    }
                     Long max = num(row, 14, "Tối đa / đơn", line);
-                    p.setMaxPerOrder(max == null || max <= 0 ? null : max.intValue());
                     Long min = num(row, 15, "Tồn tối thiểu", line);
-                    p.setMinStock(min == null ? 10 : (int) Math.max(0, min));
-                    parseUnits(p, str(row, 16), line);
-                    String act = str(row, 17);
-                    p.setActive(act == null || !act.equals("0"));
-                    p.setDescription(Texts.emptyToNull(Texts.trim(str(row, 18), 2000)));
-                    p.setUsageInstruction(Texts.emptyToNull(Texts.trim(str(row, 19), 2000)));
-                    p.setContraindications(Texts.emptyToNull(Texts.trim(str(row, 20), 1000)));
-                    p.setSideEffects(Texts.emptyToNull(Texts.trim(str(row, 21), 1000)));
-                    p.setMetaTitle(Texts.emptyToNull(Texts.trim(str(row, 22), 150)));
-                    p.setMetaDescription(Texts.emptyToNull(Texts.trim(str(row, 23), 300)));
-                    toSave.add(p);
-                    if (isNew) created++;
-                    else updated++;
+                    Product target = isNew ? p : new Product();
+                    target.setName(name);
+                    target.setCategory(cat);
+                    target.setActiveIngredient(str(row, 3));
+                    target.setStrength(str(row, 4));
+                    target.setDosageForm(str(row, 5));
+                    target.setPackaging(str(row, 6));
+                    target.setRegistrationNo(reg);
+                    target.setManufacturer(str(row, 8));
+                    target.setCountry(str(row, 9));
+                    target.setDrugType(type);
+                    target.setUnit(Texts.trim(unit, 30));
+                    target.setPrice(price);
+                    target.setOldPrice(old != null && old > price ? old : null);
+                    target.setMaxPerOrder(max != null && max > 0 ? max.intValue() : null);
+                    target.setMinStock(min == null ? 10 : (int) Math.max(0, min));
+                    target.setActive(!"0".equals(str(row, 17)));
+                    target.setDescription(str(row, 18));
+                    target.setUsageInstruction(str(row, 19));
+                    target.setContraindications(str(row, 20));
+                    target.setSideEffects(str(row, 21));
+                    target.setMetaTitle(str(row, 22) != null ? Texts.trim(str(row, 22), 150) : null);
+                    target.setMetaDescription(str(row, 23) != null ? Texts.trim(str(row, 23), 300) : null);
+                    if (!isNew) {
+                        // Chưa ghi vào sản phẩm thật cho tới khi cả file hợp lệ
+                        target.setId(p.getId());
+                        plans.add(new Plan(target, false, units));
+                    } else {
+                        plans.add(new Plan(target, true, units));
+                    }
                 } catch (BusinessException e) {
                     errors.add(e.getMessage());
                 }
@@ -302,47 +281,88 @@ public class CatalogService {
             throw new BusinessException("Không đọc được file Excel: " + e.getMessage());
         }
         if (!errors.isEmpty()) {
-            // Không lưu gì nếu có lỗi (tránh dữ liệu nửa vời); hủy thay đổi trên entity đã nạp
-            throw new ImportException(errors);
+            throw new BusinessException("File có " + errors.size() + " dòng lỗi, chưa nhập dữ liệu nào: "
+                    + String.join(" | ", errors.subList(0, Math.min(5, errors.size()))) + (errors.size() > 5 ? " ..." : ""));
         }
-        productRepo.saveAll(toSave);
-        syncMasters();
-        return new ImportResult(created, updated, errors);
+        int created = 0, updated = 0;
+        for (Plan plan : plans) {
+            Product p;
+            Product d = plan.product();
+            if (plan.isNew()) {
+                p = d;
+                em.persist(p);
+                created++;
+            } else {
+                p = productRepo.findById(d.getId()).orElseThrow();
+                p.setName(d.getName());
+                p.setCategory(d.getCategory());
+                p.setActiveIngredient(d.getActiveIngredient());
+                p.setStrength(d.getStrength());
+                p.setDosageForm(d.getDosageForm());
+                p.setPackaging(d.getPackaging());
+                p.setRegistrationNo(d.getRegistrationNo());
+                p.setManufacturer(d.getManufacturer());
+                p.setCountry(d.getCountry());
+                p.setDrugType(d.getDrugType());
+                p.setUnit(d.getUnit());
+                p.setPrice(d.getPrice());
+                p.setOldPrice(d.getOldPrice());
+                p.setMaxPerOrder(d.getMaxPerOrder());
+                p.setMinStock(d.getMinStock());
+                p.setActive(d.isActive());
+                p.setDescription(d.getDescription());
+                p.setUsageInstruction(d.getUsageInstruction());
+                p.setContraindications(d.getContraindications());
+                p.setSideEffects(d.getSideEffects());
+                p.setMetaTitle(d.getMetaTitle());
+                p.setMetaDescription(d.getMetaDescription());
+                updated++;
+            }
+            p.getUnits().clear();
+            em.flush();
+            for (ProductUnit u : plan.units()) {
+                u.setProduct(p);
+                p.getUnits().add(u);
+            }
+        }
+        return new ImportResult(created, updated);
+    }
+
+    private Product first(String jpql, String v) {
+        List<Product> l = em.createQuery(jpql, Product.class).setParameter("v", v).setMaxResults(1).getResultList();
+        return l.isEmpty() ? null : l.get(0);
     }
 
     /** "Hộp=10:120000; Thùng=100:1100000" */
-    private static void parseUnits(Product p, String spec, int line) {
-        p.getUnits().clear();
-        if (spec == null) return;
+    public List<ProductUnit> parseUnits(String spec, String baseUnit, String line) {
+        List<ProductUnit> out = new ArrayList<>();
+        if (spec == null || spec.isBlank()) return out;
         Set<String> names = new HashSet<>();
-        names.add(p.getUnit().toLowerCase());
+        names.add(baseUnit.toLowerCase());
         for (String part : spec.split(";")) {
-            if (part.isBlank()) continue;
+            if (part.trim().isEmpty()) continue;
             String[] a = part.split("[=:]");
-            try {
-                String n = a[0].trim();
-                int factor = Integer.parseInt(a[1].trim());
-                long price = Long.parseLong(a[2].trim().replace(".", ""));
-                if (factor < 2 || price <= 0 || !names.add(n.toLowerCase())) throw new IllegalArgumentException();
-                p.getUnits().add(new ProductUnit(p, n, factor, price));
-            } catch (RuntimeException e) {
-                throw new BusinessException("Dòng " + line + ": đơn vị quy đổi \"" + part.trim() + "\" không hợp lệ (đúng dạng Hộp=10:120000).");
+            String name = a.length > 0 ? a[0].trim() : "";
+            int factor = a.length > 1 ? Texts.toInt(a[1].trim(), 0) : 0;
+            long price = a.length > 2 ? Objects.requireNonNullElse(Texts.toLong(a[2].trim().replace(".", "")), 0L) : 0;
+            if (name.isEmpty() || factor < 2 || price <= 0 || names.contains(name.toLowerCase())) {
+                throw new BusinessException((line != null && !line.isEmpty() ? "Dòng " + line + ": " : "")
+                        + "đơn vị quy đổi \"" + part.trim() + "\" không hợp lệ (đúng dạng Hộp=10:120000).");
             }
+            names.add(name.toLowerCase());
+            ProductUnit u = new ProductUnit();
+            u.setName(name);
+            u.setFactor(factor);
+            u.setPrice(price);
+            out.add(u);
         }
+        return out;
     }
 
-    /** Lỗi import: danh sách lỗi theo từng dòng, rollback toàn bộ. */
-    public static class ImportException extends BusinessException {
-        private final List<String> errors;
-
-        public ImportException(List<String> errors) {
-            super("File có " + errors.size() + " dòng lỗi, chưa nhập dữ liệu nào: " + String.join(" | ", errors.stream().limit(5).toList())
-                    + (errors.size() > 5 ? " ..." : ""));
-            this.errors = errors;
-        }
-
-        public List<String> getErrors() {
-            return errors;
-        }
+    static String randomLower(int n) {
+        String chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < n; i++) sb.append(chars.charAt(RANDOM.nextInt(chars.length())));
+        return sb.toString();
     }
 }

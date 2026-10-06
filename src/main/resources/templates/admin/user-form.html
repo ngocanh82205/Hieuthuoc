@@ -1,87 +1,48 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head}"></head>
-<body class="staff-body">
-<div class="staff-shell">
-    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
-    <div class="staff-main">
-        <header th:replace="~{fragments/staff :: topbar}"></header>
-        <main class="p-3 p-lg-4">
-            <div th:replace="~{fragments/layout :: flash}"></div>
-            <form th:action="${user.id == null} ? @{/admin/users} : @{/admin/users/{id}(id=${user.id})}" method="post" class="card" style="max-width: 820px">
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/admin :: layout(~{::content}, ~{})}">
+<body>
+<th:block th:fragment="content">
+<th:block th:with="u=${user}, isNew=${user.id == null}, canDelete=${user.id != null and user.id != currentUser.id}">
+    <form th:action="${isNew} ? @{/admin/users} : @{/admin/users/{id}(id=${u.id})}" method="post" class="row g-4">
+        <div class="col-xl-7">
+            <div class="card mb-4">
+                <div class="card-header">Thông tin</div>
                 <div class="card-body row g-3">
-                    <div class="col-md-6"><label class="form-label">Họ tên *</label><input name="fullName" class="form-control" th:value="${user.fullName}" required></div>
-                    <div class="col-md-6"><label class="form-label">Email đăng nhập *</label><input type="email" name="email" class="form-control" th:value="${user.email}" required></div>
-                    <div class="col-md-6"><label class="form-label">Số điện thoại</label><input name="phone" class="form-control" th:value="${user.phone}"></div>
-                    <div class="col-md-6">
-                        <label class="form-label" th:text="${user.id == null} ? 'Mật khẩu *' : 'Mật khẩu mới (để trống nếu không đổi)'">Mật khẩu</label>
-                        <div class="input-group">
-                            <input type="password" name="password" class="form-control" minlength="6" th:required="${user.id == null}" autocomplete="new-password">
-                            <button class="btn btn-outline-secondary toggle-password-btn" type="button" tabindex="-1" title="Hiện mật khẩu" onclick="togglePassword(this)">
-                                <i class="bi bi-eye"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="col-md-6"><label class="form-label">Loại tài khoản</label>
-                        <select name="role" class="form-select" id="accType">
-                            <option value="PHARMACIST" th:selected="${user.role.name() == 'PHARMACIST'}">Nhân viên (theo vai trò)</option>
-                            <option value="ADMIN" th:selected="${user.role.name() == 'ADMIN'}">Quản trị viên (toàn quyền)</option>
+                    <div class="col-md-6"><label class="form-label" for="uName">Họ tên</label><input id="uName" name="full_name" class="form-control" required maxlength="100" th:value="${old['full_name']} ?: ${u.fullName}"></div>
+                    <div class="col-md-6"><label class="form-label" for="uEmail">Email (đăng nhập)</label><input id="uEmail" type="email" name="email" class="form-control" required th:value="${old['email']} ?: ${u.email}"></div>
+                    <div class="col-md-6"><label class="form-label" for="uPhone">Điện thoại</label><input id="uPhone" name="phone" class="form-control" maxlength="20" th:value="${old['phone']} ?: ${u.phone}"></div>
+                    <div class="col-md-6"><label class="form-label" for="uPw" th:text="${isNew} ? 'Mật khẩu' : 'Mật khẩu mới (để trống nếu không đổi)'"></label>
+                        <input id="uPw" type="password" name="password" class="form-control" minlength="6" autocomplete="new-password" th:required="${isNew}"></div>
+                    <div class="col-md-6"><label class="form-label" for="uRole">Loại tài khoản</label>
+                        <select id="uRole" name="role" class="form-select">
+                            <option value="PHARMACIST" th:selected="${u.role.name() == 'PHARMACIST'}">Dược sĩ / nhân viên</option>
+                            <option value="ADMIN" th:selected="${u.role.name() == 'ADMIN'}">Quản trị viên (toàn quyền)</option>
                         </select></div>
-                    <div class="col-md-6"><label class="form-label">Vai trò</label>
-                        <select name="staffRoleId" class="form-select" id="staffRole">
-                            <option value="">-- Không gán vai trò --</option>
-                            <option th:each="r : ${roles}" th:value="${r.id}" th:text="${r.name}" th:attr="data-perms=${r.permissions}"
-                                    th:selected="${user.staffRole != null && user.staffRole.id == r.id}"></option>
-                        </select>
-                        <div class="form-text"><a th:href="@{/admin/roles}">Cấu hình vai trò & quyền</a></div></div>
-                    <div class="col-md-6"><label class="form-label">Số chứng chỉ hành nghề dược</label><input name="licenseNo" class="form-control" th:value="${user.licenseNo}" placeholder="Bắt buộc nếu được duyệt đơn thuốc"></div>
-                    <div class="col-md-6"><label class="form-label">Bằng cấp chuyên môn</label><input name="degree" class="form-control" th:value="${user.degree}" placeholder="VD: Dược sĩ đại học - ĐH Dược Hà Nội"></div>
-                    <div class="col-md-6"><label class="form-label">Ca làm việc</label>
-                        <input name="shift" class="form-control" th:value="${user.shift}" list="shiftList" placeholder="Chọn hoặc nhập ca">
-                        <datalist id="shiftList"><option th:each="s : ${shifts}" th:value="${s}"></option></datalist></div>
-                    <div class="col-12"><hr class="my-1"><div class="small fw-semibold text-primary">Lương</div></div>
-                    <div class="col-md-3"><label class="form-label">Hình thức</label>
-                        <select name="salaryType" class="form-select">
-                            <option value="MONTHLY" th:selected="${!user.hourly}">Theo tháng (ngày công)</option>
-                            <option value="HOURLY" th:selected="${user.hourly}">Theo giờ</option></select></div>
-                    <div class="col-md-3"><label class="form-label">Lương cơ bản / tháng</label><input type="number" min="0" step="1000" name="baseSalary" class="form-control" th:value="${user.baseSalary}"></div>
-                    <div class="col-md-3"><label class="form-label">Đơn giá / giờ</label><input type="number" min="0" step="1000" name="hourlyRate" class="form-control" th:value="${user.hourlyRate}"></div>
-                    <div class="col-md-3"><label class="form-label">Phụ cấp cố định / tháng</label><input type="number" min="0" step="1000" name="salaryAllowance" class="form-control" th:value="${user.allowance}"></div>
-                    <div class="col-12" id="permBox">
-                        <label class="form-label">Quyền của nhân viên</label>
-                        <div class="form-text mb-2">Quyền có dấu <i class="bi bi-lock-fill"></i> đến từ vai trò. Tích thêm để cấp quyền riêng cho người này.</div>
-                        <div class="row">
-                            <div class="col-md-6" th:each="p, st : ${allPerms}">
-                                <div class="form-check">
-                                    <input class="form-check-input perm-extra" type="checkbox" name="perms" th:value="${p}" th:id="'perm' + ${st.index}"
-                                           th:checked="${user.hasExtra(p)}">
-                                    <label class="form-check-label" th:for="'perm' + ${st.index}"><i class="bi me-1" th:classappend="${p.icon}"></i><span th:text="${p.label}"></span>
-                                        <i class="bi bi-lock-fill text-primary role-lock d-none" th:attr="data-perm=${p.name()}"></i></label>
-                                </div>
-                            </div>
->>>>>>> origin/claude/modest-cerf-aeea3y
-                        </div>
-                    </div>
+                    <div class="col-md-6"><label class="form-label" for="uLic">Số chứng chỉ hành nghề dược (CCHN)</label><input id="uLic" name="license_no" class="form-control" maxlength="50" th:value="${old['license_no']} ?: ${u.licenseNo}"></div>
+                    <div class="col-md-6"><label class="form-label" for="uDeg">Trình độ chuyên môn</label><input id="uDeg" name="degree" class="form-control" maxlength="200" th:value="${old['degree']} ?: ${u.degree}" placeholder="VD: Dược sĩ đại học"></div>
                 </div>
-                <div class="card-footer bg-white"><button class="btn btn-primary">Lưu</button> <a th:href="@{/admin/users}" class="btn btn-link">Hủy</a></div>
-            </form>
-            <script>
-                (function () {
-                    const sel = document.getElementById('staffRole'), acc = document.getElementById('accType');
-                    function sync() {
-                        const perms = ((sel.selectedOptions[0] || {}).dataset || {}).perms || '';
-                        const set = perms.split(',');
-                        document.querySelectorAll('.role-lock').forEach(i => i.classList.toggle('d-none', !set.includes(i.dataset.perm)));
-                        const admin = acc.value === 'ADMIN';
-                        document.getElementById('permBox').classList.toggle('opacity-50', admin);
-                        sel.disabled = admin;
-                    }
-                    sel.addEventListener('change', sync); acc.addEventListener('change', sync); sync();
-                })();
-            </script>
-        </main>
-    </div>
-</div>
-<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+            </div>
+        </div>
+        <div class="col-xl-5">
+            <div class="card mb-3">
+                <div class="card-header">Quyền theo loại tài khoản</div>
+                <div class="card-body small">
+                    <div class="fw-semibold mb-1">Dược sĩ / nhân viên</div>
+                    <ul class="mb-2"><li th:each="p : ${pharmacistPerms}" th:text="${p.label}"></li></ul>
+                    <div class="fw-semibold mb-1">Quản trị viên</div>
+                    <p class="mb-2">Toàn quyền, gồm cả duyệt phiếu kho và hoàn tiền.</p>
+                    <p class="text-muted mb-0">Dược sĩ duyệt đơn thuốc kê đơn nên bắt buộc có số CCHN.</p>
+                </div>
+            </div>
+            <button class="btn btn-primary">Lưu</button> <a th:href="@{/admin/users}" class="btn btn-link">Hủy</a>
+            <th:block th:if="${canDelete}">
+                <button form="deleteStaffForm" class="btn btn-outline-danger float-end" th:data-confirm="'Xóa vĩnh viễn nhân viên ' + ${u.fullName} + '?'"><i class="bi bi-trash"></i> Xóa nhân viên</button>
+                <div class="small text-muted mt-2 clearfix">Chỉ xóa được tài khoản chưa có hoạt động nghiệp vụ; nhân viên đã làm việc hãy dùng "Khóa".</div>
+            </th:block>
+        </div>
+    </form>
+    <form th:if="${canDelete}" th:action="@{/admin/users/{id}/delete(id=${u.id})}" method="post" id="deleteStaffForm" class="d-none"></form>
+</th:block>
+</th:block>
 </body>
 </html>

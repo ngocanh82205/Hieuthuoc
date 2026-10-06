@@ -1,27 +1,13 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head}"></head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/app :: layout(~{::content}, ~{})}">
 <body>
-<header th:replace="~{fragments/layout :: navbar}"></header>
-<main class="container py-4">
+<th:block th:fragment="content">
     <h1 class="h4 fw-bold mb-3">Góc sức khỏe</h1>
     <p th:if="${posts.isEmpty()}" class="text-muted">Chưa có bài viết.</p>
     <div class="row g-3">
-        <div class="col-md-6 col-lg-4" th:each="post : ${posts}">
-            <a class="card h-100 text-reset" th:href="@{/posts/{s}(s=${post.slug})}">
-                <div class="card-body">
-                    <div class="small text-muted mb-1">
-                        <span th:text="${@fmt.date(post.createdAt)}"></span>
-                        <span th:if="${post.author != null}" th:text="' · ' + ${post.author.fullName}"></span>
-                    </div>
-                    <h2 class="h6 fw-semibold" th:text="${post.title}"></h2>
-                    <p class="small text-muted mb-0" th:text="${post.summary}"></p>
-                </div>
-            </a>
-        </div>
+        <div class="col-md-6 col-lg-4" th:each="post, st : ${posts.items}"><th:block th:replace="~{shop/_post-card :: card(${post}, ${st.index})}"/></div>
     </div>
-</main>
-<footer th:replace="~{fragments/layout :: footer}"></footer>
-<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+    <div class="mt-4"><th:block th:replace="~{partials/pagination :: links(${posts})}"/></div>
+</th:block>
 </body>
 </html>

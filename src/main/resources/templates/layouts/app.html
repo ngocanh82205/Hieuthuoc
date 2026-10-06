@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<!--/* Layout cửa hàng. Trang dùng: th:replace="~{layouts/app :: layout(~{::content}, ~{})}"
+     hoặc page(content, scripts, hiện flash?, class của <main>) khi cần đổi. */-->
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" th:fragment="page(content, scripts, flash, mainClass)">
+<head>
+    <th:block th:replace="~{partials/head :: head}"/>
+</head>
+<body>
+<th:block th:replace="~{partials/navbar :: navbar}"/>
+<main th:class="${mainClass}">
+    <th:block th:if="${flash}"><th:block th:replace="~{partials/flash :: flash}"/></th:block>
+    <th:block th:replace="${content}"/>
+</main>
+<th:block th:replace="~{partials/footer :: footer}"/>
+<th:block th:unless="${@h.is('/consult', '/consult/**')}"><th:block th:replace="~{partials/consult-widget :: widget}"/></th:block>
+<th:block th:replace="~{partials/scripts :: scripts}"/>
+<th:block th:replace="${scripts}"/>
+</body>
+</html>
+<html th:fragment="layout(content, scripts)" th:replace="~{layouts/app :: page(${content}, ${scripts}, true, 'container py-4')}"></html>

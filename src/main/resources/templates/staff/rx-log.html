@@ -1,41 +1,35 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head}"></head>
-<body class="staff-body">
-<div class="staff-shell">
-    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
-    <div class="staff-main">
-        <header th:replace="~{fragments/staff :: topbar}"></header>
-        <main class="p-3 p-lg-4">
-            <div th:replace="~{fragments/layout :: flash}"></div>
-            <form class="card card-body mb-3 d-flex flex-row flex-wrap gap-2 align-items-end" method="get" th:action="@{/staff/rx-log}">
-                <div><label class="form-label small">Từ ngày</label><input type="date" name="from" class="form-control form-control-sm" th:value="${@fmt.iso(from)}"></div>
-                <div><label class="form-label small">Đến ngày</label><input type="date" name="to" class="form-control form-control-sm" th:value="${@fmt.iso(to)}"></div>
-                <button class="btn btn-primary btn-sm">Xem</button>
-                <button type="button" class="btn btn-outline-secondary btn-sm ms-auto no-print" onclick="window.print()"><i class="bi bi-printer"></i> In sổ</button>
-            </form>
-            <div class="card">
-                <div class="table-responsive">
-                    <table class="table table-sm mb-0">
-                        <thead><tr><th>Ngày bán</th><th>Mã đơn</th><th>Bệnh nhân</th><th>Bác sĩ / cơ sở</th><th>Ngày kê</th><th>Thuốc kê đơn</th><th>Dược sĩ duyệt</th></tr></thead>
-                        <tbody>
-                        <tr th:if="${rows.isEmpty()}"><td colspan="7" class="text-center text-muted py-4">Không có dữ liệu.</td></tr>
-                        <tr th:each="rx : ${rows}">
-                            <td class="small text-nowrap" th:text="${@fmt.dateTime(rx.reviewedAt)}"></td>
-                            <td><a th:href="@{/staff/orders/{id}(id=${rx.order.id})}" th:text="${rx.order.code}"></a></td>
-                            <td th:text="${rx.patientName}"></td>
-                            <td class="small"><span th:text="${rx.doctorName}"></span><div class="text-muted" th:text="${rx.clinic}"></div></td>
-                            <td class="small" th:text="${@fmt.date(rx.rxDate)}"></td>
-                            <td class="small"><div th:each="it : ${rx.order.items}" th:if="${it.drugType != null && it.drugType.name() == 'ETC'}" th:text="${it.productName} + ' x' + ${it.quantity}"></div></td>
-                            <td class="small" th:text="${rx.pharmacist != null ? rx.pharmacist.fullName : ''}"></td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </main>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/admin :: layout(~{::content}, ~{})}">
+<body>
+<th:block th:fragment="content">
+    <th:block th:replace="~{staff/_parts :: rxTabs(null, ${statuses})}"/>
+    <form class="card card-body mb-3 d-flex flex-row flex-wrap gap-2 align-items-end no-print" method="get" th:action="@{/staff/prescriptions/log}">
+        <div><label class="form-label small">Từ ngày</label><input type="date" name="from" class="form-control form-control-sm" th:value="${from}"></div>
+        <div><label class="form-label small">Đến ngày</label><input type="date" name="to" class="form-control form-control-sm" th:value="${to}"></div>
+        <button class="btn btn-primary btn-sm">Xem</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm ms-auto" onclick="window.print()"><i class="bi bi-printer"></i> In sổ</button>
+    </form>
+    <div class="card">
+        <div class="card-header" th:text="'Sổ bán thuốc kê đơn từ ' + ${@h.date(from)} + ' đến ' + ${@h.date(to)}"></div>
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <thead><tr><th>Ngày bán</th><th>Mã đơn</th><th>Bệnh nhân</th><th>Bác sĩ / cơ sở</th><th>Ngày kê</th><th>Thuốc kê đơn</th><th>Dược sĩ duyệt</th></tr></thead>
+                <tbody>
+                <tr th:each="rx : ${rows}" th:with="rxItems=${rx.order != null ? rx.order.items.?[prescription] : {}}">
+                    <td class="small text-nowrap" th:text="${@h.dt(rx.reviewedAt)}"></td>
+                    <td><a th:if="${rx.order != null}" th:href="@{/staff/orders/{id}(id=${rx.order.id})}" th:text="${rx.order.code}"></a></td>
+                    <td th:text="${rx.patientName} ?: ${rx.user.fullName}"></td>
+                    <td class="small"><th:block th:text="${rx.doctorName}"/><div class="text-muted" th:text="${rx.clinic}"></div></td>
+                    <td class="small" th:text="${@h.date(rx.rxDate)}"></td>
+                    <td class="small"><div th:each="it : ${rxItems}" th:text="${it.productName} + ' x' + ${it.quantity} + ' ' + ${it.unit}"></div>
+                        <span th:if="${rxItems.isEmpty()}" class="text-muted fst-italic">Không có thuốc kê đơn</span></td>
+                    <td class="small"><th:block th:text="${rx.pharmacist != null} ? ${rx.pharmacist.fullName} : ''"/><div class="text-muted" th:text="${rx.pharmacist != null} ? ${rx.pharmacist.licenseNo} : ''"></div></td>
+                </tr>
+                <tr th:if="${rows.isEmpty()}"><td colspan="7" class="text-center text-muted py-4">Không có dữ liệu.</td></tr>
+                </tbody>
+            </table>
+        </div>
     </div>
-</div>
-<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</th:block>
 </body>
 </html>

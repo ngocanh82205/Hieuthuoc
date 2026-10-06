@@ -1,0 +1,57 @@
+@startuml kien-truc-tong-the
+!pragma layout smetana
+!include _style.iuml
+skinparam componentStyle rectangle
+skinparam ComponentBorderColor #1f4e79
+skinparam ComponentBackgroundColor #eaf3fb
+skinparam NodeBorderColor #1f4e79
+skinparam DatabaseBorderColor #1f4e79
+skinparam DatabaseBackgroundColor #eaf3fb
+skinparam CloudBorderColor #7f9fbf
+title Hình 2.x - Sơ đồ kiến trúc tổng thể hệ thống VinaPharma
+
+actor "Khách hàng" as KH
+actor "Dược sĩ /\nNhân viên" as DS
+actor "Quản trị viên" as AD
+
+node "Máy người dùng" {
+  component "Trình duyệt web\n(HTML + Bootstrap 5\n+ JavaScript fetch)" as BR
+}
+
+node "Máy chủ ứng dụng (JDK 17+)" {
+  component "Ứng dụng Spring Boot\n(Tomcat nhúng, cổng 8080)\n- Spring MVC + Thymeleaf\n- Spring Security\n- Spring Data JPA / Hibernate\n- Tác vụ định kỳ (@Scheduled)\n- Spring Mail (JavaMailSender)" as APP
+  folder "Kho file upload\n(ảnh sản phẩm, bài viết,\nđơn thuốc, ảnh chat)" as FS
+}
+
+node "Máy chủ CSDL" {
+  database "MySQL 8 / MariaDB\n(CSDL hieuthuoc)" as DB
+}
+
+cloud "Dịch vụ bên ngoài" {
+  component "PayOS\n(VietQR)" as PAYOS
+  component "VNPay" as VNPAY
+  component "Giao Hàng Nhanh\n(GHN)" as GHN
+  component "Google Gemini /\nAnthropic Claude" as AI
+  component "Máy chủ email\n(SMTP)" as SMTP
+  component "OpenStreetMap\nNominatim" as OSM
+  component "VietQR\n(ảnh mã QR)" as VQR
+}
+
+KH --> BR
+DS --> BR
+AD --> BR
+
+BR --> APP : HTTP/HTTPS\n(trang HTML, form POST,\nAJAX JSON)
+APP --> DB : JDBC\n(HikariCP, SQL)
+APP --> FS : Đọc / ghi file
+APP --> PAYOS : HTTPS REST/JSON
+PAYOS --> APP : Webhook (HTTPS POST)
+APP --> VNPAY : Chuyển hướng URL có chữ ký
+VNPAY --> APP : Return URL / IPN
+APP --> GHN : HTTPS REST/JSON
+GHN --> APP : Webhook trạng thái vận đơn
+APP --> AI : HTTPS REST/JSON
+APP --> SMTP : SMTP
+APP --> OSM : HTTPS (tra cứu địa chỉ)
+BR --> VQR : Tải ảnh QR chuyển khoản
+@enduml

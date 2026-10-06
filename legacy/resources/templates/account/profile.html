@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body>
+<header th:replace="~{fragments/layout :: navbar}"></header>
+<main class="container py-4">
+    <div class="row g-4">
+        <aside class="col-lg-3"><div th:replace="~{fragments/layout :: accountMenu}"></div></aside>
+        <section class="col-lg-9">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <div class="row g-3 mb-4">
+                <div class="col-sm-4"><div class="stat-card"><div class="icon icon-green"><i class="bi bi-receipt"></i></div>
+                    <div><div class="value" th:text="${orderCount}">0</div><div class="label">Đơn hàng</div></div></div></div>
+                <div class="col-sm-4"><div class="stat-card"><div class="icon icon-blue"><i class="bi bi-wallet2"></i></div>
+                    <div><div class="value fs-6" th:text="${@fmt.money(spent)}">0</div><div class="label">Tổng chi tiêu</div></div></div></div>
+                <div class="col-sm-4"><div class="stat-card"><div class="icon icon-amber"><i class="bi bi-star"></i></div>
+                    <div><div class="value" th:text="${profile.points}">0</div><div class="label">Điểm tích lũy</div></div></div></div>
+            </div>
+
+            <div class="row g-3 mb-4">
+                <div class="col-lg-7">
+                    <div class="tier-card h-100">
+                        <div class="d-flex justify-content-between align-items-start position-relative" style="z-index:1">
+                            <div>
+                                <div class="small opacity-75">Hạng thành viên</div>
+                                <div class="tier-name"><i class="bi bi-gem me-1"></i><span th:text="${tier.tier.label}">Đồng</span></div>
+                                <div class="small opacity-75" th:text="'Tích điểm x' + ${tier.tier.pointMultiplier} + ' mỗi đơn hàng'"></div>
+                            </div>
+                            <div class="text-end">
+                                <div class="small opacity-75">Điểm hiện có</div>
+                                <div class="fs-3 fw-bold" th:text="${profile.points}">0</div>
+                                <div class="small opacity-75" th:text="'≈ ' + ${@fmt.money(profile.points * pointValue)}"></div>
+                            </div>
+                        </div>
+                        <div class="mt-3 position-relative" style="z-index:1">
+                            <div class="progress mb-1"><div class="progress-bar" th:style="'width:' + ${tier.progress} + '%'"></div></div>
+                            <div class="small" th:if="${tier.next != null}" th:text="'Chi tiêu thêm ' + ${@fmt.money(tier.toNext)} + ' để lên hạng ' + ${tier.next.label}"></div>
+                            <div class="small" th:if="${tier.next == null}">Bạn đang ở hạng cao nhất. Cảm ơn bạn đã đồng hành!</div>
+                        </div>
+                        <div class="d-flex flex-wrap gap-3 mt-3 small position-relative" style="z-index:1">
+                            <span th:each="t : ${tiers}"><span class="tier-dot" th:style="'background:' + ${t.color}"></span><span th:text="${t.label} + ' từ ' + ${@fmt.money(t.minSpent)}"></span></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-5">
+                    <div class="card h-100">
+                        <div class="card-header d-flex justify-content-between"><span><i class="bi bi-alarm text-primary me-1"></i>Lịch uống thuốc hôm nay</span>
+                            <a th:href="@{/account/reminders}" class="small">Quản lý</a></div>
+                        <div class="card-body">
+                            <p th:if="${today.isEmpty()}" class="text-muted small mb-2">Chưa có lịch nhắc nào hôm nay.</p>
+                            <div th:each="r : ${today}" class="schedule-item"><span class="time" th:text="${r[0]}"></span><span th:text="${r[1]}"></span></div>
+                            <a th:if="${today.isEmpty()}" th:href="@{/account/reminders}" class="btn btn-sm btn-outline-primary">Tạo lịch nhắc</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">Thông tin cá nhân</div>
+                <div class="card-body">
+                    <form th:action="@{/account/profile}" method="post" class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Họ và tên</label>
+                            <input class="form-control" name="fullName" th:value="${profile.fullName}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            <input class="form-control" th:value="${profile.email}" disabled>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Số điện thoại</label>
+                            <input class="form-control" name="phone" th:value="${profile.phone}" required pattern="0[0-9]{9,10}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Giới tính</label>
+                            <select class="form-select" name="gender">
+                                <option value="">--</option>
+                                <option th:each="g : ${ {'Nam','Nữ','Khác'} }" th:value="${g}" th:text="${g}" th:selected="${profile.gender == g}"></option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Ngày sinh</label>
+                            <input class="form-control" type="date" name="birthday" th:value="${profile.birthday}">
+                        </div>
+                        <div class="col-12"><button class="btn btn-primary">Lưu thông tin</button></div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card mb-4" id="health">
+                <div class="card-header"><i class="bi bi-heart-pulse text-danger"></i> Hồ sơ sức khỏe</div>
+                <div class="card-body">
+                    <p class="small text-muted">Thông tin này chỉ được dược sĩ xem khi tư vấn và duyệt đơn thuốc, giúp cảnh báo dị ứng và tương tác thuốc.</p>
+                    <form th:action="@{/account/health}" method="post" class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Dị ứng thuốc / thực phẩm</label>
+                            <textarea class="form-control" name="allergies" rows="2" maxlength="500" th:text="${profile.allergies}" placeholder="VD: dị ứng penicillin"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Bệnh nền / đang điều trị</label>
+                            <textarea class="form-control" name="chronicConditions" rows="2" maxlength="500" th:text="${profile.chronicConditions}" placeholder="VD: tăng huyết áp, tiểu đường"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="pregnancy" value="true" id="pregnancy" th:checked="${profile.pregnancy}">
+                                <label class="form-check-label" for="pregnancy">Đang mang thai hoặc cho con bú</label>
+                            </div>
+                        </div>
+                        <div class="col-12"><button class="btn btn-primary">Lưu hồ sơ sức khỏe</button></div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card" id="password">
+                <div class="card-header">Đổi mật khẩu</div>
+                <div class="card-body">
+                    <form th:action="@{/account/password}" method="post" class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Mật khẩu hiện tại</label>
+                            <div class="input-group">
+                                <input class="form-control" type="password" name="current" required autocomplete="current-password">
+                                <button class="btn btn-outline-secondary toggle-password-btn" type="button" tabindex="-1" title="Hiện mật khẩu" onclick="togglePassword(this)">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Mật khẩu mới</label>
+                            <div class="input-group">
+                                <input class="form-control" type="password" name="password" required minlength="6" autocomplete="new-password">
+                                <button class="btn btn-outline-secondary toggle-password-btn" type="button" tabindex="-1" title="Hiện mật khẩu" onclick="togglePassword(this)">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Nhập lại</label>
+                            <div class="input-group">
+                                <input class="form-control" type="password" name="passwordConfirm" required minlength="6" autocomplete="new-password">
+                                <button class="btn btn-outline-secondary toggle-password-btn" type="button" tabindex="-1" title="Hiện mật khẩu" onclick="togglePassword(this)">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-12"><button class="btn btn-outline-primary">Đổi mật khẩu</button></div>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </div>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

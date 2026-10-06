@@ -2,18 +2,18 @@ package com.hieuthuoc.entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "categories")
 @Getter
 @Setter
 @NoArgsConstructor
-public class Category {
+public class Category extends Timestamped {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -24,21 +24,27 @@ public class Category {
     @Column(nullable = false, unique = true, length = 120)
     private String slug;
 
-    /** Tên icon Bootstrap Icons, VD: bi-capsule */
-    @Column(length = 50)
+    @Column(nullable = false, length = 50)
     private String icon = "bi-capsule";
 
+    @Column(name = "sort_order", nullable = false)
     private int sortOrder;
 
-    /** Danh mục cha (danh mục đa cấp, VD: Thuốc > Tim mạch > Huyết áp). */
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id")
     private Category parent;
 
-    /** SEO */
-    @Column(length = 300)
+    @Column(name = "parent_id", insertable = false, updatable = false)
+    private Long parentId;
+
+    @Column(name = "meta_description", length = 300)
     private String metaDescription;
 
-    /** Cấp trong cây (0 = gốc) - được CategoryService điền khi dựng cây. */
+    @OneToMany(mappedBy = "parent")
+    @OrderBy("sortOrder ASC, id ASC")
+    private List<Category> children = new ArrayList<>();
+
+    /** Độ sâu trong cây (không lưu DB, CategoryService điền vào). */
     @Transient
     private int depth;
 

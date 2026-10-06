@@ -1,0 +1,25 @@
+/* Bổ sung giao diện cho bản Laravel (Ticket, FAQ, thanh toán, phân tích) */
+.faq-item .accordion-button { font-weight: 600; }
+.pay-option { cursor: pointer; border: 2px solid var(--bs-border-color); border-radius: .75rem; padding: .75rem 1rem; transition: border-color .15s, background .15s; }
+.pay-option:has(input:checked) { border-color: var(--bs-primary); background: rgba(11, 99, 229, .05); }
+.order-steps { display: flex; justify-content: space-between; position: relative; margin: 1rem 0 1.5rem; }
+.order-steps::before { content: ""; position: absolute; top: 18px; left: 6%; right: 6%; height: 3px; background: #e3e8f0; }
+.order-steps .step { position: relative; z-index: 1; text-align: center; flex: 1; font-size: .8rem; color: #7a8599; }
+.order-steps .step .dot { width: 38px; height: 38px; border-radius: 50%; background: #e3e8f0; color: #fff; display: inline-flex; align-items: center; justify-content: center; margin-bottom: .35rem; font-size: 1.05rem; }
+.order-steps .step.done .dot { background: #1aa260; }
+.order-steps .step.current .dot { background: var(--bs-primary); box-shadow: 0 0 0 5px rgba(11, 99, 229, .18); }
+.order-steps .step.done, .order-steps .step.current { color: #1d2433; font-weight: 600; }
+.ticket-msg { border-radius: .75rem; padding: .75rem 1rem; background: #f4f7fb; margin-bottom: .75rem; }
+.ticket-msg.staff { background: #eaf2ff; }
+.ticket-msg.internal { background: #fff7e0; border: 1px dashed #e0a800; }
+.share-bar .btn { width: 36px; height: 36px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; }
+.kpi-card { border-radius: 1rem; padding: 1rem 1.25rem; background: #fff; border: 1px solid #e8edf5; height: 100%; }
+.kpi-card .kpi-label { font-size: .8rem; color: #6c7a91; text-transform: uppercase; letter-spacing: .03em; }
+.kpi-card .kpi-value { font-size: 1.5rem; font-weight: 700; }
+.funnel-bar { height: 28px; border-radius: 6px; background: linear-gradient(90deg, #0b63e5, #36a3ff); color: #fff; font-size: .8rem; display: flex; align-items: center; padding: 0 .6rem; white-space: nowrap; }
+.qr-box img { max-width: 260px; width: 100%; border-radius: .75rem; border: 1px solid #e3e8f0; }
+.popup-reminder { position: fixed; right: 1rem; bottom: 5rem; z-index: 1090; max-width: 340px; }
+@media print { .no-print { display: none !important; } }
+:root { --viz-series-1: #2a78d6; --viz-grid: rgba(11, 11, 11, .07); --viz-text-secondary: #52514e; }
+.chart-box { position: relative; height: 280px; }
+.chart-box.tall { height: 340px; }

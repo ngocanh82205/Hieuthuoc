@@ -9,63 +9,67 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 /**
- * Lưu file upload. Ảnh đơn thuốc và ảnh chat là dữ liệu sức khỏe nhạy cảm nên được lưu
- * ngoài thư mục static và chỉ phục vụ qua controller có kiểm tra quyền.
+ * Lưu file upload, dùng chung thư mục storage/app của bản Laravel:
+ * - Ảnh đơn thuốc, ảnh chat: storage/app/private/{kind} - KHÔNG public, chỉ chủ sở hữu hoặc nhân viên xem qua FileController.
+ * - Ảnh sản phẩm, bài viết: storage/app/public/{kind}, phục vụ tại /storage/{kind}/{tên file}.
  */
 @Service
 public class FileStorageService {
-    public enum Kind { PRESCRIPTIONS, CHAT, PRODUCTS, BANNERS }
+    public static final List<String> PRIVATE_KINDS = List.of("prescriptions", "chat");
 
     private static final Map<String, String> ALLOWED = Map.of(
-            "image/jpeg", ".jpg", "image/png", ".png", "image/webp", ".webp", "image/gif", ".gif");
+            "image/jpeg", "jpg", "image/png", "png", "image/webp", "webp", "image/gif", "gif");
     private static final long MAX_SIZE = 5L * 1024 * 1024;
 
-    private final Path root;
+    private final Path privateRoot;
+    private final Path publicRoot;
 
-    public FileStorageService(@Value("${app.upload-dir:uploads}") String uploadDir) throws IOException {
-        this.root = Path.of(uploadDir).toAbsolutePath().normalize();
-        for (Kind k : Kind.values()) Files.createDirectories(dir(k));
+    public FileStorageService(@Value("${app.storage-root}") String storageRoot) {
+        Path root = Path.of(storageRoot).toAbsolutePath().normalize();
+        this.privateRoot = root.resolve("private");
+        this.publicRoot = root.resolve("public");
     }
 
-    public Path dir(Kind kind) {
-        return root.resolve(kind.name().toLowerCase());
+    public Path publicRoot() {
+        return publicRoot;
     }
 
     public boolean isPresent(MultipartFile file) {
-        return file != null && !file.isEmpty();
+        return file != null && !file.isEmpty() && file.getSize() > 0;
     }
 
-    public String store(Kind kind, MultipartFile file) {
+    /** @return tên file (private) hoặc đường dẫn tương đối trong disk public (products/xxx.jpg) */
+    public String store(String kind, MultipartFile file) {
         if (!isPresent(file)) throw new BusinessException("Vui lòng chọn ảnh.");
         String ext = ALLOWED.get(file.getContentType());
         if (ext == null) throw new BusinessException("Chỉ chấp nhận ảnh JPG, PNG, WEBP hoặc GIF.");
         if (file.getSize() > MAX_SIZE) throw new BusinessException("Ảnh vượt quá dung lượng 5MB.");
-        String name = UUID.randomUUID().toString().replace("-", "") + ext;
+        String name = UUID.randomUUID().toString().replace("-", "") + "." + ext;
+        boolean priv = PRIVATE_KINDS.contains(kind);
+        Path dir = (priv ? privateRoot : publicRoot).resolve(kind);
         try (InputStream in = file.getInputStream()) {
-            Files.copy(in, dir(kind).resolve(name), StandardCopyOption.REPLACE_EXISTING);
+            Files.createDirectories(dir);
+            Files.copy(in, dir.resolve(name), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             throw new BusinessException("Không lưu được file, vui lòng thử lại.", 500);
         }
-        return name;
+        return priv ? name : kind + "/" + name;
     }
 
-    /** Đường dẫn an toàn tới file (chặn path traversal). */
-    public Path resolve(Kind kind, String filename) {
-        Path dir = dir(kind);
-        Path p = dir.resolve(Path.of(filename).getFileName().toString()).normalize();
-        if (!p.startsWith(dir) || !Files.isRegularFile(p)) return null;
-        return p;
+    /** Đường dẫn tuyệt đối an toàn tới file private (chặn path traversal). */
+    public Path privatePath(String kind, String name) {
+        if (!PRIVATE_KINDS.contains(kind) || name == null) return null;
+        Path dir = privateRoot.resolve(kind).normalize();
+        Path p = dir.resolve(Path.of(name).getFileName().toString()).normalize();
+        return p.startsWith(dir) && Files.isRegularFile(p) ? p : null;
     }
 
-    public void writeSample(Kind kind, String filename, byte[] content) {
-        try {
-            Files.write(dir(kind).resolve(filename), content);
-        } catch (IOException e) {
-            throw new IllegalStateException(e);
-        }
+    public static String url(String kind, String name) {
+        return name == null || name.isEmpty() ? null : "/files/" + kind + "/" + name;
     }
 }

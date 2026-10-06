@@ -1,31 +1,39 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head}"></head>
-<body class="staff-body">
-<div class="staff-shell">
-    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
-    <div class="staff-main">
-        <header th:replace="~{fragments/staff :: topbar}"></header>
-        <main class="p-3 p-lg-4">
-            <div th:replace="~{fragments/layout :: flash}"></div>
-            <form th:action="${post.id == null} ? @{/staff/posts} : @{/staff/posts/{id}(id=${post.id})}" method="post" class="card">
-                <div class="card-body">
-                    <div class="mb-3"><label class="form-label">Tiêu đề</label><input name="title" class="form-control" th:value="${post.title}" required minlength="5" maxlength="200"></div>
-                    <div class="mb-3"><label class="form-label">Tóm tắt</label><textarea name="summary" class="form-control" rows="2" maxlength="500" th:text="${post.summary}"></textarea></div>
-                    <div class="mb-3"><label class="form-label">Nội dung</label>
-                        <textarea name="content" class="form-control" rows="14" required minlength="20" th:text="${post.content}"></textarea>
-                        <div class="form-text">Mỗi đoạn văn cách nhau bởi một dòng trống.</div></div>
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="checkbox" name="published" value="true" id="published" th:checked="${post.id == null || post.published}">
-                        <label class="form-check-label" for="published">Đăng công khai</label>
-                    </div>
-                    <button class="btn btn-primary">Lưu bài viết</button>
-                    <a th:href="@{/staff/posts}" class="btn btn-link">Hủy</a>
-                </div>
-            </form>
-        </main>
-    </div>
-</div>
-<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/admin :: layout(~{::content}, ~{})}">
+<body>
+<th:block th:fragment="content">
+    <form th:action="${post.id != null} ? @{/staff/posts/{id}(id=${post.id})} : @{/staff/posts}" method="post" enctype="multipart/form-data" class="row g-4"
+          th:with="img=${post.imageUrl()}">
+        <div class="col-lg-8">
+            <div class="card card-body">
+                <div class="mb-3"><label class="form-label" for="pTitle">Tiêu đề</label>
+                    <input id="pTitle" name="title" class="form-control" required minlength="5" maxlength="200" th:value="${old['title']} ?: ${post.title}"></div>
+                <div class="mb-3"><label class="form-label" for="pSum">Tóm tắt (hiển thị ở danh sách &amp; mô tả SEO)</label>
+                    <textarea id="pSum" name="summary" class="form-control" rows="2" maxlength="500" th:text="${old['summary']} ?: ${post.summary}"></textarea></div>
+                <div><label class="form-label" for="pContent">Nội dung</label>
+                    <textarea id="pContent" name="content" class="form-control font-monospace" rows="18" required th:text="${old['content']} ?: ${post.content}"></textarea>
+                    <div class="form-text">Định dạng đơn giản: dòng bắt đầu bằng <code>## </code> là tiêu đề mục, <code>- </code> là gạch đầu dòng, <code>**chữ đậm**</code>; để trống 1 dòng giữa các đoạn.</div></div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card card-body mb-3">
+                <label class="form-label" for="pImg">Ảnh đại diện</label>
+                <th:block th:if="${img != null}">
+                    <img th:src="${img}" alt="" class="img-fluid rounded mb-2">
+                    <div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="remove_image" value="1" id="pRm"><label class="form-check-label small" for="pRm">Xóa ảnh</label></div>
+                </th:block>
+                <input id="pImg" type="file" name="image" class="form-control" accept="image/jpeg,image/png,image/webp,image/gif" data-preview="pPreview">
+                <img id="pPreview" class="img-fluid rounded d-none mt-2" alt="Xem trước">
+            </div>
+            <div class="card card-body">
+                <div class="form-check form-switch mb-3"><input class="form-check-input" type="checkbox" name="published" value="1" id="pPub"
+                        th:checked="${old.isEmpty()} ? ${post.published} : ${old['published'] != null}">
+                    <label class="form-check-label" for="pPub">Đăng công khai</label></div>
+                <button class="btn btn-primary w-100">Lưu bài viết</button>
+                <a th:href="@{/staff/posts}" class="btn btn-link">Quay lại</a>
+            </div>
+        </div>
+    </form>
+</th:block>
 </body>
 </html>

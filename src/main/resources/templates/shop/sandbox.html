@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/app :: layout(~{::content}, ~{})}">
+<body>
+<th:block th:fragment="content">
+    <div class="card mx-auto" style="max-width: 520px">
+        <div class="card-header text-center fw-semibold"><i class="bi bi-cone-striped text-warning"></i> Cổng thanh toán thử nghiệm (<th:block th:text="${order.paymentMethod.shortLabel}"/>)</div>
+        <div class="card-body p-4 text-center">
+            <p class="mb-1">Đơn hàng <strong th:text="${order.code}"></strong></p>
+            <div class="display-6 fw-bold price mb-3" th:text="${@h.money(order.total)}"></div>
+            <p class="small text-muted">Trang này mô phỏng cổng <th:block th:text="${order.paymentMethod.shortLabel}"/> khi chưa khai báo khóa API. Chọn kết quả giao dịch:</p>
+            <form th:action="@{/payment/sandbox/{c}(c=${order.code})}" method="post" class="d-grid gap-2">
+                <button name="result" value="success" class="btn btn-success btn-lg"><i class="bi bi-check-circle"></i> Thanh toán thành công</button>
+                <button name="result" value="fail" class="btn btn-outline-danger"><i class="bi bi-x-circle"></i> Hủy / thất bại</button>
+            </form>
+        </div>
+    </div>
+</th:block>
+</body>
+</html>

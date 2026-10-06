@@ -1,0 +1,9 @@
+<div xmlns:th="http://www.thymeleaf.org" th:fragment="menu" class="list-group account-menu mb-4">
+    <a th:href="@{/account}" th:class="'list-group-item list-group-item-action ' + ${@h.active('/account')}"><i class="bi bi-person me-2"></i>Thông tin & sức khỏe</a>
+    <a th:href="@{/account/orders}" th:class="'list-group-item list-group-item-action ' + ${@h.active('/account/orders', '/account/orders/**')}"><i class="bi bi-receipt me-2"></i>Đơn hàng của tôi</a>
+    <a th:href="@{/account/prescriptions}" th:class="'list-group-item list-group-item-action ' + ${@h.active('/account/prescriptions')}"><i class="bi bi-file-earmark-medical me-2"></i>Gửi đơn thuốc</a>
+    <a th:href="@{/account/wishlist}" th:class="'list-group-item list-group-item-action ' + ${@h.active('/account/wishlist')}"><i class="bi bi-heart me-2"></i>Yêu thích</a>
+    <a th:href="@{/account/addresses}" th:class="'list-group-item list-group-item-action ' + ${@h.active('/account/addresses')}"><i class="bi bi-geo-alt me-2"></i>Sổ địa chỉ</a>
+    <a th:href="@{/notifications}" th:class="'list-group-item list-group-item-action ' + ${@h.active('/notifications', '/notifications/**')}"><i class="bi bi-bell me-2"></i>Thông báo</a>
+    <a th:href="@{/consult}" class="list-group-item list-group-item-action"><i class="bi bi-chat-dots me-2"></i>Tư vấn dược sĩ</a>
+</div>

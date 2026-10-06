@@ -1,58 +1,39 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head}"></head>
-<body class="staff-body">
-<div class="staff-shell">
-    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
-    <div class="staff-main">
-        <header th:replace="~{fragments/staff :: topbar}"></header>
-        <main class="p-3 p-lg-4">
-            <div th:replace="~{fragments/layout :: flash}"></div>
-            <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
-                <form class="d-flex gap-2" method="get">
-                    <select name="role" class="form-select form-select-sm" onchange="this.form.submit()">
-                        <option value="">Tất cả vai trò</option>
-                        <option th:each="r : ${roles}" th:value="${r.id}" th:text="${r.name}" th:selected="${roleFilter == r.id}"></option>
-                    </select>
-                </form>
-                <div class="d-flex gap-2">
-                    <a th:href="@{/admin/roles}" class="btn btn-outline-primary"><i class="bi bi-shield-lock"></i> Vai trò & quyền</a>
-                    <a th:href="@{/admin/users/new}" class="btn btn-primary"><i class="bi bi-plus"></i> Thêm nhân viên</a>
-                </div>
-            </div>
-            <div class="card">
-                <div class="table-responsive">
-                    <table class="table align-middle mb-0">
-                        <thead><tr><th>Nhân viên</th><th>Vai trò</th><th>CCHN / bằng cấp</th><th>Ca làm / lương</th><th>Quyền</th><th class="text-end">Đơn thuốc đã xử lý</th><th>Trạng thái</th><th></th></tr></thead>
-                        <tbody>
-                        <tr th:each="u : ${staff}">
-                            <td><div class="fw-semibold"><span th:text="${u.fullName}"></span>
-                                <i th:if="${u.online}" class="bi bi-circle-fill text-success small" title="Đang online"></i></div>
-                                <div class="small text-muted" th:text="${u.email + (u.phone != null ? ' · ' + u.phone : '')}"></div></td>
-                            <td><span class="badge" th:classappend="${u.role.name() == 'ADMIN'} ? 'text-bg-dark' : 'text-bg-primary'" th:text="${u.positionLabel}"></span></td>
-                            <td class="small"><div th:text="${u.licenseNo}"></div><div class="text-muted" th:text="${u.degree}"></div></td>
-                            <td class="small"><div th:text="${u.shift}"></div><div class="text-muted" th:unless="${u.role.name() == 'ADMIN'}" th:text="${u.salaryLabel}"></div></td>
-                            <td class="small" style="max-width: 280px"><span th:if="${u.role.name() == 'ADMIN'}" class="text-muted">Tất cả</span>
-                                <span th:each="p : ${u.permissionSet}" th:unless="${u.role.name() == 'ADMIN'}" class="badge border me-1 mb-1"
-                                      th:classappend="${u.hasExtra(p) && (u.staffRole == null || !u.staffRole.has(p))} ? 'text-bg-warning' : 'text-bg-light'"
-                                      th:title="${p.label}"><i class="bi" th:classappend="${p.icon}"></i> <span th:text="${p.shortLabel}"></span></span></td>
-                            <td class="text-end" th:text="${rxCount[u.id]}"></td>
-                            <td><span class="badge" th:classappend="${u.locked} ? 'text-bg-danger' : 'text-bg-success'" th:text="${u.locked} ? 'Đã khóa' : 'Hoạt động'"></span></td>
-                            <td class="text-nowrap">
-                                <a th:href="@{/admin/users/{id}/edit(id=${u.id})}" class="btn btn-sm btn-outline-primary">Sửa</a>
-                                <a th:href="@{/admin/logs(userId=${u.id})}" class="btn btn-sm btn-outline-secondary" title="Nhật ký"><i class="bi bi-clock-history"></i></a>
-                                <form th:if="${u.id != currentUser.id}" th:action="@{/admin/users/{id}/lock(id=${u.id})}" method="post" class="d-inline">
-                                    <button class="btn btn-sm" th:classappend="${u.locked} ? 'btn-outline-success' : 'btn-outline-danger'" th:text="${u.locked} ? 'Mở khóa' : 'Khóa'"></button></form>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <p class="small text-muted mt-2">Nhân viên nghỉ việc: khóa tài khoản (giữ lại lịch sử thao tác, đơn thuốc đã duyệt để truy vết). Quyền màu vàng là quyền cấp riêng ngoài vai trò.</p>
-        </main>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/admin :: layout(~{::content}, ~{})}">
+<body>
+<th:block th:fragment="content">
+    <div class="d-flex flex-wrap gap-2 justify-content-between mb-3">
+        <div></div>
+        <a th:href="@{/admin/users/create}" class="btn btn-primary"><i class="bi bi-person-plus"></i> Thêm nhân viên</a>
     </div>
-</div>
-<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead><tr><th>Nhân viên</th><th>Chức vụ</th><th>CCHN</th><th class="text-end">Đơn thuốc đã duyệt</th><th>Trạng thái</th><th></th></tr></thead>
+                <tbody>
+                <tr th:each="u : ${staff}" th:class="${u.locked} ? 'text-muted' : ''">
+                    <td><div class="fw-semibold"><th:block th:text="${u.fullName}"/> <span th:if="${u.isOnline()}" class="text-success" title="Đang online">●</span></div>
+                        <div class="small text-muted" th:text="${u.email} + (${u.phone != null} ? ' · ' + ${u.phone} : '')"></div></td>
+                    <td class="small" th:text="${u.positionLabel()}"></td>
+                    <td class="small" th:text="${u.licenseNo} ?: '-'"></td>
+                    <td class="text-end" th:text="${@h.num(rxCount.getOrDefault(u.id, 0L))}"></td>
+                    <td><span th:if="${u.locked}" class="badge text-bg-secondary">Đã khóa</span><span th:unless="${u.locked}" class="badge text-bg-success">Hoạt động</span></td>
+                    <td class="text-nowrap">
+                        <a th:href="@{/admin/users/{id}/edit(id=${u.id})}" class="btn btn-sm btn-outline-primary">Sửa</a>
+                        <th:block th:if="${u.id != currentUser.id}">
+                            <form th:action="@{/admin/users/{id}/lock(id=${u.id})}" method="post" class="d-inline" th:data-confirm="(${u.locked} ? 'Mở khóa' : 'Khóa') + ' tài khoản ' + ${u.fullName} + '?'">
+                                <button th:class="'btn btn-sm btn-outline-' + (${u.locked} ? 'success' : 'danger')" th:text="${u.locked} ? 'Mở khóa' : 'Khóa'"></button></form>
+                            <form th:action="@{/admin/users/{id}/reset-password(id=${u.id})}" method="post" class="d-inline" th:data-confirm="'Đặt lại mật khẩu cho ' + ${u.fullName} + '?'">
+                                <button class="btn btn-sm btn-light" title="Đặt lại mật khẩu" aria-label="Đặt lại mật khẩu"><i class="bi bi-key"></i></button></form>
+                            <form th:action="@{/admin/users/{id}/delete(id=${u.id})}" method="post" class="d-inline" th:data-confirm="'Xóa vĩnh viễn nhân viên ' + ${u.fullName} + '?'">
+                                <button class="btn btn-sm btn-light text-danger" title="Xóa" th:aria-label="'Xóa ' + ${u.fullName}"><i class="bi bi-trash"></i></button></form>
+                        </th:block>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</th:block>
 </body>
 </html>

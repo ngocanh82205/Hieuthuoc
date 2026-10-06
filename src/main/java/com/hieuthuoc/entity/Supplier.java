@@ -2,18 +2,15 @@ package com.hieuthuoc.entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import lombok.Setter;
 
 @Entity
 @Table(name = "suppliers")
 @Getter
 @Setter
 @NoArgsConstructor
-public class Supplier {
+public class Supplier extends Timestamped {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -30,13 +27,6 @@ public class Supplier {
     @Column(length = 300)
     private String address;
 
-    @Column(length = 20)
+    @Column(name = "tax_code", length = 20)
     private String taxCode;
-
-    /** Hạn thanh toán công nợ (ngày kể từ khi phiếu nhập được duyệt). */
-    private Integer paymentTermDays;
-
-    public int getTermDays() {
-        return paymentTermDays == null ? 30 : paymentTermDays;
-    }
 }

@@ -1,348 +1,310 @@
 package com.hieuthuoc.web;
 
 import com.hieuthuoc.entity.*;
-import com.hieuthuoc.repository.AddressRepository;
-import com.hieuthuoc.repository.OrderRepository;
-import com.hieuthuoc.repository.UserRepository;
 import com.hieuthuoc.service.*;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDate;
-import java.util.List;
+import java.util.*;
 
-/** Khu vực tài khoản khách hàng: hồ sơ, sức khỏe, sổ địa chỉ, đơn hàng. */
+/** Tài khoản khách hàng: thông tin, hồ sơ sức khỏe, sổ địa chỉ, đơn hàng, gửi đơn thuốc, yêu thích. */
 @Controller
 @RequestMapping("/account")
 @RequiredArgsConstructor
 public class AccountController {
-    private final CurrentUser currentUser;
-    private final UserRepository userRepo;
-    private final AddressRepository addressRepo;
-    private final OrderRepository orderRepo;
-    private final OrderService orderService;
-    private final AccountService accountService;
-    private final Cart cart;
+    private final OrderService orders;
     private final CustomerCareService care;
-    private final com.hieuthuoc.repository.PrescriptionRepository prescriptionRepo;
-    private final com.hieuthuoc.repository.WishlistItemRepository wishlistRepo;
-    private final com.hieuthuoc.repository.StockSubscriptionRepository subscriptionRepo;
-    private final com.hieuthuoc.repository.ReminderRepository reminderRepo;
-    private final com.hieuthuoc.repository.ProductRepository productRepo;
-    private final StockService stockService;
     private final SettingService settings;
+    private final AccountService accounts;
+    private final PaymentService payments;
+    private final ProductService products;
+    private final GhnService ghn;
+    private final Cart cart;
+    private final CurrentUser currentUser;
+
+    @PersistenceContext
+    private EntityManager em;
 
     @GetMapping
+    @Transactional(readOnly = true)
     public String profile(Model model) {
         User u = currentUser.get();
-        model.addAttribute("profile", u);
-        model.addAttribute("orderCount", orderRepo.countByUser(u));
-        model.addAttribute("spent", orderRepo.totalSpent(u));
-        model.addAttribute("tier", care.tierOf(u));
-        model.addAttribute("tiers", com.hieuthuoc.entity.MemberTier.values());
-        model.addAttribute("today", care.todaySchedule(u));
-        model.addAttribute("pointValue", settings.getLong("point_value"));
         model.addAttribute("title", "Tài khoản của tôi");
+        model.addAttribute("profile", u);
+        model.addAttribute("orderCount", em.createQuery("select count(o) from Order o where o.user.id = :u", Long.class).setParameter("u", u.getId()).getSingleResult());
+        model.addAttribute("tier", care.tierOf(u));
+        model.addAttribute("tiers", settings.tiers());
+        model.addAttribute("pointValue", settings.getInt("point_value"));
         return "account/profile";
     }
 
     @PostMapping("/profile")
-    public String updateProfile(@RequestParam String fullName, @RequestParam String phone,
-                                @RequestParam(required = false) String gender,
-                                @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate birthday,
-                                RedirectAttributes ra) {
+    @Transactional
+    public String updateProfile(@RequestParam MultiValueMap<String, String> params, RedirectAttributes ra) {
         User u = currentUser.get();
-        if (Texts.trim(fullName).length() < 2) throw new BusinessException("Vui lòng nhập họ tên.");
-        if (!Texts.isPhone(Texts.trim(phone))) throw new BusinessException("Số điện thoại không hợp lệ.");
-        u.setFullName(Texts.trim(fullName, 100));
-        u.setPhone(phone.trim());
-        u.setGender(Texts.emptyToNull(gender));
-        u.setBirthday(birthday);
-        userRepo.save(u);
-        Flash.success(ra, "Đã cập nhật thông tin cá nhân.");
+        Form f = new Form(params);
+        Validator.of(f)
+                .required("full_name").min("full_name", 2).max("full_name", 100)
+                .required("phone").phone("phone", "Số điện thoại không hợp lệ.")
+                .unique("phone", v -> taken("u.phone", v, u.getId()), "Số điện thoại đã được tài khoản khác sử dụng.")
+                .email("email").max("email", 150).unique("email", v -> taken("lower(u.email)", v.toLowerCase(), u.getId()))
+                .in("gender", List.of("Nam", "Nữ", "Khác"))
+                .date("birthday")
+                .rule("birthday", f.str("birthday") == null || !f.str("birthday").matches("\\d{4}-\\d{2}-\\d{2}")
+                        || LocalDate.parse(f.str("birthday")).isBefore(LocalDate.now()), "Ngày sinh phải trước hôm nay.")
+                .check();
+        u.setFullName(f.str("full_name"));
+        u.setPhone(f.str("phone"));
+        if (f.str("email") != null) u.setEmail(f.str("email").toLowerCase());
+        u.setGender(f.str("gender"));
+        u.setBirthday(f.str("birthday") != null ? LocalDate.parse(f.str("birthday")) : null);
+        em.merge(u);
+        Web.success(ra, "Đã cập nhật thông tin cá nhân.");
         return "redirect:/account";
     }
 
+    private boolean taken(String field, String value, Long exceptId) {
+        return em.createQuery("select count(u) from User u where " + field + " = :v and u.id <> :id", Long.class)
+                .setParameter("v", value).setParameter("id", exceptId).getSingleResult() > 0;
+    }
+
     @PostMapping("/health")
-    public String updateHealth(@RequestParam(required = false) String allergies,
-                               @RequestParam(required = false) String chronicConditions,
-                               @RequestParam(defaultValue = "false") boolean pregnancy, RedirectAttributes ra) {
+    @Transactional
+    public String updateHealth(@RequestParam MultiValueMap<String, String> params, RedirectAttributes ra) {
         User u = currentUser.get();
-        u.setAllergies(Texts.emptyToNull(Texts.trim(allergies, 500)));
-        u.setChronicConditions(Texts.emptyToNull(Texts.trim(chronicConditions, 500)));
-        u.setPregnancy(pregnancy);
-        userRepo.save(u);
-        Flash.success(ra, "Đã lưu hồ sơ sức khỏe. Dược sĩ sẽ dùng thông tin này để tư vấn an toàn hơn.");
+        Form f = new Form(params);
+        u.setAllergies(f.str("allergies") != null ? Texts.limit(f.str("allergies"), 500, "") : null);
+        u.setChronicConditions(f.str("chronic_conditions") != null ? Texts.limit(f.str("chronic_conditions"), 500, "") : null);
+        u.setPregnancy(f.bool("pregnancy"));
+        em.merge(u);
+        Web.success(ra, "Đã lưu hồ sơ sức khỏe. Dược sĩ sẽ dùng thông tin này để tư vấn an toàn hơn.");
         return "redirect:/account#health";
     }
 
     @PostMapping("/password")
-    public String changePassword(@RequestParam String current, @RequestParam String password,
-                                 @RequestParam String passwordConfirm, RedirectAttributes ra) {
-        accountService.changePassword(currentUser.get(), current, password, passwordConfirm);
-        Flash.success(ra, "Đổi mật khẩu thành công.");
+    @Transactional
+    public String changePassword(@RequestParam(required = false) String current, @RequestParam(required = false) String password,
+                                 @RequestParam(name = "password_confirmation", required = false) String confirm, RedirectAttributes ra) {
+        accounts.changePassword(currentUser.get(), current, password, confirm);
+        Web.success(ra, "Đổi mật khẩu thành công.");
         return "redirect:/account";
     }
 
     /* ---------------- Sổ địa chỉ ---------------- */
 
     @GetMapping("/addresses")
+    @Transactional(readOnly = true)
     public String addresses(Model model) {
-        model.addAttribute("addresses", addressRepo.findByUserOrderByDefaultAddressDescIdAsc(currentUser.get()));
         model.addAttribute("title", "Sổ địa chỉ");
+        model.addAttribute("ghnEnabled", ghn.enabled());
+        model.addAttribute("provinces", SettingService.PROVINCES);
+        model.addAttribute("addresses", myAddresses(currentUser.get()));
         return "account/addresses";
+    }
+
+    private List<Address> myAddresses(User u) {
+        return em.createQuery("select a from Address a where a.user.id = :u order by a.isDefault desc, a.id", Address.class)
+                .setParameter("u", u.getId()).getResultList();
     }
 
     @PostMapping("/addresses")
     @Transactional
-    public String addAddress(@RequestParam String recipient, @RequestParam String phone, @RequestParam String addressLine,
-                             @RequestParam(defaultValue = "false") boolean makeDefault, RedirectAttributes ra) {
+    public String addAddress(@RequestParam MultiValueMap<String, String> params, RedirectAttributes ra) {
         User u = currentUser.get();
-        if (Texts.trim(recipient).length() < 2 || !Texts.isPhone(Texts.trim(phone)) || Texts.trim(addressLine).length() < 10) {
-            throw new BusinessException("Vui lòng nhập đầy đủ tên, số điện thoại hợp lệ và địa chỉ chi tiết (tối thiểu 10 ký tự).");
+        Form f = new Form(params);
+        Validator.of(f)
+                .required("recipient").min("recipient", 2).max("recipient", 100)
+                .required("phone").phone("phone", "Số điện thoại không hợp lệ.")
+                .required("address_line").max("address_line", 300)
+                .rule("address_line", f.str("address_line") == null || Texts.mbLen(f.str("address_line")) >= 10, "Vui lòng nhập địa chỉ chi tiết (tối thiểu 10 ký tự).")
+                .max("province", 60).integer("ghn_province_id").integer("ghn_district_id").max("ghn_ward_code", 20)
+                .check();
+        boolean isDefault = f.bool("make_default") || myAddresses(u).isEmpty();
+        if (isDefault) {
+            em.createQuery("update Address a set a.isDefault = false where a.user.id = :u").setParameter("u", u.getId()).executeUpdate();
         }
-        List<Address> existing = addressRepo.findByUserOrderByDefaultAddressDescIdAsc(u);
-        boolean isDefault = makeDefault || existing.isEmpty();
-        if (isDefault) existing.forEach(a -> a.setDefaultAddress(false));
         Address a = new Address();
         a.setUser(u);
-        a.setRecipient(Texts.trim(recipient, 100));
-        a.setPhone(phone.trim());
-        a.setAddressLine(Texts.trim(addressLine, 300));
-        a.setDefaultAddress(isDefault);
-        addressRepo.save(a);
-        Flash.success(ra, "Đã thêm địa chỉ.");
+        a.setRecipient(f.str("recipient"));
+        a.setPhone(f.str("phone"));
+        a.setAddressLine(f.str("address_line"));
+        a.setProvince(f.str("province"));
+        a.setGhnProvinceId(f.longVal("ghn_province_id") != null ? f.longVal("ghn_province_id").intValue() : null);
+        a.setGhnDistrictId(f.longVal("ghn_district_id") != null ? f.longVal("ghn_district_id").intValue() : null);
+        a.setGhnWardCode(f.str("ghn_ward_code"));
+        a.setDefault(isDefault);
+        em.persist(a);
+        Web.success(ra, "Đã thêm địa chỉ.");
         return "redirect:/account/addresses";
+    }
+
+    private Address myAddress(Long id) {
+        Address a = em.find(Address.class, id);
+        if (a == null || !a.getUser().getId().equals(currentUser.get().getId())) throw BusinessException.notFound();
+        return a;
     }
 
     @PostMapping("/addresses/{id}/default")
     @Transactional
     public String setDefault(@PathVariable Long id) {
-        User u = currentUser.get();
-        addressRepo.findByIdAndUser(id, u).ifPresent(target -> {
-            addressRepo.findByUserOrderByDefaultAddressDescIdAsc(u).forEach(a -> a.setDefaultAddress(false));
-            target.setDefaultAddress(true);
-        });
+        Address a = myAddress(id);
+        em.createQuery("update Address x set x.isDefault = false where x.user.id = :u").setParameter("u", a.getUser().getId()).executeUpdate();
+        em.refresh(a);
+        a.setDefault(true);
         return "redirect:/account/addresses";
     }
 
     @PostMapping("/addresses/{id}/delete")
-    public String deleteAddress(@PathVariable Long id, RedirectAttributes ra) {
-        addressRepo.findByIdAndUser(id, currentUser.get()).ifPresent(addressRepo::delete);
-        Flash.info(ra, "Đã xóa địa chỉ.");
+    @Transactional
+    public Object deleteAddress(@PathVariable Long id, HttpServletRequest req, RedirectAttributes ra) {
+        em.remove(myAddress(id));
+        if (Web.wantsJson(req)) return ResponseEntity.ok(Map.of("ok", true, "message", "Đã xóa địa chỉ khỏi sổ địa chỉ thành công."));
+        Web.info(ra, "Đã xóa địa chỉ.");
         return "redirect:/account/addresses";
     }
 
     /* ---------------- Đơn hàng ---------------- */
 
     private Order myOrder(String code) {
-        return orderRepo.findByCodeAndUser(code, currentUser.get())
-                .orElseThrow(() -> BusinessException.notFound("Không tìm thấy đơn hàng."));
+        return em.createQuery("select o from Order o where o.code = :c and o.user.id = :u", Order.class)
+                .setParameter("c", code).setParameter("u", currentUser.get().getId())
+                .getResultStream().findFirst().orElseThrow(() -> BusinessException.notFound("Không tìm thấy đơn hàng."));
     }
 
     @GetMapping("/orders")
-    public String orders(@RequestParam(required = false) OrderStatus status, Model model) {
-        User u = currentUser.get();
-        model.addAttribute("orders", status == null ? orderRepo.findByUserOrderByCreatedAtDescIdDesc(u)
-                : orderRepo.findByUserAndStatusOrderByCreatedAtDescIdDesc(u, status));
-        model.addAttribute("status", status);
-        model.addAttribute("statuses", OrderStatus.values());
+    @Transactional(readOnly = true)
+    public String orders(@RequestParam(required = false) String status, @RequestParam(defaultValue = "1") int page, Model model) {
+        OrderStatus st = null;
+        try {
+            st = status == null || status.isEmpty() ? null : OrderStatus.valueOf(status);
+        } catch (IllegalArgumentException ignored) {
+            // trạng thái không hợp lệ -> bỏ lọc
+        }
+        Long uid = currentUser.get().getId();
+        String where = " from Order o where o.user.id = :u" + (st != null ? " and o.status = :s" : "");
+        var count = em.createQuery("select count(o)" + where, Long.class).setParameter("u", uid);
+        var list = em.createQuery("select o" + where + " order by o.createdAt desc, o.id desc", Order.class).setParameter("u", uid);
+        if (st != null) {
+            count.setParameter("s", st);
+            list.setParameter("s", st);
+        }
+        int per = 10;
+        int pg = Math.max(1, page);
         model.addAttribute("title", "Đơn hàng của tôi");
+        model.addAttribute("orders", new Page<>(list.setFirstResult((pg - 1) * per).setMaxResults(per).getResultList(), count.getSingleResult(), per, pg));
+        model.addAttribute("status", st);
+        model.addAttribute("statuses", OrderStatus.values());
         return "account/orders";
     }
 
     @GetMapping("/orders/{code}")
+    @Transactional(readOnly = true)
     public String order(@PathVariable String code, Model model) {
         Order o = myOrder(code);
-        model.addAttribute("order", o);
-        model.addAttribute("canPay", orderService.canPay(o));
-        model.addAttribute("canReturn", orderService.canRequestReturn(o));
-        model.addAttribute("showBank", orderService.showBankTransfer(o));
-        model.addAttribute("addresses", addressRepo.findByUserOrderByDefaultAddressDescIdAsc(o.getUser()));
-        model.addAttribute("shippingMethods", ShippingMethod.values());
-        model.addAttribute("paymentMethods", settings.enabledPaymentMethods());
-        model.addAttribute("provinces", settings.deliverableProvinces());
+        List<Long> productIds = o.getItems().stream().map(OrderItem::getProductId).toList();
+        List<Long> reviewed = productIds.isEmpty() ? List.of() : em.createQuery("select r.product.id from Review r where r.user.id = :u and r.product.id in :p", Long.class)
+                .setParameter("u", o.getUser().getId()).setParameter("p", productIds).getResultList();
         model.addAttribute("title", "Đơn hàng " + o.getCode());
+        model.addAttribute("order", o);
+        model.addAttribute("canPay", payments.canPay(o));
+        model.addAttribute("canReturn", orders.canRequestReturn(o));
+        model.addAttribute("returnBlockedByRx", orders.returnBlockedByRx(o));
+        model.addAttribute("showBank", orders.showBankTransfer(o));
+        model.addAttribute("vietQr", orders.showBankTransfer(o) ? payments.vietQrUrl(o) : null);
+        model.addAttribute("addresses", myAddresses(o.getUser()));
+        model.addAttribute("paymentMethods", settings.enabledPaymentMethods());
+        model.addAttribute("provinces", SettingService.PROVINCES);
+        model.addAttribute("reviewed", reviewed);
+        model.addAttribute("shippingMethods", ShippingMethod.values());
         return "account/order";
     }
 
     @PostMapping("/orders/{code}/cancel")
     @Transactional
     public String cancel(@PathVariable String code, @RequestParam(required = false) String reason, RedirectAttributes ra) {
-        Order o = myOrder(code);
-        orderService.cancelByCustomer(o, currentUser.get(), reason);
-        Flash.info(ra, "Đã hủy đơn hàng " + code + ".");
-        return "redirect:/account/orders/" + code;
-    }
-
-    @GetMapping("/orders/{code}/pay")
-    public String payPage(@PathVariable String code, Model model, RedirectAttributes ra) {
-        Order o = myOrder(code);
-        if (o.getPaymentStatus() == PaymentStatus.PAID) return "redirect:/account/orders/" + code;
-        if (o.getStatus() == OrderStatus.PENDING_RX || o.getStatus() == OrderStatus.RX_REJECTED) {
-            Flash.warning(ra, "Đơn có thuốc kê đơn chỉ được thanh toán sau khi dược sĩ duyệt đơn thuốc.");
-            return "redirect:/account/orders/" + code;
-        }
-        if (!orderService.canPay(o)) return "redirect:/account/orders/" + code;
-        model.addAttribute("order", o);
-        model.addAttribute("title", "Thanh toán online");
-        return "shop/pay";
-    }
-
-    @PostMapping("/orders/{code}/pay")
-    @Transactional
-    public String pay(@PathVariable String code, @RequestParam String result, RedirectAttributes ra) {
-        orderService.pay(myOrder(code), currentUser.get(), "success".equals(result));
-        Flash.success(ra, "Thanh toán thành công!");
+        orders.cancelByCustomer(myOrder(code), currentUser.get(), reason);
+        Web.info(ra, "Đã hủy đơn hàng " + code + ".");
         return "redirect:/account/orders/" + code;
     }
 
     @PostMapping("/orders/{code}/prescription")
     @Transactional
-    public String reupload(@PathVariable String code, @RequestParam("prescription") MultipartFile file,
-                           @RequestParam(required = false) String rxNote, RedirectAttributes ra) {
-        orderService.reuploadPrescription(myOrder(code), currentUser.get(), file, rxNote);
-        Flash.success(ra, "Đã gửi lại đơn thuốc, vui lòng chờ dược sĩ duyệt.");
+    public String reupload(@PathVariable String code, @RequestParam(required = false) MultipartFile prescription,
+                           @RequestParam(name = "rx_note", required = false) String note, RedirectAttributes ra) {
+        orders.reuploadPrescription(myOrder(code), currentUser.get(), prescription, note);
+        Web.success(ra, "Đã gửi lại đơn thuốc, vui lòng chờ dược sĩ duyệt.");
         return "redirect:/account/orders/" + code;
     }
 
     @PostMapping("/orders/{code}/return")
     @Transactional
-    public String requestReturn(@PathVariable String code, @RequestParam String reason, RedirectAttributes ra) {
-        orderService.requestReturn(myOrder(code), currentUser.get(), reason);
-        Flash.success(ra, "Đã gửi yêu cầu đổi/trả. Nhà thuốc sẽ liên hệ với bạn.");
+    public String requestReturn(@PathVariable String code, @RequestParam(required = false) String reason, RedirectAttributes ra) {
+        orders.requestReturn(myOrder(code), currentUser.get(), reason);
+        Web.success(ra, "Đã gửi yêu cầu đổi/trả. Nhà thuốc sẽ liên hệ với bạn.");
         return "redirect:/account/orders/" + code;
     }
 
     @PostMapping("/orders/{code}/confirm")
     @Transactional
-    public String confirm(@PathVariable String code, @ModelAttribute OrderService.ConfirmForm form, RedirectAttributes ra) {
+    public String confirm(@PathVariable String code, @RequestParam MultiValueMap<String, String> params, RedirectAttributes ra) {
         Order o = myOrder(code);
-        orderService.confirmByCustomer(o, currentUser.get(), form);
-        Flash.success(ra, "Đã xác nhận đơn hàng. Nhà thuốc sẽ xử lý sớm nhất."
+        orders.confirmByCustomer(o, currentUser.get(), new Form(params));
+        em.refresh(o);
+        if (o.getPaymentMethod().isGateway()) return "redirect:/account/orders/" + code + "/pay";
+        Web.success(ra, "Đã xác nhận đơn hàng. Nhà thuốc sẽ xử lý sớm nhất."
                 + (o.getPaymentMethod() == PaymentMethod.BANK_TRANSFER ? " Vui lòng chuyển khoản theo hướng dẫn." : ""));
-        return o.getPaymentMethod() == PaymentMethod.ONLINE ? "redirect:/account/orders/" + code + "/pay" : "redirect:/account/orders/" + code;
-    }
-
-    /** Tạo nhắc mua lại từ một sản phẩm trong đơn đã mua. */
-    @PostMapping("/orders/{code}/remind")
-    @Transactional
-    public String remindFromOrder(@PathVariable String code, @RequestParam Long productId, @RequestParam(defaultValue = "30") int days,
-                                  RedirectAttributes ra) {
-        myOrder(code);
-        CustomerCareService.ReminderForm f = new CustomerCareService.ReminderForm();
-        f.setType(ReminderType.REPURCHASE);
-        f.setProductId(productId);
-        f.setRemindDate(LocalDate.now().plusDays(Math.max(1, Math.min(days, 365))));
-        care.createReminder(currentUser.get(), f);
-        Flash.success(ra, "Đã đặt lịch nhắc mua lại sau " + days + " ngày.");
         return "redirect:/account/orders/" + code;
     }
 
     @PostMapping("/orders/{code}/reorder")
+    @Transactional(readOnly = true)
     public String reorder(@PathVariable String code, RedirectAttributes ra) {
-        List<String> skipped = orderService.reorder(myOrder(code), cart);
-        if (skipped.isEmpty()) Flash.success(ra, "Đã thêm các sản phẩm vào giỏ hàng.");
-        else Flash.warning(ra, "Đã thêm vào giỏ. Không thêm được: " + String.join(", ", skipped));
+        List<String> skipped = orders.reorder(myOrder(code), cart);
+        if (skipped.isEmpty()) Web.success(ra, "Đã thêm các sản phẩm vào giỏ hàng.");
+        else Web.warning(ra, "Đã thêm vào giỏ. Không thêm được: " + String.join(", ", skipped));
         return "redirect:/cart";
     }
 
     /* ---------------- Gửi đơn thuốc (không chọn sản phẩm) ---------------- */
 
     @GetMapping("/prescriptions")
+    @Transactional(readOnly = true)
     public String prescriptions(Model model) {
-        model.addAttribute("list", prescriptionRepo.findByUserAndStandaloneTrueOrderByCreatedAtDesc(currentUser.get()));
         model.addAttribute("title", "Gửi đơn thuốc");
+        model.addAttribute("list", em.createQuery("select p from Prescription p left join fetch p.order where p.user.id = :u and p.standalone = true order by p.createdAt desc",
+                Prescription.class).setParameter("u", currentUser.get().getId()).getResultList());
         return "account/prescriptions";
     }
 
     @PostMapping("/prescriptions")
     @Transactional
-    public String submitPrescription(@RequestParam("prescription") MultipartFile file, @RequestParam(required = false) String note,
-                                     RedirectAttributes ra) {
-        orderService.submitStandalonePrescription(currentUser.get(), file, note);
-        Flash.success(ra, "Đã gửi đơn thuốc. Dược sĩ sẽ đọc đơn, lên đơn hàng và báo giá cho bạn.");
+    public String submitPrescription(@RequestParam(required = false) MultipartFile prescription, @RequestParam(required = false) String note, RedirectAttributes ra) {
+        orders.submitStandalonePrescription(currentUser.get(), prescription, note);
+        Web.success(ra, "Đã gửi đơn thuốc. Dược sĩ sẽ đọc đơn, lên đơn hàng và báo giá cho bạn.");
         return "redirect:/account/prescriptions";
     }
 
-    /* ---------------- Yêu thích & báo có hàng ---------------- */
+    /* ---------------- Yêu thích ---------------- */
 
     @GetMapping("/wishlist")
+    @Transactional(readOnly = true)
     public String wishlist(Model model) {
-        User u = currentUser.get();
-        List<com.hieuthuoc.entity.Product> products = new java.util.ArrayList<>(
-                wishlistRepo.findByUserOrderByCreatedAtDesc(u).stream().map(com.hieuthuoc.entity.WishlistItem::getProduct).toList());
-        stockService.fill(products);
-        model.addAttribute("products", products);
-        model.addAttribute("subscriptions", subscriptionRepo.findByUserAndNotifiedFalseOrderByCreatedAtDesc(u));
+        List<Product> list = new ArrayList<>(em.createQuery("select p from Product p where p.id in (select w.product.id from WishlistItem w where w.userId = :u)", Product.class)
+                .setParameter("u", currentUser.get().getId()).getResultList());
+        products.enrich(list);
         model.addAttribute("title", "Sản phẩm yêu thích");
+        model.addAttribute("products", list);
         return "account/wishlist";
-    }
-
-    /* ---------------- Kho voucher ---------------- */
-
-    @GetMapping("/vouchers")
-    public String vouchers(Model model) {
-        User u = currentUser.get();
-        model.addAttribute("saved", care.savedVouchers(u));
-        model.addAttribute("available", care.walletCandidates(u));
-        model.addAttribute("title", "Kho voucher");
-        return "account/vouchers";
-    }
-
-    @PostMapping("/vouchers/{id}/save")
-    @Transactional
-    public String saveVoucher(@PathVariable Long id, RedirectAttributes ra) {
-        care.saveVoucher(currentUser.get(), id);
-        Flash.success(ra, "Đã lưu voucher vào kho.");
-        return "redirect:/account/vouchers";
-    }
-
-    /** Dùng voucher trong kho: áp mã vào giỏ hàng. */
-    @PostMapping("/vouchers/{code}/use")
-    public String useVoucher(@PathVariable String code) {
-        cart.setVoucherCode(code);
-        return "redirect:/cart";
-    }
-
-    /* ---------------- Nhắc lịch ---------------- */
-
-    @GetMapping("/reminders")
-    public String reminders(Model model) {
-        User u = currentUser.get();
-        model.addAttribute("reminders", reminderRepo.findByUserOrderByActiveDescCreatedAtDesc(u));
-        model.addAttribute("today", care.todaySchedule(u));
-        model.addAttribute("products", productRepo.findSellable());
-        model.addAttribute("title", "Nhắc lịch uống thuốc");
-        return "account/reminders";
-    }
-
-    @PostMapping("/reminders")
-    @Transactional
-    public String createReminder(@ModelAttribute CustomerCareService.ReminderForm form, RedirectAttributes ra) {
-        care.createReminder(currentUser.get(), form);
-        Flash.success(ra, "Đã tạo lịch nhắc. Bạn sẽ nhận thông báo trên website đúng giờ.");
-        return "redirect:/account/reminders";
-    }
-
-    @PostMapping("/reminders/{id}/toggle")
-    @Transactional
-    public String toggleReminder(@PathVariable Long id) {
-        care.toggleReminder(currentUser.get(), id);
-        return "redirect:/account/reminders";
-    }
-
-    @PostMapping("/reminders/{id}/delete")
-    @Transactional
-    public String deleteReminder(@PathVariable Long id, RedirectAttributes ra) {
-        care.deleteReminder(currentUser.get(), id);
-        Flash.info(ra, "Đã xóa lịch nhắc.");
-        return "redirect:/account/reminders";
     }
 }

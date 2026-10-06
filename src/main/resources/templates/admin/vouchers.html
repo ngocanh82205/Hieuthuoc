@@ -1,84 +1,113 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head}"></head>
-<body class="staff-body">
-<div class="staff-shell">
-    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
-    <div class="staff-main">
-        <header th:replace="~{fragments/staff :: topbar}"></header>
-        <main class="p-3 p-lg-4">
-            <div th:replace="~{fragments/layout :: flash}"></div>
-            <div class="row g-4">
-                <div class="col-xl-8">
-                    <div class="card">
-                        <div class="table-responsive">
-                            <table class="table mb-0">
-                                <thead><tr><th>Mã</th><th>Giảm</th><th>Điều kiện</th><th>Thời gian</th><th class="text-end">Đã dùng</th><th>Trạng thái</th><th></th></tr></thead>
-                                <tbody>
-                                <tr th:if="${vouchers.isEmpty()}"><td colspan="7" class="text-center text-muted py-4">Chưa có mã giảm giá.</td></tr>
-                                <tr th:each="v : ${vouchers}">
-                                    <td><strong th:text="${v.code}"></strong><div class="small text-muted" th:text="${v.description}"></div></td>
-                                    <td class="text-nowrap" th:text="${v.type.name() == 'PERCENT'} ? ${v.value} + '%' + (${v.maxDiscount != null} ? ' (tối đa ' + ${@fmt.money(v.maxDiscount)} + ')' : '') : ${@fmt.money(v.value)}"></td>
-                                    <td class="small"><div th:text="'Đơn từ ' + ${@fmt.money(v.minOrder)}"></div>
-                                        <div th:if="${v.minTier != null}" class="text-primary" th:text="'Hạng ' + ${v.minTier.label} + ' trở lên'"></div>
-                                        <div th:if="${v.newOnly}" class="text-primary">Khách hàng mới</div>
-                                        <div th:if="${v.category != null}" class="text-primary" th:text="'Danh mục: ' + ${v.category.name}"></div>
-                                        <div th:if="${v.perUserLimit != null}" th:text="${v.perUserLimit} + ' lần/khách'"></div></td>
-                                    <td class="small text-nowrap" th:text="${@fmt.date(v.startDate)} + ' - ' + ${@fmt.date(v.endDate)}"></td>
-                                    <td class="text-end" th:text="${v.usedCount} + (${v.usageLimit != null} ? '/' + ${v.usageLimit} : '')"></td>
-                                    <td><span class="badge" th:classappend="${v.active} ? 'text-bg-success' : 'text-bg-secondary'" th:text="${v.active} ? 'Bật' : 'Tắt'"></span>
-                                        <span th:if="${v.inWallet}" class="badge text-bg-info">Kho voucher</span></td>
-                                    <td><a th:href="@{/admin/vouchers(edit=${v.id})}" class="btn btn-sm btn-outline-primary">Sửa</a></td>
-                                </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <p class="small text-muted mt-2">Theo quy định, mã giảm giá chỉ áp dụng trên giá trị hàng không phải thuốc kê đơn.</p>
-                </div>
-                <div class="col-xl-4">
-                    <form th:action="${edit.id == null} ? @{/admin/vouchers} : @{/admin/vouchers/{id}(id=${edit.id})}" method="post" class="card">
-                        <div class="card-header" th:text="${edit.id == null} ? 'Tạo mã giảm giá' : 'Sửa mã ' + ${edit.code}"></div>
-                        <div class="card-body row g-2">
-                            <div class="col-12"><label class="form-label small">Mã</label><input name="code" class="form-control text-uppercase" th:value="${edit.code}" required pattern="[A-Za-z0-9_\-]{3,30}"></div>
-                            <div class="col-12"><label class="form-label small">Mô tả</label><input name="description" class="form-control" th:value="${edit.description}"></div>
-                            <div class="col-6"><label class="form-label small">Loại</label>
-                                <select name="type" class="form-select">
-                                    <option th:each="t : ${types}" th:value="${t}" th:text="${t.label}" th:selected="${edit.type == t}"></option></select></div>
-                            <div class="col-6"><label class="form-label small">Giá trị (% hoặc đ)</label><input type="number" name="value" min="1" class="form-control" th:value="${edit.id != null ? edit.value : ''}" required></div>
-                            <div class="col-6"><label class="form-label small">Đơn tối thiểu (đ)</label><input type="number" name="minOrder" min="0" class="form-control" th:value="${edit.minOrder}"></div>
-                            <div class="col-6"><label class="form-label small">Giảm tối đa (đ)</label><input type="number" name="maxDiscount" min="0" class="form-control" th:value="${edit.maxDiscount}"></div>
-                            <div class="col-6"><label class="form-label small">Từ ngày</label><input type="date" name="startDate" class="form-control" th:value="${@fmt.iso(edit.startDate)}"></div>
-                            <div class="col-6"><label class="form-label small">Đến ngày</label><input type="date" name="endDate" class="form-control" th:value="${@fmt.iso(edit.endDate)}"></div>
-                            <div class="col-12"><hr class="my-1"><div class="small fw-semibold text-primary">Đối tượng áp dụng</div></div>
-                            <div class="col-6"><label class="form-label small">Hạng thành viên từ</label>
-                                <select name="minTier" class="form-select"><option value="">Mọi khách hàng</option>
-                                    <option th:each="t : ${tiers}" th:value="${t}" th:text="${t.label}" th:selected="${edit.minTier == t}"></option></select></div>
-                            <div class="col-6"><label class="form-label small">Danh mục</label>
-                                <select name="categoryId" class="form-select"><option value="">Mọi sản phẩm không kê đơn</option>
-                                    <option th:each="c : ${categories}" th:value="${c.id}" th:text="${#strings.repeat('— ', c.depth) + c.name}"
-                                            th:selected="${edit.category != null && edit.category.id == c.id}"></option></select></div>
-                            <div class="col-6"><label class="form-label small">Số lần / khách</label><input type="number" name="perUserLimit" min="0" class="form-control" th:value="${edit.perUserLimit}" placeholder="Không giới hạn"></div>
-                            <div class="col-6 d-flex align-items-end"><div class="form-check mb-2">
-                                <input type="checkbox" class="form-check-input" name="newCustomerOnly" value="true" id="vNew" th:checked="${edit.newOnly}">
-                                <label class="form-check-label small" for="vNew">Chỉ khách mua lần đầu</label></div></div>
-                            <div class="col-12 small text-muted">Theo quy định, mã giảm giá không áp dụng cho thuốc kê đơn - hệ thống tự loại phần thuốc kê đơn khỏi giá trị được giảm.</div>
-                            <div class="col-6"><label class="form-label small">Tổng số lượt tối đa</label><input type="number" name="usageLimit" min="0" class="form-control" th:value="${edit.usageLimit}"></div>
-                            <div class="col-6 d-flex align-items-end"><div class="form-check">
-                                <input type="checkbox" class="form-check-input" name="active" value="true" id="vActive" th:checked="${edit.id == null || edit.active}">
-                                <label class="form-check-label" for="vActive">Kích hoạt</label></div></div>
-                            <div class="col-12"><div class="form-check">
-                                <input type="checkbox" class="form-check-input" name="showInWallet" value="true" id="vWallet" th:checked="${edit.inWallet}">
-                                <label class="form-check-label" for="vWallet">Hiện trong "Kho voucher" để khách lưu</label></div></div>
-                            <div class="col-12 mt-3"><button class="btn btn-primary">Lưu</button>
-                                <a th:if="${edit.id != null}" th:href="@{/admin/vouchers}" class="btn btn-link">Hủy</a></div>
-                        </div>
-                    </form>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/admin :: layout(~{::content}, ~{::scripts})}">
+<body>
+<th:block th:fragment="content">
+<th:block th:with="e=${edit}, isNew=${edit.id == null}">
+    <div class="row g-4">
+        <div class="col-xl-8">
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead><tr><th>Mã</th><th>Giảm</th><th>Điều kiện</th><th>Thời gian</th><th class="text-end">Đã dùng</th><th>Trạng thái</th><th></th></tr></thead>
+                        <tbody>
+                        <tr th:each="v : ${vouchers}">
+                            <td><strong th:text="${v.code}"></strong><div class="small text-muted" th:text="${v.description}"></div></td>
+                            <td class="text-nowrap" th:text="${v.valueLabel()}"></td>
+                            <td class="small"><div th:text="'Đơn từ ' + ${@h.money(v.minOrder)}"></div>
+                                <div th:if="${v.minTier != null}" class="text-primary" th:text="'Hạng ' + ${v.minTier.label} + ' trở lên'"></div>
+                                <div th:if="${v.newCustomerOnly}" class="text-primary">Khách hàng mới</div>
+                                <div th:if="${v.category != null}" class="text-primary" th:text="'Danh mục: ' + ${v.category.name}"></div>
+                                <div th:if="${v.perUserLimit != null}" th:text="${v.perUserLimit} + ' lần/khách'"></div></td>
+                            <td class="small text-nowrap" th:text="${@h.date(v.startDate)} + ' - ' + ${@h.date(v.endDate)}"></td>
+                            <td class="text-end" th:text="${v.usedCount} + (${v.usageLimit != null} ? '/' + ${v.usageLimit} : '')"></td>
+                            <td><span th:class="'badge text-bg-' + (${v.active} ? 'success' : 'secondary')" th:text="${v.active} ? 'Bật' : 'Tắt'"></span>
+                                <span th:if="${v.showInWallet}" class="badge text-bg-info">Công khai</span></td>
+                            <td class="text-nowrap"><a th:href="@{/admin/vouchers(edit=${v.id})}" class="btn btn-sm btn-outline-primary">Sửa</a>
+                                <button th:if="${v.isRunning()}" type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#sendVoucher"
+                                        th:with="act=@{/admin/vouchers/{id}/email(id=${v.id})}" th:attr="data-code=${v.code},data-action=${act}" title="Tặng &amp; gửi email"><i class="bi bi-envelope-paper-heart"></i></button></td>
+                        </tr>
+                        <tr th:if="${vouchers.isEmpty()}"><td colspan="7" class="text-center text-muted py-4">Chưa có mã giảm giá.</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
-        </main>
+            <p class="small text-muted mt-2">Theo quy định, mã giảm giá chỉ áp dụng trên giá trị hàng không phải thuốc kê đơn.</p>
+        </div>
+        <div class="col-xl-4">
+            <form th:action="${isNew} ? @{/admin/vouchers} : @{/admin/vouchers/{id}(id=${e.id})}" method="post" class="card">
+                <div class="card-header" th:text="${isNew} ? 'Tạo mã giảm giá' : 'Sửa mã ' + ${e.code}"></div>
+                <div class="card-body row g-2">
+                    <div class="col-12"><label class="form-label small" for="vCode">Mã</label><input id="vCode" name="code" class="form-control text-uppercase" th:value="${e.code}" required pattern="[A-Za-z0-9_\-]{3,30}"></div>
+                    <div class="col-12"><label class="form-label small" for="vDesc">Mô tả</label><input id="vDesc" name="description" class="form-control" th:value="${e.description}" maxlength="300"></div>
+                    <div class="col-6"><label class="form-label small" for="vType">Loại</label>
+                        <select id="vType" name="type" class="form-select">
+                            <option value="PERCENT" th:selected="${e.type == 'PERCENT'}">Giảm theo %</option>
+                            <option value="FIXED" th:selected="${e.type == 'FIXED'}">Giảm số tiền</option></select></div>
+                    <div class="col-6"><label class="form-label small" for="vVal">Giá trị (% hoặc đ)</label><input id="vVal" type="number" name="value" min="1" class="form-control" th:value="${isNew} ? '' : ${e.discountValue}" required></div>
+                    <div class="col-6"><label class="form-label small" for="vMin">Đơn tối thiểu (đ)</label><input id="vMin" type="number" name="min_order" min="0" class="form-control" th:value="${e.minOrder}"></div>
+                    <div class="col-6"><label class="form-label small" for="vMax">Giảm tối đa (đ)</label><input id="vMax" type="number" name="max_discount" min="0" class="form-control" th:value="${e.maxDiscount}"></div>
+                    <div class="col-6"><label class="form-label small" for="vFrom">Từ ngày</label><input id="vFrom" type="date" name="start_date" class="form-control" th:value="${e.startDate}"></div>
+                    <div class="col-6"><label class="form-label small" for="vTo">Đến ngày</label><input id="vTo" type="date" name="end_date" class="form-control" th:value="${e.endDate}"></div>
+                    <div class="col-12"><hr class="my-1"><div class="small fw-semibold text-primary">Đối tượng áp dụng</div></div>
+                    <div class="col-6"><label class="form-label small" for="vTier">Hạng thành viên từ</label>
+                        <select id="vTier" name="min_tier" class="form-select"><option value="">Mọi khách hàng</option>
+                            <option th:each="t : ${tiers}" th:value="${t.name()}" th:selected="${e.minTier == t}" th:text="${t.label}"></option>
+                        </select></div>
+                    <div class="col-6"><label class="form-label small" for="vCat">Danh mục</label>
+                        <select id="vCat" name="category_id" class="form-select"><option value="">Mọi sản phẩm không kê đơn</option>
+                            <option th:each="c : ${categories}" th:value="${c.id}" th:selected="${e.category != null and e.category.id == c.id}" th:text="${#strings.repeat('— ', c.depth)} + ${c.name}"></option>
+                        </select></div>
+                    <div class="col-6"><label class="form-label small" for="vPer">Số lần / khách</label><input id="vPer" type="number" name="per_user_limit" min="0" class="form-control" th:value="${e.perUserLimit}" placeholder="Không giới hạn"></div>
+                    <div class="col-6 d-flex align-items-end"><div class="form-check mb-2">
+                        <input type="checkbox" class="form-check-input" name="new_customer_only" value="1" id="vNew" th:checked="${e.newCustomerOnly}">
+                        <label class="form-check-label small" for="vNew">Chỉ khách mua lần đầu</label></div></div>
+                    <div class="col-6"><label class="form-label small" for="vLimit">Tổng số lượt tối đa</label><input id="vLimit" type="number" name="usage_limit" min="0" class="form-control" th:value="${e.usageLimit}"></div>
+                    <div class="col-6 d-flex align-items-end"><div class="form-check">
+                        <input type="checkbox" class="form-check-input" name="active" value="1" id="vActive" th:checked="${e.active}">
+                        <label class="form-check-label" for="vActive">Kích hoạt</label></div></div>
+                    <div class="col-12"><div class="form-check">
+                        <input type="checkbox" class="form-check-input" name="show_in_wallet" value="1" id="vWallet" th:checked="${e.showInWallet}">
+                        <label class="form-check-label" for="vWallet">Công khai (trợ lý tư vấn giới thiệu mã này cho khách)</label></div></div>
+                    <div class="col-12 mt-3"><button class="btn btn-primary">Lưu</button>
+                        <a th:unless="${isNew}" th:href="@{/admin/vouchers}" class="btn btn-link">Hủy</a></div>
+                </div>
+            </form>
+        </div>
     </div>
-</div>
-<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+    <div class="modal fade" id="sendVoucher" tabindex="-1" aria-labelledby="sendVoucherTitle" aria-hidden="true">
+        <div class="modal-dialog">
+            <form method="post" class="modal-content" th:action="@{/admin/vouchers}">
+                <div class="modal-header"><h2 class="modal-title h6" id="sendVoucherTitle">Tặng mã <span data-code></span> &amp; gửi email</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button></div>
+                <div class="modal-body">
+                    <th:block th:replace="~{admin/_audience :: audience('vs')}"/>
+                    <label class="form-label small" for="vsMsg">Lời nhắn trong email (không bắt buộc)</label>
+                    <textarea id="vsMsg" name="message" class="form-control form-control-sm" rows="2" maxlength="500" placeholder="VD: Cảm ơn bạn đã đồng hành cùng nhà thuốc..."></textarea>
+                    <p class="small text-muted mt-2 mb-0">Khách nhận thông báo popup trên web và email (nếu đã bật gửi email) kèm mã giảm giá.</p>
+                </div>
+                <div class="modal-footer"><button class="btn btn-primary"><i class="bi bi-send"></i> Gửi</button></div>
+            </form>
+        </div>
+    </div>
+</th:block>
+</th:block>
+<th:block th:fragment="scripts">
+<script>
+    document.getElementById('sendVoucher').addEventListener('show.bs.modal', function (e) {
+        var b = e.relatedTarget;
+        this.querySelector('form').action = b.dataset.action;
+        this.querySelector('[data-code]').textContent = b.dataset.code;
+    });
+    document.querySelectorAll('[data-audience]').forEach(function (sel) {
+        var sync = function () {
+            document.querySelectorAll('[data-for="' + sel.dataset.audience + '"]').forEach(function (el) {
+                el.classList.toggle('d-none', el.dataset.when !== sel.value);
+            });
+        };
+        sel.addEventListener('change', sync);
+        sync();
+    });
+</script>
+</th:block>
 </body>
 </html>

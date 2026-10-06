@@ -1,0 +1,10 @@
+<a xmlns:th="http://www.thymeleaf.org" th:fragment="card(post, i)" class="card post-card h-100 text-reset" th:href="@{/posts/{s}(s=${post.slug})}">
+    <img th:if="${post.imageUrl() != null}" th:src="${post.imageUrl()}" th:alt="${post.title}" class="card-img-top" style="height:160px;object-fit:cover" loading="lazy">
+    <div th:unless="${post.imageUrl() != null}" th:class="'post-cover c' + ${i % 3}">
+        <i th:class="'bi ' + ${ {'bi-heart-pulse', 'bi-capsule', 'bi-activity'}[i % 3] }"></i></div>
+    <div class="card-body">
+        <div class="small text-muted mb-1"><i class="bi bi-calendar3 me-1"></i><th:block th:text="${@h.date(post.createdAt)}"/></div>
+        <h3 class="h6 fw-bold" th:text="${post.title}"></h3>
+        <p class="small text-muted mb-0" th:text="${post.summary}"></p>
+    </div>
+</a>

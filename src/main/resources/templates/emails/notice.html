@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<!--/* Email thông báo (MailService). Render ngoài request web nên không dùng bean @h - định dạng tiền bằng #numbers. */-->
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><title th:text="${subjectLine}"></title></head>
+<body style="margin:0;padding:0;background:#f3f6fb;font-family:Arial,Helvetica,sans-serif;color:#1d2433">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f6fb;padding:24px 0">
+    <tr><td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#fff;border-radius:12px;overflow:hidden">
+            <tr><td style="background:linear-gradient(90deg,#0b63e5,#36a3ff);background-color:#0b63e5;padding:20px 28px;color:#fff">
+                <div style="font-size:22px;font-weight:bold" th:text="${settings['store_name']} ?: 'VinaPharma'"></div>
+                <div style="font-size:13px;opacity:.9">Nhà thuốc trực tuyến đạt chuẩn GPP</div>
+            </td></tr>
+            <tr><td style="padding:28px">
+                <p style="font-size:16px;margin:0 0 12px" th:text="${greeting}"></p>
+                <p th:each="line : ${lines}" style="font-size:14px;line-height:1.6;margin:0 0 10px" th:text="${line}"></p>
+                <th:block th:if="${order != null}" th:with="disc=${order.discount + order.promoDiscount + order.pointsDiscount}">
+                    <table width="100%" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-size:13px;margin:16px 0">
+                        <tr style="background:#f3f6fb"><th align="left">Sản phẩm</th><th align="center">SL</th><th align="right">Thành tiền</th></tr>
+                        <tr th:each="it : ${order.items}" style="border-bottom:1px solid #eee">
+                            <td th:text="${it.productName}"></td>
+                            <td align="center" th:text="${it.quantity} + ' ' + ${it.unit}"></td>
+                            <td align="right" th:text="${#numbers.formatInteger(it.lineTotal(), 1, 'POINT')} + ' ₫'"></td>
+                        </tr>
+                        <tr><td colspan="2" align="right">Tạm tính</td><td align="right" th:text="${#numbers.formatInteger(order.subtotal, 1, 'POINT')} + ' ₫'"></td></tr>
+                        <tr th:if="${disc > 0}"><td colspan="2" align="right">Giảm giá</td><td align="right" th:text="'-' + ${#numbers.formatInteger(disc, 1, 'POINT')} + ' ₫'"></td></tr>
+                        <tr><td colspan="2" align="right">Phí giao hàng</td><td align="right" th:text="${#numbers.formatInteger(order.shippingFee, 1, 'POINT')} + ' ₫'"></td></tr>
+                        <tr><td colspan="2" align="right"><strong>Tổng cộng</strong></td><td align="right"><strong th:text="${#numbers.formatInteger(order.total, 1, 'POINT')} + ' ₫'"></strong></td></tr>
+                    </table>
+                    <p style="font-size:13px;color:#555;margin:0">Thanh toán: <th:block th:text="${order.paymentMethod.label} + ' · ' + ${order.paymentStatus.label}"/><br>
+                        Giao tới: <th:block th:text="${order.recipient} + ' - ' + ${order.phone} + (${order.address != null} ? ' - ' + ${order.address} : ' (nhận tại nhà thuốc)')"/></p>
+                </th:block>
+                <p th:if="${actionUrl != null}" style="margin:24px 0 8px"><a th:href="${actionUrl}" style="background:#0b63e5;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:bold;display:inline-block"
+                                                                          th:text="${actionText} ?: 'Xem chi tiết'"></a></p>
+            </td></tr>
+            <tr><td style="padding:16px 28px;background:#f8fafd;font-size:12px;color:#6c7a91">
+                <th:block th:text="${settings['store_address']} + ' · Hotline ' + ${settings['store_phone']} + ' · ' + ${settings['store_email']}"/><br>
+                Email được gửi tự động, vui lòng không trả lời email này.
+            </td></tr>
+        </table>
+    </td></tr>
+</table>
+</body>
+</html>

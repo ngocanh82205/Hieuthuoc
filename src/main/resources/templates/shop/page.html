@@ -1,37 +1,30 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head}"></head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/app :: layout(~{::content}, ~{})}">
 <body>
-<header th:replace="~{fragments/layout :: navbar}"></header>
-<main class="container py-4">
+<th:block th:fragment="content">
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb small">
             <li class="breadcrumb-item"><a th:href="@{/}">Trang chủ</a></li>
-            <li class="breadcrumb-item active" th:text="${page.title}">Trang</li>
+            <li class="breadcrumb-item active" th:text="${page.title}"></li>
         </ol>
     </nav>
     <div class="row g-4">
         <div class="col-lg-8">
             <article class="card static-page">
                 <div class="card-body p-4">
-                    <h1 class="h3 fw-bold mb-1" th:text="${page.title}">Tiêu đề</h1>
-                    <div class="small text-muted mb-3" th:if="${page.updatedAt != null}" th:text="'Cập nhật ' + ${@fmt.date(page.updatedAt)}"></div>
-                    <th:block th:each="para : ${page.paragraphs}">
-                        <h2 th:if="${#strings.startsWith(para, '## ')}" th:text="${para.substring(3)}"></h2>
-                        <ul th:if="${#strings.startsWith(para, '- ')}">
-                            <li th:each="li : ${para.split('\n')}" th:text="${#strings.startsWith(li.trim(), '- ') ? li.trim().substring(2) : li}"></li>
-                        </ul>
-                        <p th:unless="${#strings.startsWith(para, '## ') || #strings.startsWith(para, '- ')}" th:text="${para}" style="white-space: pre-line"></p>
-                    </th:block>
+                    <h1 class="h3 fw-bold mb-1" th:text="${page.title}"></h1>
+                    <div class="small text-muted mb-3" th:text="'Cập nhật ' + ${@h.date(page.updatedAt)}"></div>
+                    <div th:with="html=${@h.md(page.content)}" th:utext="${html}"></div>
                 </div>
             </article>
         </div>
         <div class="col-lg-4">
             <div class="card">
-                <div class="card-header">Thông tin & chính sách</div>
+                <div class="card-header">Thông tin &amp; chính sách</div>
                 <div class="list-group list-group-flush">
-                    <a th:each="pg : ${footerPages}" th:href="@{/pages/{s}(s=${pg.slug})}" class="list-group-item list-group-item-action"
-                       th:classappend="${pg.slug == page.slug} ? 'active'" th:text="${pg.title}"></a>
+                    <a th:each="pg : ${footerPages}" th:href="@{/pages/{s}(s=${pg.slug})}"
+                       th:class="'list-group-item list-group-item-action ' + (${pg.slug == page.slug} ? 'active' : '')" th:text="${pg.title}"></a>
+                    <a th:href="@{/faq}" class="list-group-item list-group-item-action">Câu hỏi thường gặp</a>
                 </div>
             </div>
             <div class="card mt-3">
@@ -45,8 +38,6 @@
             </div>
         </div>
     </div>
-</main>
-<footer th:replace="~{fragments/layout :: footer}"></footer>
-<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</th:block>
 </body>
 </html>

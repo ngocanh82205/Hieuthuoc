@@ -1,0 +1,41 @@
+<aside xmlns:th="http://www.thymeleaf.org" th:fragment="sidebar" class="staff-sidebar offcanvas-lg offcanvas-start" tabindex="-1" id="staffSidebar"
+       th:with="u=${currentUser}, groups=${@menu.groups(currentUser)}">
+    <div class="offcanvas-header d-lg-none">
+        <span class="fw-bold">Menu</span>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" data-bs-target="#staffSidebar" aria-label="Đóng"></button>
+    </div>
+    <div class="sidebar-inner">
+        <a th:href="@{${u.admin ? '/admin' : '/staff'}}" class="sidebar-brand"><th:block th:replace="~{partials/logo :: logo}"/></a>
+
+        <!--/* Admin: phần quản trị lên trước, nghiệp vụ dược sĩ xuống sau */-->
+        <th:block th:if="${u.admin}">
+            <div class="sidebar-label">Quản trị</div>
+            <nav class="nav flex-column">
+                <a th:class="'nav-link ' + ${@h.active('/admin')}" th:href="@{/admin}"><i class="bi bi-graph-up"></i>Bảng điều khiển</a>
+                <th:block th:each="key : ${ {'reports', 'catalog', 'users', 'marketing', 'system'} }" th:if="${groups.containsKey(key)}">
+                    <th:block th:replace="~{partials/sidebar :: navGroup(${groups.get(key)})}"/>
+                </th:block>
+            </nav>
+        </th:block>
+
+        <div class="sidebar-label">Dược sĩ / Nhân viên</div>
+        <nav class="nav flex-column">
+            <a th:class="'nav-link ' + ${@h.active('/staff')}" th:href="@{/staff}"><i class="bi bi-speedometer2"></i>Tổng quan</a>
+            <a th:if="${u.can('RX_REVIEW')}" th:class="'nav-link ' + ${@h.active('/staff/prescriptions', '/staff/prescriptions/**')}" th:href="@{/staff/prescriptions}"><i class="bi bi-file-earmark-medical"></i>Duyệt đơn thuốc</a>
+            <th:block th:if="${u.can('POS')}">
+                <a th:class="'nav-link ' + (${@h.is('/staff/pos', '/staff/pos/**') and !@h.is('/staff/pos/history', '/staff/pos/bills/**')} ? 'active' : '')" th:href="@{/staff/pos}"><i class="bi bi-shop-window"></i>Bán tại quầy (POS)</a>
+                <a th:class="'nav-link ' + ${@h.active('/staff/pos/history', '/staff/pos/bills/**')}" th:href="@{/staff/pos/history}"><i class="bi bi-clock-history"></i>Lịch sử bán tại quầy</a>
+            </th:block>
+            <a th:if="${u.can('ORDER')}" th:class="'nav-link ' + ${@h.active('/staff/orders', '/staff/orders/**')}" th:href="@{/staff/orders}"><i class="bi bi-receipt"></i>Đơn hàng</a>
+            <th:block th:each="key : ${ {'care', 'stock', 'content'} }" th:if="${groups.containsKey(key)}">
+                <th:block th:replace="~{partials/sidebar :: navGroup(${groups.get(key)})}"/>
+            </th:block>
+        </nav>
+    </div>
+</aside>
+
+<!--/* Một nhóm chức năng: chỉ hiện 1 link tới trang đầu tiên của nhóm; các trang còn lại chuyển qua thanh tab đầu trang (section-tabs). */-->
+<a th:fragment="navGroup(group)" th:with="first=${group.items[0]}, single=${group.items.size() == 1}"
+   th:class="'nav-link ' + (${@menu.isOpen(group)} ? 'active' : '')" th:href="@{${first.url}}">
+    <i th:class="'bi ' + (${single} ? ${first.icon} : ${group.icon})"></i><th:block th:text="${single} ? ${first.label} : ${group.label}"/>
+</a>

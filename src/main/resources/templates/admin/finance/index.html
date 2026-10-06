@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/admin :: layout(~{::content}, ~{})}">
+<body>
+<th:block th:fragment="content">
+    <th:block th:replace="~{admin/finance/_filter :: filter('/admin/finance')}"/>
+    <div class="row g-3 mb-4" th:with="tx='/admin/finance/transactions', all=${@h.pathQuery('/admin/finance/transactions')},
+            paidUrl=${@h.pathQuery('/admin/finance/transactions', 'status', 'PAID')}, unpaidUrl=${@h.pathQuery('/admin/finance/transactions', 'status', 'UNPAID')},
+            v1=${@h.money(stats['gross'])}, v2=${@h.money(stats['paid'])}, v3=${@h.money(stats['cod_pending'])}, v4=${@h.money(stats['unpaid'])},
+            v5=${@h.money(stats['refund_pending'])}, v6=${@h.money(stats['refunded'])}">
+        <th:block th:replace="~{staff/_parts :: stat(${all}, 'blue', 'bi-receipt', ${v1}, 'Giá trị đơn hàng (' + ${stats['orders']} + ' đơn)')}"/>
+        <th:block th:replace="~{staff/_parts :: stat(${paidUrl}, 'green', 'bi-cash-stack', ${v2}, 'Đã thu (' + ${stats['paid_count']} + ' đơn)')}"/>
+        <th:block th:replace="~{staff/_parts :: stat('/admin/finance/transactions?method=COD&amp;status=UNPAID', 'amber', 'bi-truck', ${v3}, 'COD chờ thu')}"/>
+        <th:block th:replace="~{staff/_parts :: stat(${unpaidUrl}, 'violet', 'bi-hourglass-split', ${v4}, 'Chưa thanh toán (đơn còn hiệu lực)')}"/>
+        <th:block th:replace="~{staff/_parts :: stat('/admin/refunds', 'red', 'bi-arrow-counterclockwise', ${v5}, 'Chờ hoàn tiền')}"/>
+        <th:block th:replace="~{staff/_parts :: stat('/admin/finance/transactions?status=REFUNDED', 'blue', 'bi-cash-coin', ${v6}, 'Đã hoàn tiền')}"/>
+        <th:block th:replace="~{staff/_parts :: stat(${tx}, 'green', 'bi-check2-circle', ${stats['tx_success']}, 'Giao dịch thành công')}"/>
+        <th:block th:replace="~{staff/_parts :: stat(${tx}, 'red', 'bi-x-octagon', ${stats['tx_failed']}, 'Giao dịch thất bại / hủy')}"/>
+    </div>
+    <div class="row g-4">
+        <div class="col-xl-5">
+            <div class="card h-100"><div class="card-header">Đã thu theo phương thức thanh toán</div>
+                <table class="table mb-0"><thead><tr><th>Phương thức</th><th class="text-end">Số đơn</th><th class="text-end">Số tiền</th></tr></thead><tbody>
+                    <tr th:each="e : ${byMethod}"><td th:text="${e.key.label}"></td><td class="text-end" th:text="${e.value[0]}"></td><td class="text-end" th:text="${@h.money(e.value[1])}"></td></tr>
+                    <tr th:if="${byMethod.isEmpty()}"><td colspan="3" class="text-muted">Chưa có dữ liệu.</td></tr>
+                </tbody></table>
+                <div class="card-header border-top">Giao dịch theo cổng</div>
+                <table class="table table-sm mb-0 small"><thead><tr><th>Cổng</th><th>Trạng thái</th><th class="text-end">Số GD</th><th class="text-end">Số tiền</th></tr></thead><tbody>
+                    <th:block th:each="g : ${byGateway}">
+                        <tr th:each="row : ${g.value}"><td th:text="${gatewayLabels[g.key]}"></td><td th:text="${statusLabels[row.key]}"></td>
+                            <td class="text-end" th:text="${row.value[0]}"></td><td class="text-end" th:text="${@h.money(row.value[1])}"></td></tr>
+                    </th:block>
+                </tbody></table>
+            </div>
+        </div>
+        <div class="col-xl-7">
+            <div class="card h-100"><div class="card-header d-flex justify-content-between">Giao dịch gần đây <a th:href="@{/admin/finance/transactions}" class="small">Xem tất cả</a></div>
+                <div class="table-responsive"><table class="table table-sm mb-0 small">
+                    <thead><tr><th>Thời gian</th><th>Đơn</th><th>Cổng</th><th class="text-end">Số tiền</th><th>Trạng thái</th></tr></thead><tbody>
+                    <tr th:each="t : ${recent}"><td th:text="${@h.dt(t.createdAt)}"></td><td><a th:href="@{/staff/orders/{id}(id=${t.order.id})}" th:text="${t.order.code}"></a></td>
+                        <td th:text="${t.gatewayLabel()} + (${t.type == 'REFUND'} ? ' (hoàn)' : '')"></td><td class="text-end" th:text="${@h.money(t.amountValue())}"></td>
+                        <td><span th:class="'badge text-bg-' + ${t.statusColor()}" th:text="${t.statusLabel()}"></span></td></tr>
+                </tbody></table></div></div>
+        </div>
+    </div>
+</th:block>
+</body>
+</html>

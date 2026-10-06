@@ -1,40 +1,31 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head}"></head>
-<body class="staff-body">
-<div class="staff-shell">
-    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
-    <div class="staff-main">
-        <header th:replace="~{fragments/staff :: topbar}"></header>
-        <main class="p-3 p-lg-4">
-            <div th:replace="~{fragments/layout :: flash}"></div>
-            <form class="card card-body mb-3 d-flex flex-row gap-2" method="get" th:action="@{/admin/customers}">
-                <input name="q" class="form-control" th:value="${q}" placeholder="Tìm theo tên, email, số điện thoại">
-                <button class="btn btn-primary">Tìm</button>
-            </form>
-            <div class="card">
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead><tr><th>Khách hàng</th><th>Liên hệ</th><th>Ngày đăng ký</th><th class="text-end">Số đơn</th><th class="text-end">Đã chi tiêu</th><th class="text-end">Điểm</th><th>Trạng thái</th></tr></thead>
-                        <tbody>
-                        <tr th:if="${page.empty}"><td colspan="7" class="text-center text-muted py-4">Không có khách hàng.</td></tr>
-                        <tr th:each="c : ${page.content}">
-                            <td><a class="fw-semibold" th:href="@{/admin/customers/{id}(id=${c.id})}" th:text="${c.fullName}"></a></td>
-                            <td class="small" th:text="${c.phone} + (${c.email != null} ? ' · ' + ${c.email} : '')"></td>
-                            <td class="small" th:text="${@fmt.date(c.createdAt)}"></td>
-                            <td class="text-end" th:text="${orders[c.id]}"></td>
-                            <td class="text-end" th:text="${@fmt.money(spent[c.id])}"></td>
-                            <td class="text-end" th:text="${c.points}"></td>
-                            <td><span class="badge" th:classappend="${c.locked} ? 'text-bg-danger' : 'text-bg-success'" th:text="${c.locked} ? 'Đã khóa' : 'Hoạt động'"></span></td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <nav th:replace="~{fragments/layout :: pagination(${page})}"></nav>
-        </main>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/admin :: layout(~{::content}, ~{})}">
+<body>
+<th:block th:fragment="content">
+    <form class="d-flex gap-2 mb-3" method="get" th:action="@{/admin/customers}" style="max-width: 480px">
+        <input name="q" th:value="${q}" class="form-control" placeholder="Tên, email, số điện thoại" aria-label="Tìm khách hàng">
+        <button class="btn btn-primary" aria-label="Tìm"><i class="bi bi-search"></i></button>
+    </form>
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead><tr><th>Khách hàng</th><th>Liên hệ</th><th class="text-end">Số đơn</th><th class="text-end">Đã chi tiêu</th><th>Hạng / điểm</th><th>Đăng ký</th><th></th></tr></thead>
+                <tbody>
+                <tr th:each="u : ${page.items}" th:with="tier=${tiers.get(u.id)}" th:class="${u.locked} ? 'text-muted' : ''">
+                    <td class="fw-semibold"><th:block th:text="${u.fullName}"/> <i th:if="${u.googleId != null}" class="bi bi-google small text-muted" title="Đăng nhập Google"></i>
+                        <span th:if="${u.locked}" class="badge text-bg-secondary">Khóa</span></td>
+                    <td class="small"><th:block th:text="${u.phone}"/><div th:text="${u.email}"></div></td>
+                    <td class="text-end" th:text="${orders.getOrDefault(u.id, 0L)}"></td><td class="text-end" th:text="${@h.money(spent.getOrDefault(u.id, 0L))}"></td>
+                    <td><span class="badge rounded-pill" th:style="'background: ' + ${tier.color}" th:text="${tier.label}"></span> <span class="small" th:text="${@h.num(u.points)} + ' đ'"></span></td>
+                    <td class="small" th:text="${@h.date(u.createdAt)}"></td>
+                    <td><a th:href="@{/admin/customers/{id}(id=${u.id})}" class="btn btn-sm btn-outline-primary">Chi tiết</a></td>
+                </tr>
+                <tr th:if="${page.isEmpty()}"><td colspan="7" class="text-center text-muted py-4">Không có khách hàng.</td></tr>
+                </tbody>
+            </table>
+        </div>
     </div>
-</div>
-<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+    <div class="mt-3"><th:block th:replace="~{partials/pagination :: links(${page})}"/></div>
+</th:block>
 </body>
 </html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="staff-body">
+<div class="staff-shell">
+    <aside th:replace="~{fragments/staff :: sidebar}"></aside>
+    <div class="staff-main">
+        <header th:replace="~{fragments/staff :: topbar}"></header>
+        <main class="p-3 p-lg-4">
+            <div th:replace="~{fragments/layout :: flash}"></div>
+            <form th:action="@{/staff/receipts}" method="post" class="card">
+                <div class="card-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-5"><label class="form-label">Nhà cung cấp</label>
+                            <select name="supplierId" class="form-select">
+                                <option value="">-- Chọn --</option>
+                                <option th:each="s : ${suppliers}" th:value="${s.id}" th:text="${s.name}"></option>
+                            </select></div>
+                        <div class="col-md-3"><label class="form-label">Kho nhận</label>
+                            <select name="warehouseId" class="form-select">
+                                <option th:each="w : ${warehouses}" th:value="${w.id}" th:text="${w.name}"></option>
+                            </select></div>
+                        <div class="col-md-4"><label class="form-label">Ghi chú</label><input name="note" class="form-control" maxlength="500"></div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle">
+                            <thead><tr><th style="min-width: 220px">Sản phẩm</th><th>Số lô</th><th>Ngày SX</th><th>Hạn dùng</th><th>Số lượng</th><th>Giá nhập (đ)</th><th></th></tr></thead>
+                            <tbody id="receiptRows">
+                            <tr>
+                                <td><select name="rows[0].productId" class="form-select form-select-sm" required>
+                                    <option value="">-- Chọn sản phẩm --</option>
+                                    <option th:each="p : ${products}" th:value="${p.id}" th:text="${p.name} + ' (' + ${p.unit} + ')'"></option></select></td>
+                                <td><input name="rows[0].batchNo" class="form-control form-control-sm" required></td>
+                                <td><input type="date" name="rows[0].mfgDate" class="form-control form-control-sm"></td>
+                                <td><input type="date" name="rows[0].expDate" class="form-control form-control-sm" required></td>
+                                <td><input type="number" min="1" name="rows[0].quantity" class="form-control form-control-sm" required style="width: 90px"></td>
+                                <td><input type="number" min="0" name="rows[0].importPrice" class="form-control form-control-sm" style="width: 120px"></td>
+                                <td><button type="button" class="btn btn-sm btn-link text-danger js-remove-row"><i class="bi bi-x-lg"></i></button></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <template id="receiptRowTemplate">
+                        <tr>
+                            <td><select name="rows[__i__].productId" class="form-select form-select-sm">
+                                <option value="">-- Chọn sản phẩm --</option>
+                                <option th:each="p : ${products}" th:value="${p.id}" th:text="${p.name} + ' (' + ${p.unit} + ')'"></option></select></td>
+                            <td><input name="rows[__i__].batchNo" class="form-control form-control-sm"></td>
+                            <td><input type="date" name="rows[__i__].mfgDate" class="form-control form-control-sm"></td>
+                            <td><input type="date" name="rows[__i__].expDate" class="form-control form-control-sm"></td>
+                            <td><input type="number" min="1" name="rows[__i__].quantity" class="form-control form-control-sm" style="width: 90px"></td>
+                            <td><input type="number" min="0" name="rows[__i__].importPrice" class="form-control form-control-sm" style="width: 120px"></td>
+                            <td><button type="button" class="btn btn-sm btn-link text-danger js-remove-row"><i class="bi bi-x-lg"></i></button></td>
+                        </tr>
+                    </template>
+                    <button type="button" id="addReceiptRow" class="btn btn-sm btn-outline-secondary"><i class="bi bi-plus"></i> Thêm dòng</button>
+                </div>
+                <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+                    <span class="small text-muted">Phiếu nhập cần admin duyệt thì hàng mới được đưa vào kho.</span>
+                    <button class="btn btn-primary">Lưu phiếu nhập</button>
+                </div>
+            </form>
+        </main>
+    </div>
+</div>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

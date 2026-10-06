@@ -2,70 +2,64 @@ package com.hieuthuoc.entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-/** Phiếu hủy thuốc / điều chỉnh kiểm kê trên một lô. */
+/** Phiếu điều chỉnh / hủy hàng của một lô (quantity âm = giảm). */
 @Entity
 @Table(name = "stock_adjustments")
 @Getter
 @Setter
 @NoArgsConstructor
-public class StockAdjustment {
+public class StockAdjustment extends Timestamped {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "batch_id")
     private Batch batch;
 
+    @Column(nullable = false)
     private int quantity;
 
     @Column(length = 300)
     private String reason;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
     private User user;
 
-    /** Loại phiếu: WRITE_OFF (hủy thuốc), STOCKTAKE (điều chỉnh kiểm kê), RETURN_SCRAP (hàng trả chuyển kho hủy), MANUAL. */
-    @Column(length = 20)
+    /** MANUAL, WRITE_OFF, STOCKTAKE, RETURN_SCRAP, RECALL. */
+    @Column(nullable = false, length = 20)
     private String type = "MANUAL";
 
-    /** Trạng thái duyệt; null = phiếu cũ (coi như đã duyệt). Phiếu chờ duyệt chưa làm thay đổi tồn kho. */
     @Enumerated(EnumType.STRING)
-    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.VARCHAR)
-    @Column(length = 20)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(nullable = false, length = 20)
     private ApprovalStatus status = ApprovalStatus.APPROVED;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    private User approvedBy;
+    @JoinColumn(name = "approved_by")
+    private User approver;
 
+    @Column(name = "approved_at")
     private LocalDateTime approvedAt;
 
-    @Column(length = 300)
+    @Column(name = "reject_reason", length = 300)
     private String rejectReason;
 
-    @Column(nullable = false)
-    private LocalDateTime createdAt;
-
-    public ApprovalStatus getStatusValue() {
-        return status == null ? ApprovalStatus.APPROVED : status;
-    }
-
-    public String getTypeLabel() {
-        return switch (type == null ? "MANUAL" : type) {
+    public String typeLabel() {
+        return switch (type == null ? "" : type) {
             case "WRITE_OFF" -> "Phiếu hủy";
             case "STOCKTAKE" -> "Điều chỉnh kiểm kê";
             case "RETURN_SCRAP" -> "Hàng trả - kho hủy";
+            case "RECALL" -> "Thu hồi";
             default -> "Điều chỉnh";
         };
-    }
-
-    @PrePersist
-    void prePersist() {
-        if (createdAt == null) createdAt = LocalDateTime.now();
     }
 }
