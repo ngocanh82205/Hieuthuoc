@@ -27,7 +27,8 @@ public class Review extends Timestamped {
     @JoinColumn(name = "order_id")
     private Order order;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "tinyint unsigned")
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.TINYINT)
     private int rating;
 
     @Column(length = 1000)
