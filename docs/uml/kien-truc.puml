@@ -1,0 +1,50 @@
+@startuml kien-truc
+!pragma layout smetana
+!include _style.iuml
+skinparam componentStyle rectangle
+skinparam ComponentBorderColor #1f4e79
+skinparam ComponentBackgroundColor #eaf3fb
+skinparam NodeBorderColor #1f4e79
+skinparam DatabaseBorderColor #1f4e79
+caption Kiến trúc tổng thể hệ thống VinaPharma
+actor "Khách hàng" as C
+actor "Dược sĩ /\nQuản trị viên" as S
+
+node "Tầng Client" {
+  [Web Client\n(React SPA)] as WC
+  [Cổng quản trị nội bộ\n(Thymeleaf)] as PORTAL
+}
+
+node "VinaPharma Backend Service (Spring Boot)" {
+  [Security\n(JWT filter, RBAC)] as SEC
+  [REST Controller\n/api/v1/**] as API
+  [Service\n(nghiệp vụ, quy tắc BR)] as SVC
+  [Repository\n(Spring Data JPA)] as REPO
+  [Scheduler\n(nhắc lịch, sao lưu)] as SCH
+  [File Storage\n(ảnh đơn thuốc riêng tư)] as FS
+}
+
+node "ChatBot Service (Spring Boot)" {
+  [Chatbot API\n/chatbot/v1/replies] as BOT
+}
+
+database "MySQL" as DB
+cloud "Claude API\n(Anthropic)" as LLM
+cloud "Cổng thanh toán\n(VNPay / MoMo / VietQR)" as PG
+cloud "Đơn vị vận chuyển" as SH
+
+C --> WC
+S --> PORTAL
+WC --> SEC : HTTPS + JSON\n(Bearer JWT)
+SEC --> API
+PORTAL --> SVC
+API --> SVC
+SVC --> REPO
+REPO --> DB
+SVC --> FS
+SCH --> SVC
+SVC --> BOT : REST (JSON)
+BOT --> LLM : HTTPS
+SVC ..> PG : chuyển hướng / kết quả
+SVC ..> SH : mã vận đơn
+@enduml

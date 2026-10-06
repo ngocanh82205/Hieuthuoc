@@ -1,0 +1,34 @@
+@startuml sd-dang-nhap
+!include _style.iuml
+autonumber
+title Sơ đồ tuần tự - Đăng nhập
+actor "Người dùng" as U
+boundary "Web Client\n(React)" as UI
+control "AuthApiController" as AC
+control "AuthenticationManager\n(Spring Security)" as AM
+control "JwtService" as JS
+database "CSDL" as DB
+
+U -> UI : Nhập email / SĐT và mật khẩu, bấm "Đăng nhập"
+UI -> AC : POST /api/v1/auth/login\n{username, password}
+AC -> AM : authenticate(username, password)
+AM -> DB : Tìm người dùng theo email hoặc SĐT
+DB --> AM : Thông tin tài khoản (mật khẩu đã băm, vai trò, trạng thái)
+AM -> AM : So khớp mật khẩu (BCrypt)
+alt Sai tài khoản hoặc mật khẩu
+  AM --> AC : BadCredentialsException
+  AC --> UI : 401 Unauthorized
+  UI --> U : "Sai tài khoản hoặc mật khẩu"
+else Tài khoản bị khóa
+  AM --> AC : LockedException
+  AC --> UI : 403 Forbidden
+  UI --> U : "Tài khoản đã bị khóa"
+else Hợp lệ
+  AM --> AC : Người dùng đã xác thực
+  AC -> JS : Sinh JWT (id, vai trò, quyền, hạn dùng)
+  JS --> AC : token
+  AC --> UI : 200 OK {token, user}
+  UI -> UI : Lưu token, gắn vào header Authorization
+  UI --> U : Chuyển tới trang theo vai trò
+end
+@enduml

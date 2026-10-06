@@ -3,8 +3,8 @@
 autonumber
 title Sơ đồ tuần tự - Thanh toán và giao hàng
 actor "Khách hàng" as C
-boundary "Trang đơn hàng /\nthanh toán" as UI
-control "AccountController" as AC
+boundary "Web Client\n(React)" as UI
+control "PaymentApiController" as AC
 control "OrderService" as OS
 participant "Cổng thanh toán\n(VNPay / MoMo)" as PG
 participant "Ngân hàng\n(VietQR)" as BANK
@@ -15,24 +15,24 @@ database "CSDL" as DB
 == Thanh toán trước (sau khi đặt hàng và đơn thuốc đã được duyệt nếu có) ==
 alt Thanh toán online
   C -> UI : Chọn "Thanh toán online"
-  UI -> AC : GET /account/orders/{code}/pay
+  UI -> AC : POST /api/v1/orders/{code}/payments
   AC -> OS : canPay(đơn)? (chưa thanh toán,\nkhông chờ duyệt đơn thuốc - BR22)
-  AC --> UI : Chuyển tới cổng thanh toán
+  AC --> UI : 201 {paymentUrl}
   UI -> PG : Yêu cầu thanh toán (mã đơn, số tiền)
   C -> PG : Xác nhận thanh toán
-  PG --> AC : Kết quả giao dịch (thành công / thất bại - BR21)
+  PG --> AC : Callback kết quả giao dịch (thành công / thất bại - BR21)
   alt Thành công
     AC -> OS : pay(đơn, thành công)
     OS -> DB : Trạng thái thanh toán = Đã thanh toán,\nghi lịch sử đơn
-    AC --> UI : "Thanh toán thành công"
+    AC --> UI : Chuyển về trang đơn:\npaymentStatus = PAID
   else Thất bại / hủy
-    AC --> UI : Báo lỗi, cho thanh toán lại
+    AC --> UI : paymentStatus = UNPAID,\ncho thanh toán lại
   end
 else Chuyển khoản VietQR
   UI --> C : Mã QR (ngân hàng, số TK,\nsố tiền, nội dung = mã đơn)
   C -> BANK : Chuyển khoản
   P -> BANK : Đối soát sao kê (BR21)
-  P -> OS : markPaid(đơn)
+  P -> OS : markPaid(đơn)\n(cổng quản trị)
   OS -> DB : Đã thanh toán, thông báo khách
 end
 
